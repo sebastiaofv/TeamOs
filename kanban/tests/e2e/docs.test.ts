@@ -42,7 +42,7 @@ test.describe('in-app documentation', () => {
     await expect(page).toHaveURL(url);
     await toggle(page).click();
 
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Alpha');
+    await expect(page.locator('.header-project-picker')).toContainText('Alpha');
     await expect(page.getByRole('button', { name: 'Functional', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await expect(page).toHaveURL(url);
 

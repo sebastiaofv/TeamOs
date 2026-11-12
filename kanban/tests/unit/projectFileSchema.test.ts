@@ -55,6 +55,24 @@ describe('project file schema', () => {
         checklist: [], pullRequests: [], attachments: [], acceptanceCriteria: '', createdAt: '2026-01-01T00:00:00.000Z', updatedAt: '2026-01-01T00:00:00.000Z'
     });
 
+    it('preserves unknown fields and nested extension values without coercing or mutating input', () => {
+        const extra = { nested: ['preserve', { value: 1 }] };
+        const value = { ...story(), vendorExtension: extra };
+        const before = JSON.stringify(value);
+        assertWorkitemFile(value);
+        expect(JSON.stringify(value)).toBe(before);
+        expect(value.vendorExtension).toBe(extra);
+        expect(() => assertWorkitemFile({ ...story(), id: '1' })).toThrow('malformed');
+        expect(() => assertWorkitemFile({ ...story(), blocked: 'false' })).toThrow('malformed');
+    });
+
+    it.each(['effort', 'parentId', 'sprintId', 'statusChangedAt', 'storyPoints', 'acceptanceCriteria'])('distinguishes an absent optional %s from present undefined', field => {
+        const value: Record<string, unknown> = story();
+        delete value[field];
+        expect(() => assertWorkitemFile(value)).not.toThrow();
+        expect(() => assertWorkitemFile({ ...value, [field]: undefined })).toThrow('malformed');
+    });
+
     it.each([
         ['a responsible who is not an assignee', { responsibleId: 'm2' }, 'malformed'],
         ['a planning id without explicit mode', { phaseId: 'p1' }, 'phaseId, which does not apply'],

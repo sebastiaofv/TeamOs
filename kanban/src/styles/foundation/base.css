@@ -35,12 +35,12 @@
     --accent-contrast: #ffffff;
     --focus-ring: #0052a3;
     --priority-high: #cc3300;
-    --priority-medium: #cc9900;
-    --priority-low: #009900;
-    --effort-xs: #009900;
-    --effort-s: #4caf50;
-    --effort-m: #cc9900;
-    --effort-l: #e67300;
+    --priority-medium: #795700;
+    --priority-low: #006f00;
+    --effort-xs: #006f00;
+    --effort-s: #236c28;
+    --effort-m: #795700;
+    --effort-l: #a34d00;
     --effort-xl: #cc3300;
 }
 
@@ -101,7 +101,7 @@ a {
     -webkit-tap-highlight-color: transparent;
 }
 
-:where(button, input, select, textarea, a, [tabindex]:not([tabindex="-1"])):focus-visible {
+:where(button, input, select, textarea, a, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
 }

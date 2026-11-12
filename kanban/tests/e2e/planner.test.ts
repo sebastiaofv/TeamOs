@@ -111,7 +111,7 @@ test.describe('day planner', () => {
     // 10:00 is 12 slots of 24px below 07:00; aim inside that slot.
     await dragWithMouse(page, card, day, { targetPosition: { x: 40, y: 12 * 24 + 6 } });
 
-    await expect(day.locator('.planner-block')).toHaveAttribute('aria-label', /10:00 to 10:15/);
+    await expect(day.locator('.planner-block')).toHaveAttribute('aria-label', /10:00–10:15/);
     await waitForBoardWrites(page);
     const saved = await readSavedBoard(page, 'alpha');
     expect(saved.extensions.dayPlanner.blocks).toEqual([
@@ -182,6 +182,8 @@ test.describe('day planner', () => {
   test('keyboard moves, resizes and deletes a block, and undo restores it', async ({ page }) => {
     const { block } = await openPlannerWithBlock(page);
     await block.focus();
+    await page.keyboard.press('Space');
+    await expect(block).toHaveClass(/selected/);
     await page.keyboard.press('ArrowDown');
     await expect(block).toContainText('09:15–10:15');
     await page.keyboard.press('Shift+ArrowDown');

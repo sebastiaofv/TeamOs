@@ -27,7 +27,7 @@ for (const kind of kinds) test(`${labels[kind]} paginates, selects by page, filt
     await expect(page.locator('.portfolio-control .table-counts')).toContainText('30 of 60 records');
     await expect(page.locator('.portfolio-control .table-pagination')).toContainText('Page 1 of 2');
     await expect(page.locator(`#portfolioFiltersBtn-${scope}`)).toHaveAccessibleName('Filters, 1 active');
-    await page.locator(`#tableColumns-${scope} summary`).click();
+    await page.locator(`#tableColumns-${scope} > button`).click();
     await page.locator(`.table-column-panel [data-column-choice="status"]`).getByRole('button', { name: /^Hide / }).click();
     await page.keyboard.press('Escape');
     await expect(table(page).locator('th[data-column=status]')).toHaveCount(0);
@@ -59,7 +59,7 @@ for (const kind of kinds) test(`${labels[kind]} paginates, selects by page, filt
 
 test('column preferences are scoped per control type, persist across reload and leave All columns independent', async ({ page }) => {
     await seed(page);
-    await page.locator('#tableColumns-control-risks summary').click();
+    await page.locator('#tableColumns-control-risks > button').click();
     await expect(page.locator('#tableColumns-control-risks [data-column-choice=id] .table-column-lock')).toBeVisible();
     await expect(page.locator('#tableColumns-control-risks [data-column-choice=title] .table-column-lock')).toBeVisible();
     await page.locator('.table-column-panel [data-column-choice="owner"]').getByRole('button', { name: /^Hide / }).click();
@@ -81,7 +81,7 @@ test('column preferences are scoped per control type, persist across reload and 
     await seed(page);
     expect(await page.evaluate(key => localStorage.getItem(key), preferenceKey)).toBe(columns);
     await expect(table(page).locator('th[data-column=owner]')).toHaveCount(0);
-    await page.locator('#tableColumns-control-risks summary').click();
+    await page.locator('#tableColumns-control-risks > button').click();
     await page.getByRole('button', { name: 'Reset to default', exact: true }).click();
     await page.keyboard.press('Escape');
     await expect(table(page).locator('th[data-column=owner]')).toHaveCount(1);
@@ -102,13 +102,13 @@ test('read-only consultation supports localized date filters, active tags and ke
     await expect(page.locator('.portfolio-control .portfolio-active-filters')).toContainText('25/10/2026');
     await expect(table(page).locator('tbody tr')).toHaveCount(2);
     await expect(page.getByRole('button', { name: 'Novo registo', exact: true })).toBeDisabled();
-    await page.locator('#tableColumns-control-decisions summary').click();
+    await page.locator('#tableColumns-control-decisions > button').click();
     const chooser = page.locator('.portfolio-control .table-column-panel');
     const box = await chooser.boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(320);
     await page.keyboard.press('Escape');
-    await expect(page.locator('#tableColumns-control-decisions summary')).toBeFocused();
+    await expect(page.locator('#tableColumns-control-decisions > button')).toBeFocused();
     await table(page).locator('tbody input').first().check();
     await page.getByRole('button', { name: 'Choose supported runtime', exact: true }).click();
     await expect(page.locator('.control-modal').getByRole('button', { name: 'Editar', exact: true })).toHaveCount(0);

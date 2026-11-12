@@ -116,7 +116,7 @@ test('theme changes keep the selected view, URL filters and project file intact'
     await chooseTheme(page, 'Modern');
     await toggleTheme(page);
     await expect(page.getByRole('button', { name: 'Table', exact: true })).toHaveAttribute('aria-pressed', 'true');
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Theme project');
+    await expect(page.locator('.header-project-picker')).toContainText('Theme project');
     await expect(page).toHaveURL(url);
     await expect(page.locator('#workitemsTable')).toContainText('Original task');
     expect(await readSavedBoard(page, 'p1')).toEqual(original);

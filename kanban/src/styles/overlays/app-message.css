@@ -23,7 +23,7 @@
 
 .btn-danger {
     background: var(--priority-high);
-    color: white;
+    color: var(--bg-card);
     border-color: var(--priority-high);
 }
 

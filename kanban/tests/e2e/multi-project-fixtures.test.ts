@@ -9,7 +9,9 @@ test('manual US-12 projects import together and preserve types, states and repea
         fileName, payload: JSON.parse(readFileSync(`tests/fixtures/manual/${fileName}`, 'utf8'))
     })));
     await page.locator('#importProjectsBtn').click();
+    await openProjectPicker(page);
     await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
+    await page.keyboard.press('Escape');
     await openProjectPicker(page); await page.locator('#portfolioBoardsChips').getByRole('button', { name: 'All', exact: true }).click();
     await expect(page.locator('.portfolio-task-card')).toHaveCount(14);
     await expect(page.locator('.portfolio-column')).toHaveCount(4);

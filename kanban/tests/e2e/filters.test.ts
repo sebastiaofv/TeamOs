@@ -131,7 +131,7 @@ test.describe('filters and sort', () => {
     await expect(page.locator('#portfolioSearchInput')).toHaveValue('task');
     await openFiltersPanel(page);
     await expect(page.locator('#portfolioPriorityFilter')).toHaveValue('high');
-    await expect(page.locator('#portfolioBoardsChips .portfolio-chip.active')).toContainText('Bravo Project');
+    await expect(page.locator('#projectPickerBtn')).toContainText('Bravo Project');
     expect(new URL(page.url()).searchParams.get('pb')).toBeTruthy();
   });
 
@@ -276,11 +276,11 @@ test.describe('filters and sort', () => {
 
     await page.keyboard.press('Escape');
     await page.keyboard.press('BracketRight');
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Project One');
+    await expect(page.locator('.header-project-picker')).toContainText('Project One');
     await page.keyboard.press('BracketRight');
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Project Two');
+    await expect(page.locator('.header-project-picker')).toContainText('Project Two');
     await page.keyboard.press('BracketLeft');
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Project One');
+    await expect(page.locator('.header-project-picker')).toContainText('Project One');
   });
 
   test('portfolio score sort orders cards in board columns', async ({ page }) => {
