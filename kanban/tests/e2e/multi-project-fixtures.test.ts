@@ -6,7 +6,7 @@ test('manual US-12 projects import together and preserve types, states and repea
     await page.clock.setFixedTime('2026-10-28T12:00:00.000Z');
     await gotoApp(page);
     await mockImportProjectsPicker(page, ['us-12.board.json', 'us-12-support.board.json'].map((fileName) => ({
-        fileName, payload: JSON.parse(readFileSync(`test-board/${fileName}`, 'utf8'))
+        fileName, payload: JSON.parse(readFileSync(`tests/fixtures/manual/${fileName}`, 'utf8'))
     })));
     await page.locator('#importProjectsBtn').click();
     await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);

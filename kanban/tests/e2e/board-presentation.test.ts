@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 
 
 test('all workflow states are regular columns and cards/details keep their original presentation', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await expect(page.locator('.portfolio-column')).toHaveCount(9);
@@ -101,7 +101,7 @@ test('restored cards and edit/detail surfaces use the existing theme', async ({ 
 });
 
 test('column visibility is stored in the project JSON and restored on reopen without changing tasks', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await openFiltersPanel(page);

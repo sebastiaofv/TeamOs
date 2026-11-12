@@ -102,7 +102,7 @@ test('edit and creation forms keep Pull Requests exclusively in the dedicated de
 });
 
 test('historical and read-only details expose safe links but no mutation controls; restore rolls associations back', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-8.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-8.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await showTimeline(page);

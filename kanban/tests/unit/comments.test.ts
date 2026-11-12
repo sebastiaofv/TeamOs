@@ -14,7 +14,7 @@ import { allConversationDrafts, discardConversationDraft, getConversationDraft, 
 import type { BoardData } from '../../src/domain/types';
 
 const stamp = '2026-10-19T10:00:00.000Z';
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-7.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-7.board.json', 'utf8'));
 const input = (id = 'c1'): CommentInput => ({ id, author: 'Explicit Ana', text: 'First line\nSecond @Bruno https://example.test/path', images: [] });
 function setup() {
     const data = createEmptyProjectData('Conversation');

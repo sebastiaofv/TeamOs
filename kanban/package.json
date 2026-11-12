@@ -16,7 +16,8 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "prepare": "cd .. && husky kanban/.husky"
+    "prepare": "cd .. && husky kanban/.husky",
+    "example:generate": "node scripts/example-project/generate.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

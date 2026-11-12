@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, toggleTheme } from '../support/portfolio';
 
 // Keep the multi-decade regression independent of the manual fixture's realistic dates.
-const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-12.board.json', 'utf8'));
 fixture.extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'checkout').endDate = '2099-12-31';
 fixture.extensions.roadmap.milestones.find((milestone: { id: string }) => milestone.id === 'release').dueDate = '2099-12-31';
 

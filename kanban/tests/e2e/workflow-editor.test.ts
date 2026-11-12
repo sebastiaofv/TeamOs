@@ -4,7 +4,7 @@ import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, openPro
 
 async function openWorkflow(page: Page, readOnly = false) {
     await gotoApp(page);
-    const fixture = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: !readOnly, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await openProjectSettingsFromPicker(page);
     await page.getByRole('tab', { name: 'Technical workflow', exact: true }).click();

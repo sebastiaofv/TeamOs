@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, portfolioCard, answerAppMessage, toggleTheme, openFiltersPanel, selectTableView } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-12.board.json', 'utf8'));
 async function seed(page: Page, writable = true, testingWorkflow = false) {
     const extensions = structuredClone(fixture.extensions);
     if (testingWorkflow) {

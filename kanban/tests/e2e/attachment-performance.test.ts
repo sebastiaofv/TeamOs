@@ -6,7 +6,7 @@ import { gotoApp, portfolioCard, seedPortfolioBoards } from '../support/portfoli
 
 // Use the complete browser, including the PDF viewer, rather than headless shell.
 test.use({ channel: 'chromium' });
-const fixture = JSON.parse(readFileSync('test-board/us-23.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-23.board.json', 'utf8'));
 
 function pdfOfSize(size: number) {
   const content = 'BT /F1 18 Tf 50 120 Td (TeamOS attachment performance) Tj ET';

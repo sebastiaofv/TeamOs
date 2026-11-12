@@ -7,7 +7,7 @@ for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
         await page.setViewportSize({ width, height: 980 });
         await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
         await gotoApp(page);
-        const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+        const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
         await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
         await page.locator('[data-view-mode="dashboard"]').click();
         await page.getByLabel('Start date', { exact: true }).fill('24/10/2026');

@@ -6,7 +6,7 @@ import { gotoApp, portfolioCard, seedPortfolioBoards } from '../support/portfoli
 // downloads PDFs because it has no viewer.
 test.use({ channel: 'chromium' });
 
-const fixture = JSON.parse(readFileSync('test-board/us-23.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-23.board.json', 'utf8'));
 const attachments: { name: string; dataUrl: string }[] = fixture.board.tasks[0].attachments;
 
 async function expectActionsAligned(rows: Locator, count = 7) {

@@ -218,7 +218,7 @@ describe('US-30 mutation integration and persistence', () => {
         expect(data().board.tasks[1].status).toBe('to-do'); expect(data().board.tasks[3].status).toBe('doing'); expect(confirm).toHaveBeenCalledTimes(1);
     });
     it('validates the manual test board and its imported automation configuration', () => {
-        const raw = JSON.parse(readFileSync('test-board/us-30.board.json', 'utf8')); validateBoardData(raw);
+        const raw = JSON.parse(readFileSync('tests/fixtures/manual/us-30.board.json', 'utf8')); validateBoardData(raw);
         const board = serializeBoardDataFromObject(raw); validateBoardData(board);
         expect(board.board.tasks.length).toBeGreaterThan(15); expect(getHierarchyAutomations(board)).toEqual(defaultHierarchyAutomations());
     });

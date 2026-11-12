@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline, toggleTheme, toggleLanguage } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-20.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
     await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
     await gotoApp(page);

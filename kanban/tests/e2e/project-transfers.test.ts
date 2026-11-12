@@ -171,7 +171,7 @@ test('copy is available from a read-only source while moving explains the write 
 
 test('US-13 fixtures expose explicit mapping, planning removal, preserved comments and cross-project relation navigation', async ({ page }, testInfo) => {
     await gotoApp(page);
-    await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8')) })));
+    await mockImportProjectsPicker(page, ['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`tests/fixtures/manual/${name}.board.json`, 'utf8')) })));
     // Supply writable, stateful handles for the manual fixtures through the real Import flow.
     await page.evaluate(async () => {
         const handles = await window.showOpenFilePicker!({ multiple: true });
@@ -391,7 +391,7 @@ test('the header shows the selected project after changing between products', as
 
 test('one import loads multiple board files and defaults a new product to the last file loaded', async ({ page }) => {
     await gotoApp(page);
-    await mockImportProjectsPicker(page, ['us-13-maintenance', 'us-13'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8')) })));
+    await mockImportProjectsPicker(page, ['us-13-maintenance', 'us-13'].map((name) => ({ fileName: `${name}.board.json`, payload: JSON.parse(readFileSync(`tests/fixtures/manual/${name}.board.json`, 'utf8')) })));
     await page.evaluate(() => {
         const picker = window.showOpenFilePicker!;
         window.showOpenFilePicker = async (options) => {

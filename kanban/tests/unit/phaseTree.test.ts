@@ -7,7 +7,7 @@ import { getRoadmapTaskFieldTasks, normalizeRoadmapExtension } from '../../src/d
 import { taskMatchesPortfolioFilters, DEFAULT_PORTFOLIO_FILTERS } from '../../src/domain/portfolioFilters';
 import type { BoardData } from '../../src/domain/types';
 
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-5.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-5.board.json', 'utf8'));
 describe('hierarchical planning', () => {
     it('validates and round-trips the manual board and migrates v1 without changing IDs', () => {
         const data = fixture(); validateBoardData(data);

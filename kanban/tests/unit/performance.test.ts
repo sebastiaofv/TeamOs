@@ -39,7 +39,7 @@ describe('performance regressions', () => {
     });
 
     it('keeps every dashboard observation equivalent to standalone replay, including legacy workflows and identities', () => {
-        const data: BoardData = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+        const data: BoardData = JSON.parse(readFileSync('tests/fixtures/manual/us-9.board.json', 'utf8'));
         data.extensions.conversations = { version: 1, entries: [] };
         const original = structuredClone(data);
         const points = dashboardHistory(data, 'api', '', '');
@@ -52,7 +52,7 @@ describe('performance regressions', () => {
     });
 
     it('keeps compact history counts equivalent across scopes, filters, restores and workflow changes', () => {
-        const data: BoardData = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+        const data: BoardData = JSON.parse(readFileSync('tests/fixtures/manual/us-9.board.json', 'utf8'));
         for (const phase of ['', 'api', 'delivery', 'empty']) for (const [from, to] of [['', ''], ['2026-10-16', '2026-10-25']]) {
             expect(dashboardHistorySummary(data, phase, from, to)).toEqual(dashboardHistory(data, phase, from, to).map((point) => ({
                 index: point.index, at: point.at, completed: point.metrics.completed.length, open: point.metrics.open.length, percent: point.metrics.progress.percent

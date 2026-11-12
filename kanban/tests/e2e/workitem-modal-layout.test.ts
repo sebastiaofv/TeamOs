@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, portfolioCard, toggleTheme, selectTableView } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-12.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-12.board.json', 'utf8'));
 for (const theme of ['light', 'dark']) {
     for (const width of [1280, 390]) {
         for (const { type, id } of [{ type: 'task', id: 1204 }, { type: 'story', id: 1202 }, { type: 'epic', id: 1201 }]) {

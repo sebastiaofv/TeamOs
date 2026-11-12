@@ -105,7 +105,7 @@ describe('Sprint end date when the start moves to today (US-22)', () => {
 
 describe('manual Sprint lifecycle and frozen results (US-22)', () => {
     it('imports and round-trips the US-22 manual acceptance board', () => {
-        const input = JSON.parse(readFileSync('test-board/us-22.board.json', 'utf8'));
+        const input = JSON.parse(readFileSync('tests/fixtures/manual/us-22.board.json', 'utf8'));
         validateBoardData(input);
         const saved = serializeBoardDataFromObject(input);
         validateBoardData(saved);

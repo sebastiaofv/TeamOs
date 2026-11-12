@@ -89,7 +89,7 @@ describe('project workflows', () => {
         expect(await actions.movePortfolioTaskToStatus('p', 1, 'to-do')).toBe(false);
     });
     it('validates the manual test board and preserves its identities', () => {
-        const input = JSON.parse(readFileSync('test-board/us-4.board.json', 'utf8'));
+        const input = JSON.parse(readFileSync('tests/fixtures/manual/us-4.board.json', 'utf8'));
         validateBoardData(input);
         const output = serializeBoardDataFromObject(input); validateBoardData(output);
         expect(output.board.tasks.map((t) => [t.id, t.status])).toEqual(input.board.tasks.map((t: { id: number; status: string }) => [t.id, t.status]));
