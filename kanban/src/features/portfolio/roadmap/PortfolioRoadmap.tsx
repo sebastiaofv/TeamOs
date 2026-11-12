@@ -7,13 +7,13 @@ import { SprintPoints } from './SprintPoints';
 import { getSprintStatus } from '@/domain/roadmap';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
-import type { PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope } from '@/features/portfolio/types';
+import type { PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope, RoadmapProjectGroup } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
 import { formatDueDateForUi } from '@/domain/calendar';
-import { selectRoadmapMilestone } from '@/features/portfolio/commands/roadmapNavigation';
+import { selectRoadmapMilestone, setAllRoadmapProjectsExpanded } from '@/features/portfolio/commands/roadmapNavigation';
 import { ROADMAP_TABLE_COLUMNS } from '@/features/portfolio/table/tableModel';
 import { formatClosureDate, WorkitemTable } from '@/features/portfolio/table/PortfolioTable';
 import { useI18n } from '@/shared/i18n';
@@ -36,21 +36,22 @@ function useElementSize<T extends HTMLElement>(initial = 0) {
     return { ref, width, height };
 }
 
-function ProgressBar({ row, left, width }: { row: RoadmapPlanningRow; left: number; width: number }) {
+function ProgressBar({ row, left, width, containValue = false }: { row: Pick<RoadmapWorkScope, 'item' | 'progress'>; left: number; width: number; containValue?: boolean }) {
     const { language } = useI18n(); const percent = useProgressText();
     const bar = useElementSize<HTMLDivElement>();
     const value = percent(row);
     const progress = row.progress.percent || 0;
     const inside = bar.width * progress / 100 >= value.length * 6.6 + 12;
-    return <div ref={bar.ref} role="img" className={`roadmap-row-timeline-bar${row.kind === 'phases' && row.item!.color ? ' roadmap-custom-phase-color' : ''}`} data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
-        style={{ left: `${left}%`, width: `${width}%`, ...(row.kind === 'phases' && row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={`${row.item!.title} · ${value}`}>
-        <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside ? ' roadmap-value-inside' : ''}`} style={{ left: `${progress}%` }}>{value}</span>
+    const atEnd = containValue && !inside && left + width >= 99;
+    return <div ref={bar.ref} role="img" className={`roadmap-row-timeline-bar${row.item!.color ? ' roadmap-custom-phase-color' : ''}`} data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
+        style={{ left: `${left}%`, width: `${width}%`, ...(row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={`${row.item!.title} · ${value}`}>
+        <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside || atEnd ? ' roadmap-value-inside' : ''}`} style={{ left: `${atEnd ? 100 : progress}%` }}>{value}</span>
     </div>;
 }
 
 function useProgressText(maximumFractionDigits = 1) {
     const { t, language } = useI18n();
-    return (scope: RoadmapWorkScope) => scope.progress.percent === null ? t('roadmap.notApplicable')
+    return (scope: Pick<RoadmapWorkScope, 'progress'>) => scope.progress.percent === null ? t('roadmap.notApplicable')
         : `${new Intl.NumberFormat(language === 'pt' ? 'pt-PT' : 'en', { maximumFractionDigits }).format(scope.progress.percent)}%`;
 }
 
@@ -65,9 +66,13 @@ function ScopeTable({ scope, view, scopeId }: { scope: RoadmapWorkScope; view: P
     </div>;
 }
 
+function workAreaId(row: RoadmapPlanningRow, view: PortfolioRoadmapViewModel) {
+    return `roadmap-tasks-${view.aggregate ? `${domId(view.boardId)}-` : ''}${domId(row.key)}`;
+}
+
 function WorkArea({ row, view }: { row: RoadmapPlanningRow; view: PortfolioRoadmapViewModel }) {
-    return <div className="roadmap-work-area" data-roadmap-task-list={row.key} id={`roadmap-tasks-${domId(row.key)}`}>
-        <ScopeTable scope={row} view={view} scopeId={`roadmap-${row.key}`} />
+    return <div className="roadmap-work-area" data-roadmap-task-list={row.key} id={workAreaId(row, view)}>
+        <ScopeTable scope={row} view={view} scopeId={`roadmap-${view.aggregate ? `${view.boardId}-` : ''}${row.key}`} />
     </div>;
 }
 
@@ -76,7 +81,7 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
     const { t } = useI18n();
     const item = row.item!;
     const singular = row.kind === 'phases' ? 'phase' : 'sprint';
-    const rowId = `roadmap-row-${singular}-${domId(item.id)}`;
+    const rowId = `roadmap-row-${singular}-${view.aggregate ? `${domId(view.boardId)}-` : ''}${domId(item.id)}`;
     const placement = getRoadmapTimelinePlacement(item, view.range);
     const width = Math.max(placement?.width || 0, 5);
     const left = Math.min(placement?.left || 0, 100 - width);
@@ -88,7 +93,7 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
                 {row.hasChildren ? <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={!row.treeCollapsed} aria-label={t('roadmap.toggleSubphases', { title: item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(view.boardId, `tree:${item.id}`)}>{row.treeCollapsed ? '▸' : '▾'}</button>
                     : <span className="roadmap-tree-spacer" aria-hidden="true" />}
                 <button type="button" className="roadmap-row-title roadmap-edit-name" title={item.title} id={`${rowId}-title`} onClick={() => actions.openRoadmapEntityModal(row.kind, item.id, { boardId: view.boardId })}>{item.title}</button>
-                <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={`roadmap-tasks-${domId(row.key)}`} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggleWorkitems}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>
+                <button className="roadmap-disclosure-btn" type="button" aria-expanded={row.expanded} aria-controls={workAreaId(row, view)} aria-label={`${t(row.expanded ? 'roadmap.hideTasksFor' : 'roadmap.showTasksFor', { title: item.title })}: ${row.visibleCount}/${row.progress.associated}`} title={t('roadmap.visibleAssociated', { visible: row.visibleCount, total: row.progress.associated })} onClick={toggleWorkitems}><WorkspaceIcon name="table" /> {row.visibleCount}/{row.progress.associated}</button>
                 {row.kind === 'sprints' && <div className="roadmap-row-actions">{view.boardData && <SprintPoints data={view.boardData} sprintId={item.id} />}<span className={`table-status-badge sprint-status-${getSprintStatus(item)}`}>{t(`table.sprintStatus.${getSprintStatus(item)}`)}</span><SprintAction compact sprint={item} boardId={view.boardId} disabled={!canEdit} /></div>}
 
             </div>
@@ -98,6 +103,30 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
         </div>
         {row.expanded && <WorkArea row={row} view={view} />}
     </div>;
+}
+
+function ProjectGroup({ project, view }: { project: RoadmapProjectGroup; view: PortfolioRoadmapViewModel }) {
+    const { t } = useI18n(); const actions = usePortfolioActions(); const percent = useProgressText();
+    const id = `roadmap-project-${domId(project.view.boardId)}`;
+    const placement = getRoadmapTimelinePlacement(project.item, view.range);
+    const width = Math.max(placement?.width || 0, 5);
+    const left = Math.min(placement?.left || 0, 100 - width);
+    const childView = { ...project.view, range: view.range, aggregate: true };
+    return <section className="roadmap-project-group" data-roadmap-project={project.view.boardId} aria-labelledby={`${id}-title`}>
+        <div className="roadmap-row roadmap-project-row" data-roadmap-kind="project">
+            <div className="roadmap-row-main">
+                <div className="roadmap-row-labels">
+                    <button className="roadmap-action-btn roadmap-tree-toggle" type="button" aria-expanded={project.expanded} aria-controls={id} aria-label={t('roadmap.toggleProject', { title: project.item.title })} onClick={() => actions.togglePortfolioRoadmapRowExpanded(project.view.boardId, 'project')}>{project.expanded ? '▾' : '▸'}</button>
+                    <span className="roadmap-row-title" id={`${id}-title`} title={project.item.title}>{project.item.title}</span>
+                    {!placement && <span className="roadmap-row-meta">{percent(project)}</span>}
+                </div>
+                <div className="roadmap-row-track">{placement && <ProgressBar row={project} left={left} width={width} containValue />}</div>
+            </div>
+        </div>
+        {project.expanded && <div id={id} className="roadmap-project-phases">{project.view.phaseRows.length
+            ? project.view.phaseRows.map((row) => <PlanningRow key={row.key} row={{ ...row, depth: row.depth + 1 }} view={childView} canEdit={false} />)
+            : <p className="roadmap-empty">{t('roadmap.noProjectPhases')}</p>}</div>}
+    </section>;
 }
 
 function MilestoneDiamond({ marker }: { marker: RoadmapMilestoneMarker }) {
@@ -184,8 +213,9 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
         <div ref={controls.ref} className="roadmap-view-controls">
             <label>{t('roadmap.labelWidth')}<input aria-label={t('roadmap.labelWidth')} type="range" min="280" max="720" step="10" value={labelWidth ?? view.labelWidth} onChange={(event) => setLabelWidth(Number(event.target.value))} /></label>
             <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
-            <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}><WorkspaceIcon name="plus" />{t('roadmap.milestone')}</button>
-            <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}><WorkspaceIcon name="plus" />{t('roadmap.phase')}</button>
+            {!view.projects && <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}><WorkspaceIcon name="plus" />{t('roadmap.milestone')}</button>}
+            {!view.projects && <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}><WorkspaceIcon name="plus" />{t('roadmap.phase')}</button>}
+            {view.projects && <div className="roadmap-completion-controls"><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(true)}>{t('roadmap.expandAll')}</button><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(false)}>{t('roadmap.collapseAll')}</button></div>}
         </div>
         <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
             <div className="roadmap-temporal-overlay" aria-hidden="true">
@@ -210,7 +240,9 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                     </div></div>}
                 </div>
             </div>
-            {(['phases', 'sprints'] as const).map((kind) => {
+            {view.projects ? <div className="roadmap-list">{view.projects.length
+                ? view.projects.map((project) => <ProjectGroup key={project.view.boardId} project={project} view={view} />)
+                : <p className="roadmap-empty">{t('roadmap.noActiveProjects')}</p>}</div> : (['phases', 'sprints'] as const).map((kind) => {
                 const rows = kind === 'phases' ? view.phaseRows : view.sprintRows;
                 const label = t(kind === 'phases' ? 'roadmap.phase' : 'roadmap.sprint');
                 return <section className="roadmap-section" data-roadmap-kind={kind} key={kind} aria-label={t(kind === 'phases' ? 'roadmap.phases' : 'roadmap.sprints')}>

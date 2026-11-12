@@ -75,7 +75,6 @@ function normalizeSelection(state: AppState) {
         : '';
     let viewMode = normalizePortfolioViewMode(state?.selectedPortfolioViewMode);
     if (boards.length === 0) viewMode = 'board';
-    if (viewMode === 'roadmap' && !selectedBoardId) viewMode = 'board';
     if ((viewMode === 'table' || viewMode === 'dashboard' || viewMode === 'control') && !selectedBoardId) viewMode = 'board';
     if (viewMode === 'calendar' && boards.length === 0) viewMode = 'board';
     return { selectedBoardId, viewMode };

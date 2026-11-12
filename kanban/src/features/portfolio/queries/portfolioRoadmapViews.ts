@@ -4,7 +4,7 @@ import { gateControlProgress } from '@/domain/projectControl';
 import { phaseDescendants } from '@/domain/phaseTree';
 import { consultSprintParticipation } from '@/domain/workitems';
 import type {
-    PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope
+    PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope, RoadmapProjectGroup
 } from '@/features/portfolio/types';
 import type { BoardData, RoadmapExtension, RoadmapItem, Task } from '@/domain/types';
 import { getSelectedPortfolioTimelineView } from './portfolioTimelineViews';
@@ -22,6 +22,7 @@ import { phaseTreeRows, planningProgress } from '@/domain/phaseTree';
 import { milestoneColor } from '@/domain/milestonePresentation';
 
 export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadmapViewModel | null {
+    if (!state?.selectedPortfolioBoardId) return buildAllProjectsRoadmapView(state);
     const timelineView = getSelectedPortfolioTimelineView(state);
     const board = timelineView?.boardRecord || getBoardRecord(state, state?.selectedPortfolioBoardId);
     if (!board) return null;
@@ -104,4 +105,30 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
 
 export function getRoadmapExtensionOrEmpty(boardData: BoardData | null | undefined): RoadmapExtension {
     return getRoadmapExtension(boardData) || createEmptyRoadmapExtension();
+}
+
+/** Project master rows are projections only: never add synthetic phases to project data. */
+function buildAllProjectsRoadmapView(state: SelectorState): PortfolioRoadmapViewModel {
+    const projects: RoadmapProjectGroup[] = (state?.portfolioBoards || [])
+        .filter((board) => board.data.extensions.project?.status === 'active')
+        .map((board) => {
+            // ALL always consults live projects, independently of a project's historical preview.
+            const view = buildPortfolioRoadmapView({ ...state, selectedPortfolioBoardId: board.id, portfolioTimelineSelection: { boardId: '', eventIndex: null } })!;
+            const starts = view.roadmap.phases.map((phase) => phase.startDate!).sort();
+            const ends = view.roadmap.phases.map((phase) => phase.endDate!).sort();
+            return {
+                view,
+                item: { id: board.id, title: view.boardTitle, startDate: starts[0], endDate: ends.at(-1) },
+                progress: planningProgress(board.data.board.tasks, board.data),
+                expanded: Boolean(state?.portfolioRoadmapExpandedRowsByBoardId?.[board.id]?.project)
+            };
+        }).sort((a, b) => compareRoadmapItemsByDate(a.item, b.item));
+    const roadmap = { ...createEmptyRoadmapExtension(), phases: projects.flatMap(({ view }) => view.roadmap.phases) };
+    const range = getVisibleRoadmapDateRange(roadmap);
+    return {
+        boardId: '', boardTitle: 'ALL', boardFileName: '', boardData: null,
+        roadmap, range, axisTicks: getRoadmapAxisTicks(range, state?.activeLanguage || 'en'),
+        historical: false, phaseRows: [], sprintRows: [], milestones: [], projects,
+        labelWidth: Math.max(360, ...projects.map(({ view }) => view.labelWidth + 14))
+    };
 }

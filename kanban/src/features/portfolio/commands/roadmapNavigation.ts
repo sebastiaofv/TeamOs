@@ -22,3 +22,15 @@ export function navigateToRoadmapItem(boardId: string, kind: 'phases' | 'milesto
     }
     setPortfolioViewMode('roadmap');
 }
+
+export function setAllRoadmapProjectsExpanded(expanded: boolean) {
+    useAppStore.setState((state) => {
+        const rows = { ...state.portfolioRoadmapExpandedRowsByBoardId };
+        for (const board of state.portfolioBoards) {
+            if (board.data.extensions.project?.status !== 'active') continue;
+            rows[board.id] = { ...rows[board.id], project: expanded };
+            for (const phase of board.data.extensions.roadmap?.phases || []) rows[board.id][`tree:${phase.id}`] = !expanded;
+        }
+        return { portfolioRoadmapExpandedRowsByBoardId: rows };
+    });
+}

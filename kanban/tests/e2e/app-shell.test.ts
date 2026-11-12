@@ -86,7 +86,7 @@ test.describe('app shell', () => {
     await expect(page.locator('#portfolioViewModeToggle')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Board', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Day Planner', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Roadmap' })).toBeVisible();
     await expect(page.locator('#portfolioBoard')).toBeVisible();
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
     await expect(page).toHaveURL(/\/$/);

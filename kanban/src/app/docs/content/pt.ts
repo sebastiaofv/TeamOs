@@ -40,7 +40,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Controlos da vista', 'No Board, pesquisa e Filtros e vista ficam junto de Apenas sprints ativos. Cada tabela tem pesquisa, Filtros, Colunas e Exportar CSV. O Dashboard tem período e âmbito; o Roadmap tem largura e zoom; o Planeador tem Dia, Semana e Calendário.'],
                         ['Barra do histórico', 'Ative-a nas Definições da aplicação para consultar o [histórico](files-history) do projeto selecionado.']
                     ] },
-                    { kind: 'p', text: 'O Quadro e o Planeador, incluindo o Calendário, funcionam com todos os projetos carregados ou com um projeto. Dashboard, Tabela, Roadmap e Controlo do projeto aparecem quando seleciona um único projeto.' },
+                    { kind: 'p', text: 'O Quadro, Roadmap e Planeador, incluindo o Calendário, funcionam com todos os projetos carregados ou com um projeto. Dashboard, Tabela e Controlo do projeto aparecem quando seleciona um único projeto.' },
                     { kind: 'callout', tone: 'tip', text: 'Prima [[?]] para ver os atalhos e [[H]] para abrir ou fechar a documentação. Os atalhos de uma letra aplicam-se quando não está a escrever num campo.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -568,6 +568,7 @@ export const DOCS_PT: DocSection[] = [
                 title: 'Roadmap, fases e marcos',
                 summary: 'Distribua o projeto no tempo com fases, marcos e sprints.',
                 blocks: [
+                    { kind: 'p', text: 'Em **ALL**, o Roadmap apresenta apenas os projetos marcados como **Ativos** nas Definições do projeto, ordenados pelo início da fase mais antiga. Cada projeto começa recolhido; a sua barra principal destacada abrange todas as fases, incluindo as concluídas, e mostra o progresso global dos workitems. Expanda um projeto para consultar a hierarquia de fases e os workitems associados, ou use **Expandir tudo** e **Recolher tudo**. ALL oculta marcos, Sprints e botões de criação; selecionar um projeto repõe o Roadmap completo.' },
                     { kind: 'terms', items: [
                         ['Fase', 'Um período datado que pode conter subfases. As datas do pai são calculadas pelos descendentes; associe workitems às fases-folha.'],
                         ['Marco', 'Um ponto datado, como um lançamento ou revisão.'],
@@ -671,7 +672,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Quadro', 'Executar e acompanhar o trabalho diário', 'Todos os projetos ou um'],
                         ['Dashboard', 'Reportar estado, progresso e atividade num período', 'Um projeto'],
                         ['Tabela', 'Refinar, planear sprints, rever a hierarquia, exportar CSV', 'Um projeto'],
-                        ['Roadmap', 'Planear fases, marcos e sprints no tempo', 'Um projeto'],
+                        ['Roadmap', 'Planear fases, marcos e sprints no tempo; ALL agrupa os projetos ativos por fase', 'Todos os projetos ativos ou um projeto'],
                         ['Controlo do projeto', 'Gerir riscos, decisões e entregáveis', 'Um projeto'],
                         ['Calendário', 'Consultar prazos de Tasks por mês ou ano dentro do Planeador', 'Todos os projetos ou um'],
                         ['Planeador', 'Agendar o seu dia ou semana', 'Todos os projetos ou um']

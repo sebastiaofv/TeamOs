@@ -191,3 +191,11 @@
 /* Use the axis container directly so zoom/label changes never wait for ResizeObserver. */
 .roadmap-axis { container-type: inline-size; }
 .milestone-annotation-canvas { width: 100cqw; }
+
+/* Project master rows share the phase grid and date scale, with a stronger bar. */
+.roadmap-project-row .roadmap-row-main, .roadmap-project-row .roadmap-row-labels { min-height: 44px; }
+.roadmap-project-row .roadmap-row-labels { background: var(--bg-secondary); }
+.roadmap-project-row .roadmap-row-title { font-weight: 700; }
+.roadmap-project-row .roadmap-row-timeline-bar { top: 1px; height: 26px; border: 2px solid var(--accent); }
+.roadmap-project-row .roadmap-bar-fill { background: color-mix(in srgb, var(--accent) 50%, var(--bg-card)); }
+.roadmap-project-row .roadmap-bar-value { line-height: 22px; }

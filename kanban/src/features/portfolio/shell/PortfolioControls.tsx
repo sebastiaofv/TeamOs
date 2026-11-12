@@ -108,7 +108,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
         { mode: 'planner', label: t('toolbar.planner') }
     ] as const;
     return <nav className={`portfolio-view-toggle${state.portfolioBoards.length ? '' : ' hidden'}`} id="portfolioViewModeToggle" aria-label={t('toolbar.selectedProjectViewMode')}>
-        {views.filter(({ mode }) => state.selectedPortfolioBoardId || mode === 'board' || mode === 'planner').map(({ mode, label }) => {
+        {views.filter(({ mode }) => state.selectedPortfolioBoardId || mode === 'board' || mode === 'planner' || mode === 'roadmap').map(({ mode, label }) => {
             const active = viewMode === mode || mode === 'planner' && viewMode === 'calendar';
             return <button className={`btn${active ? ' active' : ''}`} type="button" key={mode} data-view-mode={mode}
                 aria-pressed={active} onClick={() => setPortfolioViewMode(mode)}><WorkspaceIcon name={mode} />{label}</button>;

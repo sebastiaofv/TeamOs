@@ -69,7 +69,7 @@ function AppContent() {
     const viewMode = useAppStore((state) => state.selectedPortfolioViewMode);
     const hasBoards = useAppStore((state) => state.portfolioBoards.length > 0);
     const selectedBoardId = useAppStore((state) => state.selectedPortfolioBoardId);
-    const roadmapActive = Boolean(selectedBoardId) && viewMode === 'roadmap';
+    const roadmapActive = viewMode === 'roadmap';
     const plannerActive = hasBoards && (viewMode === 'planner' || viewMode === 'calendar');
     const dashboardActive = Boolean(selectedBoardId) && viewMode === 'dashboard';
     const controlActive = Boolean(selectedBoardId) && viewMode === 'control';

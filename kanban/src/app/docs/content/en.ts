@@ -40,7 +40,7 @@ export const DOCS_EN: DocSection[] = [
                         ['View controls', 'Board search and Filters & View sit beside Active Sprints only. Workitem tables have their own search, Filters, Columns and Export CSV controls. Dashboard has period and planning controls; Roadmap has width and zoom controls; Planner has Day, Week and Calendar tabs.'],
                         ['Timeline bar', 'Enable it in App settings to consult a selected project’s [history](files-history).']
                     ] },
-                    { kind: 'p', text: 'Board and Day Planner, including Calendar, support all loaded projects or one project. Dashboard, Table, Roadmap and Project Control appear when you select a single project.' },
+                    { kind: 'p', text: 'Board, Roadmap and Day Planner, including Calendar, support all loaded projects or one project. Dashboard, Table and Project Control appear when you select a single project.' },
                     { kind: 'callout', tone: 'tip', text: 'Press [[?]] to see keyboard shortcuts, and [[H]] to open or close this documentation. Single-letter shortcuts apply when you are not typing in a field.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -568,6 +568,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Roadmap, phases and milestones',
                 summary: 'Lay out the project over time with phases, milestones and sprints.',
                 blocks: [
+                    { kind: 'p', text: 'In **ALL**, Roadmap shows only projects marked **Active** in Project settings, ordered by their earliest phase start. Each project starts collapsed; its highlighted master bar covers every phase, including completed phases, and shows overall workitem progress. Expand a project to consult its phase hierarchy and associated workitems, or use **Expand all** and **Collapse all**. ALL hides milestones, Sprints and creation buttons; selecting one project restores the full Roadmap.' },
                     { kind: 'terms', items: [
                         ['Phase', 'A dated period that can contain subphases. Parent dates are calculated from descendants; assign workitems to leaf phases.'],
                         ['Milestone', 'A dated checkpoint, such as a release or review.'],
@@ -671,7 +672,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Board', 'Execute and follow day-to-day work', 'All projects or one'],
                         ['Dashboard', 'Report status, progress and activity in a period', 'One project'],
                         ['Table', 'Refine, plan sprints, review hierarchy, export CSV', 'One project'],
-                        ['Roadmap', 'Plan phases, milestones and sprints over time', 'One project'],
+                        ['Roadmap', 'Plan phases, milestones and sprints over time; ALL groups active projects by phase', 'All active projects or one project'],
                         ['Project Control', 'Manage risks, decisions and deliverables', 'One project'],
                         ['Calendar', 'Consult Task deadlines by month or year inside Day Planner', 'All projects or one'],
                         ['Day Planner', 'Schedule your own day or week', 'All projects or one']
