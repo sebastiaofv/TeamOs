@@ -5,7 +5,7 @@ import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, 
 import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 async function seed(page: Page, writable = true) {
-    const data = JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-10-31T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [

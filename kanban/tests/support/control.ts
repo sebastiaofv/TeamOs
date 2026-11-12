@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards } from './portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-20.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-20.board.json', 'utf8'));
 export const controlKinds = ['risks', 'decisions', 'deliverables'] as const;
 export const controlLabels = { risks: 'Risks', decisions: 'Decisions', deliverables: 'Deliverables' };
 export const controlTitles = { risks: 'Supplier availability', decisions: 'Choose supported runtime', deliverables: 'Release package' };

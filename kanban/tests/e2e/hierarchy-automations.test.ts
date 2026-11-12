@@ -3,7 +3,7 @@ import { defaultHierarchyAutomations } from '@/domain/hierarchyAutomations';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, answerAppMessage, openProjectSettingsFromPicker } from '../support/portfolio';
 
-const fixture = JSON.parse(readFileSync('test-board/us-30.board.json', 'utf8'));
+const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-30.board.json', 'utf8'));
 async function seed(page: Page, writable = true) {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'auto', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'auto' });

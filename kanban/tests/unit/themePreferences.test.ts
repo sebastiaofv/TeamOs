@@ -79,7 +79,7 @@ describe('appearance preferences', () => {
     });
 
     it('ships a valid manual board fixture', () => {
-        const fixture: unknown = JSON.parse(readFileSync(new URL('../../test-board/us-32.board.json', import.meta.url), 'utf8'));
+        const fixture: unknown = JSON.parse(readFileSync(new URL('../../tests/fixtures/manual/us-32.board.json', import.meta.url), 'utf8'));
         expect(() => validateBoardData(fixture)).not.toThrow();
     });
 });

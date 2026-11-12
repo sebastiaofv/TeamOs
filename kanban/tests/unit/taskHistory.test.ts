@@ -149,7 +149,7 @@ describe('workitem history projection', () => {
         expect(nextTaskIdForBoard({ data: serializeBoardDataFromObject(baseline) })).toBe(10);
     });
     it('validates all manual and compatibility fixtures', () => {
-        for (const file of ['test-board/us-6.board.json', 'tests/fixtures/us-6-partial.board.json', 'tests/fixtures/us-6-reused-id.board.json']) {
+        for (const file of ['tests/fixtures/manual/us-6.board.json', 'tests/fixtures/us-6-partial.board.json', 'tests/fixtures/us-6-reused-id.board.json']) {
             const data = JSON.parse(readFileSync(file, 'utf8')); validateBoardData(data); validateBoardData(serializeBoardDataFromObject(data));
         }
     });

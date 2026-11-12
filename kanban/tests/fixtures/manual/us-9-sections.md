@@ -20,7 +20,7 @@ Use **Start date 2026-10-24**, **End date 2026-10-31**, **Planning scope All pha
 12. Set Start date after End date: an error replaces the analysis. Select an end date before the first recorded observation (15/10): N/A explains that a historical baseline is unavailable. No current data is substituted. A range beginning before the baseline warns that earlier transitions are unknown. Baseline contents, restores and workflow edits do not fabricate started/completed events.
 13. Repeat in PT-PT/English, light/dark themes and 390 px width. Tab/Space operates the visibility filter; Tab/Enter operates links and charts; Escape closes details. Tables scroll horizontally within their section and the dashboard scrolls vertically. Read-only files remain consultable. Viewing/filtering the dashboard does not modify the project file.
 
-The original `us-9.md` documents the earlier dashboard. This walkthrough supersedes its Overview/Gantt/team/Project Control instructions. Sprint Analytics and recorded-history consultation remain available.
+This historical walkthrough documents the earlier dashboard. See [US-34](us-34-dashboard.md) for the current Overview behavior. Sprint Analytics and recorded-history consultation remain available.
 
 ## Automated validation
 

@@ -40,7 +40,7 @@ function scenario() {
 
 describe('products and versioned permanent task identities', () => {
     it('normalizes only the edited product and keeps legacy identities stable across read-only opens and saves', () => {
-        const legacy = JSON.parse(readFileSync('test-board/us-2.board.json', 'utf8'));
+        const legacy = JSON.parse(readFileSync('tests/fixtures/manual/us-2.board.json', 'utf8'));
         delete legacy.extensions.project;
         const a = serializeBoardDataFromObject(legacy), b = serializeBoardDataFromObject(legacy);
         expect(a.meta.schemaVersion).toBe(6);
@@ -191,7 +191,7 @@ describe('transfer persistence and recovery', () => {
 
 describe('US-13 acceptance fixtures', () => {
     it.each(['us-13', 'us-13-maintenance', 'us-13-other', 'us-13-independent', 'us-13-hierarchy'])('validates and round-trips %s without losing identities, relations, comments or planning', (name) => {
-        const raw = JSON.parse(readFileSync(`test-board/${name}.board.json`, 'utf8'));
+        const raw = JSON.parse(readFileSync(`tests/fixtures/manual/${name}.board.json`, 'utf8'));
         validateBoardData(raw);
         const saved = serializeBoardDataFromObject(raw); validateBoardData(saved);
         const reopened = serializeBoardDataFromObject(JSON.parse(JSON.stringify(saved))); validateBoardData(reopened);
@@ -259,7 +259,7 @@ describe('validation of combined local and permanent dependency graphs', () => {
 
 describe('external legacy file reloads', () => {
     it('preserves already assigned identities when an old file is renamed externally before its first migrated save', () => {
-        const legacy = JSON.parse(readFileSync('test-board/us-2.board.json', 'utf8'));
+        const legacy = JSON.parse(readFileSync('tests/fixtures/manual/us-2.board.json', 'utf8'));
         delete legacy.extensions.project;
         legacy.board.tasks.forEach((task: { permanentId?: string }) => delete task.permanentId);
         const current = serializeBoardDataFromObject(legacy);

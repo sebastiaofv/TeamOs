@@ -4,7 +4,7 @@ import { normalizeTask } from '@/domain/task';
 import { serializeBoardDataFromObject } from '@/domain/serialize';
 import { ROADMAP_VERSION } from '@/domain/constants';
 import fixture from '../fixtures/task-relations-v1.board.json';
-import manualBoard from '../../test-board/us-2.board.json';
+import manualBoard from '../../tests/fixtures/manual/us-2.board.json';
 import { BoardRepository } from '@/infrastructure/persistence/boardRepository';
 import { getRelations, getTaskRelations, isTaskBlocked, removeTaskRelation, setTaskRelation } from '@/domain/taskRelations';
 

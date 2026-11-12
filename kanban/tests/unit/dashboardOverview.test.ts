@@ -7,13 +7,13 @@ import { validateBoardData } from '../../src/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
 import { dashboardInProgress, dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardMilestones, dashboardPeriodWorkitems, dashboardReportable, dashboardSnapshot, dashboardStatistics } from '../../src/domain/dashboardOverview';
 
-const fixture = (): BoardData => serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+const fixture = (): BoardData => serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
 const ids = (items: { id: number }[]) => items.map((item) => item.id);
 const end = (data: BoardData, date: string) => dashboardSnapshot(data, date, '2026-11-04')!.data;
 
 describe('dashboard section reporting', () => {
     it('validates the extended manual board and preserves records, identities and history on round-trip', () => {
-        const raw = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+        const raw = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
         validateBoardData(raw);
         const data = fixture();
         validateBoardData(data);
@@ -23,7 +23,7 @@ describe('dashboard section reporting', () => {
         expect(saved.extensions.timeline?.events.map((event) => event.id)).toEqual(raw.extensions.timeline!.events.map((event: { id: string }) => event.id));
     });
     it('replays a legacy baseline without freezing its initially empty people catalog', () => {
-        const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-6.board.json', 'utf8')));
+        const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-6.board.json', 'utf8')));
         const report = dashboardPeriodWorkitems(data, data, '', '2026-10-19', '2026-10-19');
         expect(report.completed.map((task) => ({ id: task.id, responsible: task.responsible }))).toEqual([{ id: 601, responsible: 'Ana' }]);
     });

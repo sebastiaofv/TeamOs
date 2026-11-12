@@ -7,7 +7,7 @@ import { dashboardHistory, dashboardMetrics, dashboardPlanning, dashboardSprintS
 import type { BoardData } from '../../src/domain/types';
 import { createAppStore } from '../../src/features/portfolio/state/store';
 
-const fixture = (): BoardData => JSON.parse(readFileSync('test-board/us-9.board.json', 'utf8'));
+const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-9.board.json', 'utf8'));
 const ids = (tasks: { id: number }[]) => tasks.map((task) => task.id);
 
 describe('project dashboard', () => {

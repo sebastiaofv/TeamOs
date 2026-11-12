@@ -16,9 +16,9 @@ import { getWorkflow, functionalWorkitemTypes } from '../../src/domain/workflow'
 import { WORKITEM_FIELDS, effectivePlanning, workitemFieldNames, workitemType } from '../../src/domain/workitems';
 import { MemoryDirectory, MemoryFile } from '../support/projectDirectory';
 
-const boardFiles = readdirSync('test-board').filter((name) => name.endsWith('.board.json')).map((name) => join('test-board', name));
+const boardFiles = readdirSync('tests/fixtures/manual').filter((name) => name.endsWith('.board.json')).map((name) => join('tests/fixtures/manual', name));
 const fixtureBoards = readdirSync('tests/fixtures').filter((name) => name.endsWith('.board.json')).map((name) => join('tests/fixtures', name));
-const fixtures = [...boardFiles, ...fixtureBoards, 'test-board/us-25/migration/legacy.board.json', 'tests/fixtures/project-control-v1.json', 'tests/fixtures/project-control-v2.json'];
+const fixtures = [...boardFiles, ...fixtureBoards, 'tests/fixtures/manual/us-25/migration/legacy.board.json', 'tests/fixtures/project-control-v1.json', 'tests/fixtures/project-control-v2.json'];
 const load = (path: string) => JSON.parse(readFileSync(path, 'utf8')) as LooseBoardData;
 const runtime = (path: string) => { const data = serializeBoardDataFromObject(load(path)); data.extensions.projectStorage = { version: 1, baselineEventId: '' }; return data; };
 const roundTrip = <T>(value: T): T => JSON.parse(JSON.stringify(value));

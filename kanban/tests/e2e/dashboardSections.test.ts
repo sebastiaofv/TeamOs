@@ -9,7 +9,7 @@ import { LANGUAGE_STORAGE_KEY } from '../../src/domain/constants';
 
 const section = (page: Page, key: string) => page.locator(`[data-dashboard-section="${key}"]`);
 async function seed(page: Page, writable = true, independentLists = true) {
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     if (independentLists) data.extensions.dashboardActivity = { version: 1, order: [...ACTIVITY_WIDGETS], hidden: [] };
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
     await gotoApp(page);
@@ -44,7 +44,7 @@ test('one Overview section has the requested default order, opt-in lists and all
 
 for (const width of [1840, 390]) test(`activity selection shares one detail widget and creation counts follow dates at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 980 });
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     const template = data.board.tasks.find((task: { id: number }) => task.id === 910);
     const tasks = ['2026-10-31T23:59:59Z', '2026-11-01T00:00:00Z', '2026-11-04T23:59:59Z', '2026-11-05T00:00:00Z'].map((createdAt, index) => ({ ...template, id: 1200 + index, displayId: `ATL-US-${1200 + index}`, permanentId: `created-${index}`, title: `Created Story ${index}`, parentId: null, phaseId: '', phaseMode: 'none', milestoneId: '', milestoneMode: 'none', sprintId: '', createdAt, status: index === 1 ? 'accepted' : 'to-do' }));
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
@@ -197,7 +197,7 @@ test('active sprint displays shared planning-unit completion, dates and navigati
 });
 
 test('Sprint combines active and completed Sprints and filters closures by the selected period', async ({ page }) => {
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
     const sprint = data.extensions.roadmap!.sprints.find((item) => item.id === 'active')!;
     sprint.status = 'active';
     data.board.tasks.find((task) => task.id === 902)!.storyPoints = 8;
@@ -222,7 +222,7 @@ test('Sprint combines active and completed Sprints and filters closures by the s
 });
 
 test('active Sprint SP/capacity and missed deadlines remain visible, alongside late-start phases', async ({ page }) => {
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     data.extensions.roadmap.sprints.find((item: { id: string }) => item.id === 'active').status = 'active';
     data.extensions.roadmap.sprints.find((item: { id: string }) => item.id === 'active').capacity = 10;
     data.extensions.roadmap.phases.push({ id: 'late-start', title: 'Waiting for kickoff', startDate: '2026-10-01', endDate: '2026-12-01' });
@@ -243,7 +243,7 @@ test('active Sprint SP/capacity and missed deadlines remain visible, alongside l
 for (const theme of ['light', 'dark']) test(`Portuguese read-only sections remain usable at mobile width (${theme})`, async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.addInitScript((key) => localStorage.setItem(key, 'pt'), LANGUAGE_STORAGE_KEY);
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'sections', title: data.board.settings.title, hasHandle: false, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'sections' });
@@ -273,7 +273,7 @@ test('consultation leaves the project file untouched', async ({ page }) => {
 test('standalone Dashboard supports offline historical widgets and detail navigation', async ({ page, context }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     await page.clock.setFixedTime(new Date('2026-11-04T12:00:00Z'));
     await context.setOffline(true);
     await page.goto(new URL('../../dist-standalone/index.html', import.meta.url).href);
@@ -290,7 +290,7 @@ test('standalone Dashboard supports offline historical widgets and detail naviga
 });
 
 test('all activity rows scroll internally, show compact current details and support summary drilldowns', async ({ page }) => {
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     const template = data.board.tasks.find((task: { id: number }) => task.id === 911);
     const tasks = Array.from({ length: 8 }, (_, index) => ({ ...template, id: 930 + index, displayId: `ATL-TK-${930 + index}`, permanentId: `activity-${index}`, title: `Activity workitem ${index + 1} with a long descriptive title`, responsible: index === 0 ? 'Mário Seixas' : index === 1 ? 'Mário' : '', assignees: index === 0 ? ['Mário Seixas'] : index === 1 ? ['Mário'] : [], status: 'testing', phaseId: '', phaseMode: 'none', sprintId: '' }));
     data.board.tasks = tasks;
@@ -417,7 +417,7 @@ for (const width of [1280, 390]) test(`navigation, range field and compact menus
 });
 
 test('phase alerts take precedence and completions without a recorded date stay in the summary', async ({ page }) => {
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     data.extensions.roadmap.phases.push({ id: 'waiting', title: 'Waiting phase', startDate: '2026-10-01', endDate: '2026-12-01' });
     data.extensions.roadmap.milestones.push({ id: 'complete', title: 'Completed checkpoint', dueDate: '2026-10-01' });
     const completedTask = data.board.tasks.find((task: { id: number }) => task.id === 915);
@@ -460,7 +460,7 @@ for (const width of [1840, 390]) test(`toolbar stays below main navigation durin
 
 for (const style of ['classic', 'modern']) test(`rings, phase circles, continuous bars and Epic points retain their shapes in both themes (${style})`, async ({ page }) => {
     await page.setViewportSize({ width: 1840, height: 1000 });
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     await page.addInitScript((style) => localStorage.setItem('teamOsKanbanThemeStyle', style), style);
     const epic = data.board.tasks.find((task: { id: number }) => task.id === 901);
     const story = data.board.tasks.find((task: { id: number }) => task.id === 902);
@@ -502,7 +502,7 @@ for (const style of ['classic', 'modern']) test(`rings, phase circles, continuou
 
 
 test('milestone summaries and recent completions follow the report end date and keep detail actions', async ({ page }) => {
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
     data.extensions.roadmap!.milestones = [
         { id: 'recent-ui', title: 'Latest completed milestone with a long title that should truncate', dueDate: '2026-10-02' },
         { id: 'old-ui', title: 'Old completed milestone', dueDate: '2026-10-01' },
@@ -549,7 +549,7 @@ test('milestone summaries and recent completions follow the report end date and 
 
 for (const width of [390, 1840]) test(`many phases expand without internal scroll while Epics remain compact at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 980 });
-    const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+    const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
     data.extensions.roadmap.phases.push(...Array.from({ length: 20 }, (_, index) => ({ id: `extra-${index}`, title: `Additional phase ${index} with a long title for truncation`, startDate: '2026-11-10', endDate: '2026-12-01' })));
     const template = data.board.tasks.find((task: { id: number }) => task.id === 901);
     data.board.tasks.push(...Array.from({ length: 20 }, (_, index) => ({ ...template, id: 1000 + index, permanentId: `extra-epic-${index}`, displayId: `ATL-EP-${1000 + index}`, title: `Additional epic ${index} with a long title for truncation` })));
@@ -579,7 +579,7 @@ for (const width of [390, 1840]) test(`many phases expand without internal scrol
 
 for (const width of [390, 1840]) test(`Testing uses transition dates, keeps current status and shares layout controls at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 980 });
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
     for (const context of [data, ...data.extensions.timeline!.events.flatMap((event) => event.snapshot ? [event.snapshot] : [])]) {
         const workflow = context.extensions?.workflow;
         if (workflow) { workflow.states.find((state) => state.id === 'testing')!.category = 'testing'; workflow.references.testing = 'testing'; }
@@ -656,7 +656,7 @@ test('desktop widgets use compact widths, matching progress tracks and balanced 
 
 for (const width of [1840, 390]) test(`Sprint and every Overview indicator share one detail, with bounded content at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 980 });
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
     delete data.extensions.timeline;
     const sprint = data.extensions.roadmap!.sprints.find(item => item.id === 'active')!;
     sprint.status = 'active';
@@ -703,7 +703,7 @@ for (const width of [1840, 390]) test(`Sprint and every Overview indicator share
 });
 
 test('three Sprints scroll internally and Workitems open the selected Sprint only', async ({ page }) => {
-    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8')));
+    const data = serializeBoardDataFromObject(JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8')));
     delete data.extensions.timeline;
     const sprint = data.extensions.roadmap!.sprints.find(item => item.id === 'active')!;
     sprint.status = 'active';

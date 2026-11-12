@@ -1,0 +1,56 @@
+{
+  "asOf": "2026-11-12T10:45:00.000Z",
+  "mainCommit": "1d7ad9122dcb4feb2f660d32dedea4e15f2629d0",
+  "counts": {
+    "epic": 7,
+    "story": 49,
+    "task": 337,
+    "bug": 3
+  },
+  "total": 396,
+  "events": 2028,
+  "comments": 375,
+  "controlRecords": 23,
+  "phases": 27,
+  "milestones": 31,
+  "sprints": 9,
+  "closedSprints": 6,
+  "periods": [
+    {
+      "date": "2026-06-30",
+      "workitems": 13,
+      "completed": 7,
+      "inProgress": 1
+    },
+    {
+      "date": "2026-07-31",
+      "workitems": 29,
+      "completed": 15,
+      "inProgress": 14
+    },
+    {
+      "date": "2026-08-31",
+      "workitems": 38,
+      "completed": 33,
+      "inProgress": 4
+    },
+    {
+      "date": "2026-09-30",
+      "workitems": 77,
+      "completed": 69,
+      "inProgress": 8
+    },
+    {
+      "date": "2026-10-31",
+      "workitems": 258,
+      "completed": 204,
+      "inProgress": 34
+    },
+    {
+      "date": "2026-11-12",
+      "workitems": 396,
+      "completed": 328,
+      "inProgress": 15
+    }
+  ]
+}

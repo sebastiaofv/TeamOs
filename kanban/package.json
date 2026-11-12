@@ -17,7 +17,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "prepare": "cd .. && husky kanban/.husky",
-    "icons:generate": "node scripts/generate-select-icons.mjs"
+    "icons:generate": "node scripts/generate-select-icons.mjs",
+    "example:generate": "node scripts/example-project/generate.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",

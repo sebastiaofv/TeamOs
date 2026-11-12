@@ -6,7 +6,7 @@ import { gotoApp, seedPortfolioBoards, toggleTheme } from './support/portfolio';
 for (const style of ['classic', 'modern']) for (const theme of ['light', 'dark']) for (const width of [1840, 390]) {
     test(`dashboard overview widget layout at ${width}px (${theme}, ${style})`, async ({ page }) => {
         await page.setViewportSize({ width, height: 980 });
-        const data = JSON.parse(readFileSync('test-board/us-9-sections.board.json', 'utf8'));
+        const data = JSON.parse(readFileSync('tests/fixtures/manual/us-9-sections.board.json', 'utf8'));
         for (const context of [data, ...data.extensions.timeline.events.flatMap((event: { snapshot?: { extensions?: { workflow?: typeof data.extensions.workflow } } }) => event.snapshot ? [event.snapshot] : [])]) {
             const workflow = context.extensions?.workflow;
             if (workflow) { workflow.states.find((state: { id: string }) => state.id === 'testing').category = 'testing'; workflow.references.testing = 'testing'; }

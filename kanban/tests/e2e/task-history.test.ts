@@ -30,7 +30,7 @@ test('multi-field saves form one read-only history operation; filters and tabs p
 
 for (const language of ['en', 'pt'] as const) {
     test(`history titles count the complete grouped operation and preserve specific operations (${language})`, async ({ page }) => {
-        const fixture = JSON.parse(readFileSync('test-board/us-6.board.json', 'utf8'));
+        const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-6.board.json', 'utf8'));
         const baseline = fixture.extensions.timeline.events[0];
         const initialTask = baseline.snapshot.board.tasks[0];
         baseline.snapshot.board.tasks = baseline.snapshot.board.tasks.filter((task: { id: number }) => task.id !== 601);
@@ -82,7 +82,7 @@ for (const language of ['en', 'pt'] as const) {
 }
 
 test('historical history uses the canonical position even with equal or inverted timestamps', async ({ page }) => {
-    const fixture = JSON.parse(readFileSync('test-board/us-6.board.json', 'utf8'));
+    const fixture = JSON.parse(readFileSync('tests/fixtures/manual/us-6.board.json', 'utf8'));
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await showTimeline(page);

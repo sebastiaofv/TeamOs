@@ -52,7 +52,7 @@ try {
     ] };
     checkout.extensions.workitemAutomation = { version: 1, start: { from: ['to-do'], to: 'doing' }, finish: { from: ['doing'], to: 'ready-to-test' } };
     checkout.extensions.workflow.transitions.done = ['doing'];
-    save(checkout, 'test-board/us-12.board.json', [
+    save(checkout, 'tests/fixtures/manual/us-12.board.json', [
         { id: 1201, type: 'epic', title: 'Checkout acessível', description: 'Organizar pagamentos e comprovativos. Concluir Tasks não conclui automaticamente este Epic.', objective: 'Permitir compras sem barreiras', scope: 'Fluxo de pagamento', businessValue: 'Reduzir abandono', status: 'doing', phaseId: 'delivery', milestoneId: 'release', assignees: ['Ana'], responsible: 'Ana', tags: ['pagamentos'], priority: 'high' },
         { id: 1202, type: 'story', title: 'Pagar com cartão', description: 'Como cliente, quero pagar com cartão e receber confirmação. Uma Task terminou no Sprint anterior; só a Task atual aparece no Board Técnico.', parentId: 1201, status: 'doing', sprintId: 'current', acceptanceCriteria: 'Compra confirmada e comprovativo apresentado', effort: 'L', phaseMode: 'inherit', milestoneMode: 'inherit', sprintHistory: [{ sprintId: 'previous', status: 'doing', at: '2026-10-18T17:00:00.000Z' }], assignees: ['Ana', 'Rui'], responsible: 'Ana', tags: ['pagamentos'], priority: 'high', dueDate: '2026-10-30' },
         { id: 1203, type: 'task', title: 'Validar cartão no Sprint anterior', description: 'Trabalho concluído: consultar na Table e no Sprint anterior, sem o repetir no Técnico atual.', parentId: 1202, status: 'done', sprintId: 'previous', phaseMode: 'inherit', milestoneMode: 'inherit', effort: 'M', assignees: ['Rui'], responsible: 'Rui', tags: ['backend'] },
@@ -95,7 +95,7 @@ try {
         { id: 'current', title: 'Suporte · Sprint atual', startDate: '2026-10-19', endDate: '2026-11-01', parentId: 'delivery' },
         { id: 'future', title: 'Suporte · Sprint futuro', startDate: '2026-11-02', endDate: '2026-11-15', parentId: 'delivery' }
     ] };
-    save(support, 'test-board/us-12-support.board.json', [
+    save(support, 'tests/fixtures/manual/us-12-support.board.json', [
         { id: 1201, type: 'epic', title: 'Portal de suporte', objective: 'Permitir acompanhar pedidos sem contactar a equipa', status: 'building', phaseId: 'delivery', milestoneId: 'release', assignees: ['Ana'], responsible: 'Ana', tags: ['suporte'], priority: 'high' },
         { id: 1202, type: 'story', title: 'Abrir pedido de suporte', description: 'Mesmo número local da Story de Checkout, mas conteúdo e projeto diferentes.', parentId: 1201, status: 'review', sprintId: 'current', phaseMode: 'inherit', milestoneMode: 'inherit', acceptanceCriteria: 'Pedido criado com referência e confirmação por email', effort: 'M', assignees: ['Ana', 'Bruno'], responsible: 'Ana', tags: ['suporte', 'email'], dueDate: '2026-10-30', priority: 'high' },
         { id: 1203, type: 'task', title: 'Criar formulário de pedido', parentId: 1202, status: 'validated', sprintId: 'current', phaseMode: 'inherit', milestoneMode: 'inherit', assignees: ['Bruno'], responsible: 'Bruno', effort: 'M' },
