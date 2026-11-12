@@ -1,4 +1,5 @@
-import { projectHasUnsavedChanges, subscribeProjectFileUpdates } from '@/infrastructure/persistence/projectFiles';
+import { subscribeProjectFileUpdates } from '@/infrastructure/persistence/projectFiles';
+import { needsCloseWarning } from '@/infrastructure/persistence/projectSaveLifecycle';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useEffect, useState } from 'react';
 import { isFileDrag } from '@/infrastructure/browser/fileDrop';
@@ -44,7 +45,8 @@ export function usePortfolioFileIntegration(): boolean {
 
         const unsubscribe = subscribeProjectFileUpdates(handleFocus);
         const beforeUnload = (event: BeforeUnloadEvent) => {
-            if (useAppStore.getState().portfolioBoards.some((board) => projectHasUnsavedChanges(board.id) || useAppStore.getState().projectSaveStateById.get(board.id)?.watchStatus === 'conflict')) {
+            const saveStates = useAppStore.getState().projectSaveStateById;
+            if (useAppStore.getState().portfolioBoards.some((board) => needsCloseWarning(saveStates.get(board.id)))) {
                 event.preventDefault();
                 event.returnValue = '';
             }

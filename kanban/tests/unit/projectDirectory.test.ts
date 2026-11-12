@@ -182,7 +182,7 @@ describe('project directory persistence', () => {
         useAppStore.setState({ portfolioBoards: [{ ...board, data: updated }] });
         markProjectDirty(board.id);
         expect(await enqueueProjectSave(board)).toBe(true);
-        expect(useAppStore.getState().projectSaveStateById.get(board.id)?.status).toBe('idle');
+        expect(useAppStore.getState().projectSaveStateById.get(board.id)?.phase.kind).toBe('synced');
         await ensureProjectHistoryLoaded(board.id);
         expect(useAppStore.getState().portfolioBoards[0].data.extensions.timeline?.events.map((event) => event.id)).toContain('old-event');
         const reopened = await BoardRepository.createRecordFromHandle(await openProjectDirectory(directory));

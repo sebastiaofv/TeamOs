@@ -13,7 +13,7 @@ import { sameProduct, prepareProjectTransfer, removeTransferredSource, transferB
 import { cloneSerializable } from '@/domain/serializable';
 import { statusCategory } from '@/domain/workflow';
 import { validateBoardData } from '@/domain/board';
-import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
+import { canTransferProjectFile, projectAccessBlockers } from '@/features/portfolio/queries/projectAccess';
 import { translateCurrent as t } from '@/shared/i18n';
 import { lockProjectTransfers, isProjectTransferLocked } from './projectTransferLocks';
 
@@ -21,8 +21,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
     const { getState, getBoardRecord, commitState, enqueueSave, markDirty, alert, choose, confirm, prompt, onBoardChanged } = context;
     let preparing = false;
     const failedCopies = new Map<string, { boardId: string; operationId: string }>();
-    const writable = (id: string) => Boolean(getBoardRecord(id)?.handle) && !isBoardInHistoricalPreview(getState(), id)
-        && !['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(id)?.watchStatus || '');
+    const writable = (id: string) => canTransferProjectFile(projectAccessBlockers(getState(), id));
     function publish(boardId: string, data: BoardData) {
         const firstEvent = getBoardRecord(boardId)?.data.extensions.timeline?.events.length || 0;
         const actor = projectActor(boardId);
@@ -94,7 +93,9 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             await ensureProjectHistoryLoaded(boardId);
             const source = getBoardRecord(boardId);
             const task = source?.data.board.tasks.find((item) => item.id === taskId);
-            if (!source || !task || isBoardInHistoricalPreview(getState(), boardId) || ['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(boardId)?.watchStatus || '') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
+            // A copy may come from a read-only file, but never from a stale or historical view of it.
+            const blockers = projectAccessBlockers(getState(), boardId).filter((blocker) => mode === 'move' || blocker !== 'noFile');
+            if (!source || !task || !canTransferProjectFile(blockers)) throw new TransferError('unavailable');
             const failedCopy = failedCopies.get(`${boardId}:${task.permanentId}`);
             if (mode === 'copy' && failedCopy) return await resumeProjectTransfer(failedCopy.boardId, failedCopy.operationId);
             const pending = getState().portfolioBoards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || []).filter((operation) => operation.status === 'pending' && (operation.from.permanentId === task.permanentId || operation.to.permanentId === task.permanentId)).map((operation) => ({ board, operation })))[0];
@@ -144,7 +145,7 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             // Watch both files again after the user has reviewed the draft.
             await checkFiles();
             if (getBoardRecord(boardId)?.data !== source.data || getBoardRecord(destinationId)?.data !== destination.data) throw new TransferError('stale');
-            if (!writable(destinationId) || isBoardInHistoricalPreview(getState(), boardId) || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
+            if (!writable(destinationId) || projectAccessBlockers(getState(), boardId).includes('history') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
             const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations), acceptanceAuthor, childChoices);
             // Validate before publishing: an invalid draft cannot affect either project.
             validateBoardData(prepared.destination);
