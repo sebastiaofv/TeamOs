@@ -33,6 +33,17 @@ result. Infrastructure owns file and browser details behind small interfaces.
 
 - `infrastructure/persistence/projectDirectory.ts` owns folder validation, content-addressed attachment files, and the history journal. `history.json` contains events, record histories and append-only staged/committed transactions. `project.json` stores only current data and references, including the last history transaction identity. Both use the v1 format in [PROJECT_FORMAT.md](PROJECT_FORMAT.md); `domain/projectFormat.ts`, `projectPatch.ts` and `projectHistoryFormat.ts` are the only translation to and from the in-memory model, with entity types, field tables and validation in `projectFileSchema.ts`, and older folders are converted once on open. Appending uses `createWritable({ keepExistingData: true })`, `seek` and `truncate`; opening checks the history identity from its first and last bytes; the first append of a session verifies the whole root structure with a bounded-memory scan and later appends reread identity plus the closing bytes, while explicit history consumers deserialize and validate events and archives. Conversion shares the project-identity save lock and checks both input files before replacement. A failed current-state write leaves its staged events uncommitted; a successful current-state hash can recover a missing commit marker. `projectFiles.ts` maintains the same disk-hash baselines, save queue, reconciliation and recovery for both formats.
 
+## Explicit state machines
+
+Behavior with distinct modes is modelled as one named state with a transition
+function, never as several flags that readers combine.
+
+- `infrastructure/persistence/projectSaveLifecycle.ts` owns a project's save phase (`synced`, `pending`, `writing`, `failed`, `conflict`, `unreachable`), its version counters and the short-lived disk notice. `projectFiles.ts` changes it only through `transitionProjectSave` events; views and commands read its selectors (`projectSaveBadge`, `needsCloseWarning`, `blocksProjectTransfers`, `currentProjectMerge`). The notice badge fades on a timer event, not during render.
+- `features/portfolio/queries/projectAccess.ts` lists every reason a project is read-only once. `canEditProjectWorkitems` and `canTransferProjectFile` are the two policies over those reasons.
+- `app/overlays/dialogs.ts` ties each dialog's store context (`portfolioDetailContext`, `taskEditorContext`, `roadmapEntityContext`) to the dialog: closing or replacing the dialog clears it. `taskEditorContext` is either `edit` or `create`; `returnToDetail` chains are the detail back stack.
+- `domain/projectTransfers.ts` `nextTransferStep` derives a cross-project transfer's next step from the persisted operation, for first runs and retries alike.
+- Component-local machines use a reducer or a single union state: the relation editor (`task/dialogs/relationEditorState.ts`), pull request links, Project Control records and the reconciliation form. `shared/hooks/useSubmission.ts` is the single in-flight guard for submissions.
+
 ## Folder map
 
 ```text
