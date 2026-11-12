@@ -5,7 +5,7 @@ import { BoardRepository } from '../../src/infrastructure/persistence/boardRepos
 import { loadDirectoryHistory, openProjectDirectory } from '../../src/infrastructure/persistence/projectDirectory';
 import { MemoryDirectory, MemoryFile } from '../support/projectDirectory';
 import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
-import { dashboardPeriodWorkitems, dashboardSnapshot } from '../../src/domain/dashboardOverview';
+import { dashboardPeriodWorkitems, dashboardSnapshot, dashboardMilestones } from '../../src/domain/dashboardOverview';
 import { validateBoardData } from '../../src/domain/board';
 import { visibleComments } from '../../src/domain/comments';
 import { allSprintAnalytics } from '../../src/domain/sprintAnalytics';
@@ -78,5 +78,14 @@ describe('the TeamOS historical example', () => {
         expect(results.rows.map(row => row.startDate)).toEqual(results.rows.map(row => row.startDate).sort());
         expect(results.summary.velocity).toBeGreaterThan(0);
     });
+
+    it('keeps native milestone history below the previous multi-minute regression', async () => {
+        const data = await openExample();
+        const started = performance.now();
+        const milestones = dashboardMilestones(data, '2026-11-12');
+        const elapsed = performance.now() - started;
+        expect(milestones.summary.completed).toBeGreaterThan(0);
+        expect(elapsed).toBeLessThan(120_000);
+    }, 150_000);
 
 });

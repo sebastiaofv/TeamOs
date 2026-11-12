@@ -21,15 +21,15 @@ function Progress({ value, label }: { value: number | null; label: string }) {
 export function DashboardOverview({ historyEventIndex, dependencyBlockedIds, boardId, data, source, start, end, visible, selection, onSelect, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const actions = usePortfolioActions();
-    const { metrics, planning, milestones, statistics, controls, sprints, epics } = useMemo(() => {
+    const { metrics, planning, milestones, statistics, epics } = useMemo(() => {
         const tasks = dashboardTasks(data);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
         const planning = dashboardOverviewPlanning(data, '', end);
         const statistics = dashboardStatistics(data, '');
-        const controls = dashboardControl(data, '', start, end);
-        const sprints = dashboardActiveSprints(data, end, start);
-        return { metrics, planning, milestones: dashboardMilestones(data, end, planning.milestones), statistics, controls, sprints, epics: dashboardEpics(data) };
-    }, [data, start, end, dependencyBlockedIds]);
+        return { metrics, planning, milestones: dashboardMilestones(data, end, planning.milestones), statistics, epics: dashboardEpics(data) };
+    }, [data, end, dependencyBlockedIds]);
+    const sprints = useMemo(() => dashboardActiveSprints(data, end, start), [data, end, start]);
+    const controls = useMemo(() => dashboardControl(data, '', start, end), [data, start, end]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(value)}%`;
     const situation = (value: 'overdue' | 'late' | 'onTarget' | 'completed') => <span className={`dashboard-badge dashboard-situation-${value}`}>{t(`dashboard.${value}`)}</span>;
     const legend = [...new Map(statistics.flatMap((group) => group.states.map((state) => [state.id, state] as const))).values()];

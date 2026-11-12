@@ -5,7 +5,7 @@ import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, iterateBoardTimeline, reconstructBoardStateFromTimeline } from './timeline';
 import { createBoardStateSnapshot } from './serialize';
 import { defaultWorkflow, WORKFLOW_CATEGORIES, statusCategory, withWorkflowReadCache } from './workflow';
-import { isPlanningUnit, transferDescendants, workitemProgress, workitemType } from './workitems';
+import { effectivePlanning, isPlanningUnit, transferDescendants, workitemProgress, workitemType } from './workitems';
 import { getSprintCalendarStatus, getSprintStatus } from './roadmap';
 import { developmentCompleted, sprintPointSummary } from './sprintResults';
 
@@ -189,9 +189,22 @@ export function dashboardMilestones(data: BoardData, end: string, milestones = d
         const completedIds = new Set(completed.map((group) => group.item.id));
         const completedAt = new Map<string, string>();
         let previous = new Set<string>();
-        if (completedIds.size) for (const { snapshot, event, index } of iterateBoardTimeline(data, (event) => event.at.slice(0, 10) <= end)) {
-            const current = new Set(dashboardOverviewPlanning(snapshot, '', event.at.slice(0, 10)).milestones
-                .filter((group) => completedIds.has(group.item.id) && group.progress.percent === 100).map((group) => group.item.id));
+        if (completedIds.size) for (const { snapshot, event, index } of iterateBoardTimeline(data, (event) => event.at.slice(0, 10) <= end, ['project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'roadmap', 'projectControl'])) {
+            // This widget needs completion transitions for these milestones only.
+            // Rebuilding every phase and milestone at every event is quadratic on native histories.
+            const members = new Map<string, Task[]>();
+            for (const task of snapshot.board.tasks) {
+                const id = effectivePlanning(snapshot, task, 'milestoneId');
+                if (completedIds.has(id)) {
+                    const group = members.get(id) || [];
+                    group.push(task); members.set(id, group);
+                }
+            }
+            const current = new Set((snapshot.extensions.roadmap?.milestones || []).filter(item => {
+                if (!completedIds.has(item.id)) return false;
+                const tasks = members.get(item.id) || [];
+                return gateControlProgress(snapshot, 'milestones', new Set([item.id]), planningProgress(tasks, snapshot).percent) === 100;
+            }).map(item => item.id));
             for (const id of completedIds) {
                 if (!current.has(id)) completedAt.delete(id);
                 else if (index > 0 && !previous.has(id)) completedAt.set(id, event.at);

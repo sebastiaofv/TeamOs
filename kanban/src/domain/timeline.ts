@@ -306,7 +306,7 @@ export function getBoardTimelineData(boardData: LooseBoardData | null | undefine
 
 /** One forward replay for reports. Snapshots omit conversation/history payloads;
  * opening an observation still uses the complete standalone projection below. */
-export function* iterateBoardTimeline(boardData: BoardData, include: (event: TimelineEvent, index: number) => boolean = () => true) {
+export function* iterateBoardTimeline(boardData: BoardData, include: (event: TimelineEvent, index: number) => boolean = () => true, snapshotExtensions?: readonly string[]) {
     const timeline = getBoardTimelineData(boardData);
     if (!timeline?.events[0]?.snapshot?.board) return;
     let state: ReplayState | null | undefined = timeline.events[0].snapshot;
@@ -318,7 +318,9 @@ export function* iterateBoardTimeline(boardData: BoardData, include: (event: Tim
         let snapshot: BoardData | undefined;
         yield { index, event, get snapshot() {
             if (!snapshot) {
-                snapshot = createBoardStateSnapshot(replay);
+                // Metric-only consumers can omit unrelated frozen rosters, comments and attachments.
+                const input = snapshotExtensions && replay ? { ...replay, extensions: Object.fromEntries(snapshotExtensions.flatMap(key => replay.extensions?.[key] === undefined ? [] : [[key, replay.extensions[key]]])) } : replay;
+                snapshot = createBoardStateSnapshot(input);
                 if (snapshot.extensions.project && boardData.extensions.project) snapshot.extensions.project.id = boardData.extensions.project.id;
                 inheritLegacyTaskIdentities(snapshot, replay as LooseBoardData, boardData);
             }
