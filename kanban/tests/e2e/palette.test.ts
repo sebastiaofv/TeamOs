@@ -166,7 +166,7 @@ test.describe('command palette', () => {
     await openPalette(page);
     await input(page).fill('bravo');
     await bravoProject.click();
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Bravo');
+    await expect(page.locator('.header-project-picker')).toContainText('Bravo');
 
     // Projects only appear on the empty palette through "Recent".
     await openPalette(page);

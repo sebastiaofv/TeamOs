@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { gotoApp, identifyOpenProjects, portfolioCard, renameTaskViaEditor, selectPortfolioBoard, showTimeline, portfolioProjectChipButtons, openProjectPicker } from '../support/portfolio';
+import { gotoApp, identifyOpenProjects, portfolioCard, renameTaskViaEditor, selectPortfolioBoard, showTimeline, expectProjectCount, openProjectPicker } from '../support/portfolio';
 import { fixtureTree, mockFolderPicker, readFolderJson } from '../support/folderProjects';
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
@@ -16,12 +16,12 @@ for (const standalone of [false, true]) {
         await mockFolderPicker(page, tree);
         await expect(page.locator('#openProjectFolderBtn, #migrateProjectsBtn')).toHaveCount(0);
         await page.locator('#importProjectsBtn').click();
-        await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+        await expectProjectCount(page, 2);
         await identifyOpenProjects(page);
         expect(await page.evaluate(() => Object.entries(window.__folderDisk.fullReads).filter(([path]) => path.endsWith('history.json') || path.includes('/attachments/')))).toEqual([]);
         // Opening the same parent appends no duplicate records.
         await page.locator('#importProjectsBtn').click();
-        await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+        await expectProjectCount(page, 2);
         await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
         if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
         const legacy = JSON.parse(readFileSync('tests/fixtures/manual/us-25/migration/legacy.board.json', 'utf8'));
@@ -36,7 +36,7 @@ for (const standalone of [false, true]) {
         await openProjectPicker(page);
         await page.locator('.portfolio-chip').filter({ hasText: 'US-25 Alpha' }).getByRole('button', { name: 'Remove project' }).click();
         await page.locator('#importProjectsBtn').click();
-        await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+        await expectProjectCount(page, 2);
         await identifyOpenProjects(page);
         await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
         await portfolioCard(page, 'Changed without visiting history').click();
@@ -68,7 +68,7 @@ test('creates the destination structure and asks for another name on collision',
     await page.getByLabel('Project name', { exact: true }).fill('Folder Alpha');
     await page.locator('#projectAcronym').fill('FAL');
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Folder Alpha');
+    await expect(page.locator('.header-project-picker')).toContainText('Folder Alpha');
     await identifyOpenProjects(page);
     expect(await page.evaluate(() => window.__folderDisk.directories)).toContain('folder-alpha/attachments');
     expect((await readFolderJson(page, 'folder-alpha/project.json')).workitems).toEqual([]);
@@ -80,7 +80,7 @@ test('creates the destination structure and asks for another name on collision',
     await expect(page.locator('#appMessageModal')).toContainText('already exists');
     await page.locator('#appMessageModal input').fill('folder-beta');
     await page.locator('#appMessageModal').getByRole('button', { name: 'OK', exact: true }).click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+    await expectProjectCount(page, 2);
     expect((await readFolderJson(page, 'folder-alpha/project.json')).project.acronym).toBe('FAL');
     expect((await readFolderJson(page, 'folder-beta/project.json')).project.acronym).toBe('FBL');
 });
@@ -96,7 +96,7 @@ test('reports incomplete projects, keeps valid siblings, and defers corrupt hist
     await expect(page.locator('#appMessageModal')).toContainText('wrong-attachments-type');
     await page.locator('#appMessageModal').getByRole('button', { name: 'OK', exact: true }).click();
     await identifyOpenProjects(page);
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(3);
+    await expectProjectCount(page, 3);
     expect(await page.evaluate(() => Object.keys(window.__folderDisk.fullReads).some((path) => path.endsWith('history.json')))).toBe(false);
     await selectPortfolioBoard(page, 'US-25 corrupt-history');
     await showTimeline(page);
@@ -121,7 +121,7 @@ test('Import Projects converts legacy boards in the selected folder without chan
     await mockFolderPicker(page, legacyTree);
     const legacy = readFileSync('tests/fixtures/manual/us-25/migration/legacy.board.json', 'utf8');
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await identifyOpenProjects(page);
     expect(await page.evaluate(() => new TextDecoder().decode(new Uint8Array(window.__folderDisk.files['legacy.board.json'])))).toBe(legacy);
     expect(await page.evaluate(() => window.__folderDisk.writes['legacy.board.json'] || 0)).toBe(0);
@@ -135,7 +135,7 @@ test('Import Projects converts legacy boards in the selected folder without chan
     expect((await readFolderJson(page, path.replace('project.json', 'history.json'))).events.map((event: { id: string }) => event.id)).toEqual(original.extensions.timeline.events.map((event: { id: string }) => event.id));
     const legacyReads = await page.evaluate(() => window.__folderDisk.fullReads['legacy.board.json']);
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await expect(page.locator('#appMessageModal')).toHaveCount(0);
     expect(await page.evaluate(() => window.__folderDisk.fullReads['legacy.board.json'])).toBe(legacyReads);
 });
@@ -147,7 +147,7 @@ test('writes valid append-only history using real browser file streams with Unic
     await page.getByLabel('Project name', { exact: true }).fill('Native folder');
     await page.locator('#projectAcronym').fill('NAT');
     await page.locator('#projectSettingsModal').getByRole('button', { name: 'Save', exact: true }).click();
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Native folder');
+    await expect(page.locator('.header-project-picker')).toContainText('Native folder');
     await identifyOpenProjects(page);
     if (await page.locator('.board-active-sprints input').count()) await page.locator('.board-active-sprints input').uncheck();
     await page.getByRole('button', { name: 'Create workitem', exact: true }).click();
@@ -194,12 +194,12 @@ test('the import shortcut and palette use the same folder picker', async ({ page
     await gotoApp(page);
     await mockFolderPicker(page, tree);
     await page.keyboard.press('i');
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+    await expectProjectCount(page, 2);
     await identifyOpenProjects(page);
     await page.keyboard.press('ControlOrMeta+k');
     await page.locator('#commandPaletteInput').fill('Import projects');
     await page.locator('.palette-item').first().click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(2);
+    await expectProjectCount(page, 2);
     await expect(page.locator('#appMessageModal')).toHaveCount(0);
 });
 
@@ -207,7 +207,7 @@ test('opens a folder saved by the previous version, converting it once and keepi
     await gotoApp(page);
     await mockFolderPicker(page, fixtureTree('tests/fixtures/legacy/folder-v6'));
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await identifyOpenProjects(page);
     const converted = await readFolderJson(page, 'alpha/project.json');
     expect(converted.meta.schemaVersion).toBe(1);

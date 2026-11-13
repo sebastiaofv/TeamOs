@@ -69,7 +69,7 @@ test.describe('US-01 workitems table', () => {
         { id: 'future', title: 'Sprint 3', startDate: '2026-03-01', endDate: '2026-03-14' }
       ] } } }], { selectedBoardId: 'review' });
       await page.locator('[data-view-mode="table"]').click();
-      await page.locator('#tableColumns summary').click();
+      await page.locator('#tableColumns > button').click();
       await page.locator('.table-column-panel [data-column-choice="blocked"]').getByRole('button', { name: /^Show / }).click();
       await page.keyboard.press('Escape');
       await page.mouse.move(1, 1);
@@ -516,7 +516,9 @@ test.describe('2.2 toolbar and chips', () => {
         { id: 'v1', title: 'Alpha Project', hasHandle: true, tasks: [{ id: 1, title: 'Alpha task', status: 'backlog' }] },
         { id: 'v2', title: 'Beta Project', hasHandle: false, tasks: [{ id: 2, title: 'Beta task', status: 'doing' }] }
       ]);
-      await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
+      await openProjectPicker(page);
+    await expect(page.locator('#portfolioBoardsChips .portfolio-chip')).toHaveCount(3);
+    await page.keyboard.press('Escape');
       await openProjectPicker(page);
       await captureControls(page, `toolbar-chips-all-${theme}.png`);
     });
@@ -579,7 +581,7 @@ test.describe('2.2 toolbar and chips', () => {
     });
     await dragWithMouse(page, portfolioCard(page, 'Move me'), page.locator('#portfolio-doing-column'));
     await openProjectPicker(page);
-    const chip = page.locator('#portfolioBoardsChips .portfolio-chip.active');
+    const chip = page.locator('.header-project-picker');
     await expect(chip).toContainText('Save failed');
     await expect(chip.getByRole('button', { name: 'Retry', exact: true })).toBeVisible();
     await captureControls(page, 'toolbar-chip-save-error-light.png');
@@ -915,7 +917,7 @@ test.describe('US-13 product navigation and transfer review', () => {
       const card = portfolioCard(page, 'Reparar portão'); await card.click();
       const dialog = page.locator('#taskDetailModal');
       await dialog.getByLabel('Task actions', { exact: true }).click();
-      await dialog.getByRole('button', { name: 'Move to project…', exact: true }).click();
+      await dialog.getByRole('menuitem', { name: 'Move to project…', exact: true }).click();
       await page.locator('#appMessageSelection').selectOption({ label: 'US-13 · Manutenção' });
       await page.locator('#appMessageConfirmBtn').click();
       await page.locator('[data-field="state"]').selectOption({ label: 'Reparação' });
@@ -975,7 +977,7 @@ test.describe('US-13 grouped mappings and rejected transfers', () => {
       await portfolioCard(page, 'Parent story').click();
       const detail = page.locator('#taskDetailModal');
       await detail.getByLabel('Task actions', { exact: true }).click();
-      await detail.getByRole('button', { name: 'Move to project…' }).click();
+      await detail.getByRole('menuitem', { name: 'Move to project…' }).click();
       if (!blocked) {
         await page.locator('#appMessageSelection').selectOption({ label: 'Maintenance' });
         await page.locator('#appMessageConfirmBtn').click();

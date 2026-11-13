@@ -23,7 +23,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await expect(chip.locator('[data-action="remove-board"]')).toBeInViewport();
         await page.keyboard.press('Escape');
         await page.locator('[data-view-mode="table"]').click();
-        await page.locator('#tableColumns > summary').click();
+        await page.locator('#tableColumns > button').click();
         const gap = await page.locator('.table-column-option').first().evaluate((el) => getComputedStyle(el).gap);
         expect(gap).toBe('4px');
         await page.keyboard.press('Escape');

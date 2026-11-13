@@ -1,5 +1,8 @@
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 import { useBoardColumnLayout } from './useBoardColumnLayout';
+import { boardKeyboardCoordinates } from './boardKeyboardCoordinates';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { pointerOrKeyboardCollision } from '@/shared/ui/dragCollision';
 import { PortfolioQueryControls } from '@/features/portfolio/shell/PortfolioQueryControls';
 import { setPortfolioFilter } from '@/features/portfolio/commands/portfolioControls';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
@@ -11,7 +14,6 @@ import {
     KeyboardSensor,
     MouseSensor,
     TouchSensor,
-    pointerWithin,
     useDraggable,
     useDroppable,
     useSensor,
@@ -101,13 +103,14 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     const setActiveSprintsOnly = (value: boolean) => useAppStore.setState({ portfolioBoardActiveSprintsOnly: value });
     const [mode, setMode] = useState<'technical' | 'functional'>('technical');
     const [activeCardId, setActiveCardId] = useState<UniqueIdentifier | null>(null);
+    const reducedMotion = useReducedMotion();
     const sensors = useSensors(
         // A short move before dragging keeps clicks on the card working.
         useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
         // Touch waits for a brief press, so swiping still scrolls the board.
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
         // The same card can be picked up without a pointer or touch device.
-        useSensor(KeyboardSensor)
+        useSensor(KeyboardSensor, { coordinateGetter: boardKeyboardCoordinates, scrollBehavior: reducedMotion ? 'auto' : 'smooth' })
     );
 
     const rows = Array.isArray(state.portfolioVisibleRows) ? state.portfolioVisibleRows : [];
@@ -139,7 +142,7 @@ function PortfolioBoardView({ state }: { state: BoardViewState }) {
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={pointerWithin}
+            collisionDetection={pointerOrKeyboardCollision}
             accessibility={{ announcements: BOARD_DRAG_ANNOUNCEMENTS }}
             onDragStart={({ active }) => setActiveCardId(active.id)}
             onDragEnd={onDragEnd}

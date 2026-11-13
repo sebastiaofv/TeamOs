@@ -139,8 +139,8 @@ test('puts Delete in the detail menu and validates day/month/year dates before s
     await portfolioCard(page, 'Editable').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await expect(page.locator('#detailDueDateInput')).toHaveValue('28/02/2026');
-    await page.locator('#taskDetailModal .workitem-header-actions summary').click();
-    await page.locator('#taskDetailModal .task-transfer-options').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#taskDetailModal .workitem-header-actions .task-transfer-menu > button').click();
+    await page.locator('#taskDetailModal .task-transfer-options').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     await answerAppMessage(page, { button: 'Delete' });
     await expect(portfolioCard(page, 'Editable')).toHaveCount(0);
 });

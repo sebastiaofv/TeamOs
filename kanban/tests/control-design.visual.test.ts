@@ -18,7 +18,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
             const scope = `control-${kind}`;
             await expect(page.locator('#control-table-panel .table-heading')).toHaveCount(1);
             await expect(page.locator('.control-filters, .control-toolbar')).toHaveCount(0);
-            const buttons = await page.locator('.portfolio-control').locator('.table-tools input[type=search], .table-tools [data-portfolio-filter-trigger], .table-tools > details, .table-tools > button, .table-management-actions > *').evaluateAll(nodes => nodes.map(node => node.id || node.className));
+            const buttons = await page.locator('.portfolio-control').locator('.table-tools input[type=search], .table-tools [data-portfolio-filter-trigger], .table-tools > .table-columns, .table-tools > button, .table-management-actions > *').evaluateAll(nodes => nodes.map(node => node.id || node.className));
             expect(buttons).toEqual([`${scope}-search`, `portfolioFiltersBtn-${scope}`, `tableColumns-${scope}`, `tableExportCsv-${scope}`, 'toolbar-divider', `tableCreateRecord-${scope}`]);
             for (const id of [`portfolioFiltersBtn-${scope}`, `tableExportCsv-${scope}`, `tableCreateRecord-${scope}`]) {
                 await expect(page.locator(`#${id}`)).toHaveText('');

@@ -51,7 +51,7 @@ test('a Planned Sprint is deleted from its editor; workitems return to planning 
   await page.locator('#roadmapEntityModalCancelBtn').click();
   await planned.getByRole('button', { name: 'Planned', exact: true }).click();
   await page.locator('#roadmapEntityModal').getByLabel('Task actions', { exact: true }).click();
-  await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
+  await page.locator('#roadmapEntityModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
   await expect(page.locator('#appMessageText')).toContainText('available for planning again');
   await page.locator('#appMessageModal').getByRole('button', { name: 'Delete', exact: true }).click();
   await confirmWorkitemChanges(page);
