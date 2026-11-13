@@ -1,4 +1,4 @@
-import type { BoardData, SprintClosure } from './types';
+import type { BoardData, SprintClosure, Task } from './types';
 import { iterateBoardTimeline } from './timeline';
 import { getSprintStatus } from './roadmap';
 import { isPlanningUnit } from './workitems';
@@ -6,21 +6,24 @@ import { isPlanningUnit } from './workitems';
 export type SprintInitialPlan = { plannedPoints: number; completedPlannedPoints: number };
 
 /** A baseline already in progress is not evidence of the initial commitment. */
-export function sprintStartScopes(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()): Map<string, Map<number, number>> {
-    const scopes = new Map<string, Map<number, number>>();
+export function sprintStartWorkitems(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()) {
+    const scopes = new Map<string, { tasks: Task[]; context: BoardData }>();
     let previous = new Map<string, string>();
     // Native history replays every patch, but only Sprint-changing observations need normalization.
-    for (const { snapshot, index, event } of iterateBoardTimeline(data, (entry, index) => index === 0 || Boolean(entry.snapshot?.board || entry.checkpoint) || entry.kind === 'roadmap.updated' || Boolean(entry.patch?.some(operation => operation.at === 'roadmap.sprints')))) {
+    for (const { snapshot, index, event } of iterateBoardTimeline(data, (entry, index) => index === 0 || Boolean(entry.snapshot?.board || entry.checkpoint) || entry.kind === 'roadmap.updated' || Boolean(entry.patch?.some(operation => operation.at === 'roadmap.sprints')), ['project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'roadmap'])) {
         const sprints = snapshot.extensions.roadmap?.sprints || [];
         for (const sprint of sprints) {
             if (closedAt.has(sprint.id) && event.at > closedAt.get(sprint.id)!) continue;
             if (getSprintStatus(sprint) !== 'active' || previous.get(sprint.id) === 'active' || scopes.has(sprint.id)) continue;
-            if (index > 0) scopes.set(sprint.id, new Map(snapshot.board.tasks
-                .filter(task => task.sprintId === sprint.id && isPlanningUnit(snapshot, task)).map(task => [task.id, task.storyPoints ?? 0])));
+            if (index > 0) scopes.set(sprint.id, { context: snapshot, tasks: snapshot.board.tasks.filter(task => task.sprintId === sprint.id && isPlanningUnit(snapshot, task)) });
         }
         previous = new Map(sprints.map(sprint => [sprint.id, getSprintStatus(sprint)]));
     }
     return scopes;
+}
+
+export function sprintStartScopes(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()): Map<string, Map<number, number>> {
+    return new Map([...sprintStartWorkitems(data, closedAt)].map(([id, scope]) => [id, new Map(scope.tasks.map(task => [task.id, task.storyPoints ?? 0]))]));
 }
 
 export function sprintInitialPlan(scope: ReadonlyMap<number, number> | undefined, completedIds: readonly number[]): SprintInitialPlan | undefined {

@@ -1,3 +1,5 @@
+import { sprintExecutionFixture } from '../support/sprintAnalytics';
+import { allSprintAnalytics } from '@/domain/sprintAnalytics';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createEmptyProjectData } from '../../src/domain/board';
 import { appendTimelineEvent, ensureBoardTimelineBaseline } from '../../src/domain/timeline';
@@ -26,6 +28,29 @@ async function fixture(title = 'Folder project') {
 afterEach(() => { useAppStore.setState({ portfolioBoards: [] }); syncProjectSaveStates(); });
 
 describe('project directory persistence', () => {
+    it('recovers frozen initial planning after lazy history hydration, without substituting capacity or final scope', async () => {
+        const data = sprintExecutionFixture();
+        const first = data.extensions.sprintResults!.closures[0];
+        delete first.initialPlan;
+        first.plannedPoints = 99; // Final scope and capacity are not the original commitment.
+        first.sprint.capacity = 20;
+        const parent = new MemoryDirectory('analytics');
+        await createProjectDirectory(parent, 'execution', data);
+        const directory = await parent.getDirectoryHandle('execution');
+        const handle = await openProjectDirectory(directory);
+        const board = await BoardRepository.createRecordFromHandle(handle);
+        useAppStore.setState({ portfolioBoards: [board] }); syncProjectSaveStates();
+        await refreshProjectFileBaseline(board);
+        expect(allSprintAnalytics(board.data).rows[0].planned).toBeNull();
+        const project = await directory.getFileHandle('project.json');
+        const saved = project.text();
+        await ensureProjectHistoryLoaded(board.id);
+        const hydrated = useAppStore.getState().portfolioBoards[0].data;
+        expect(allSprintAnalytics(hydrated).rows[0]).toMatchObject({ planned: 11, capacity: 20, predictability: 0 });
+        expect(allSprintAnalytics(hydrated).rows[0].utilization).toBeCloseTo(55);
+        expect(project.text()).toBe(saved);
+    });
+
     it('opens current state without reading a large history or attachment binaries', async () => {
         const { directory, history } = await fixture();
         const raw = JSON.parse(history.text());

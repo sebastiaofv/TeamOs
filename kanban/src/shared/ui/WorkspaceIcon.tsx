@@ -1,5 +1,5 @@
 import {
-    Activity, Archive, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, ArrowRightToLine, ArrowUp, ArrowUpRight,
+    ChartScatter, RotateCcw, Activity, Archive, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, ArrowRightToLine, ArrowUp, ArrowUpRight,
     AtSign, Bookmark, BookOpen, Bug, CalendarDays, ChartNoAxesCombined, Check, ChevronDown,
     ChevronLeft, ChevronRight, CircleCheck, CircleGauge, Clock, Columns3, Copy, Download,
     Ellipsis, Eye, Flag, FlaskConical, Folder, Gauge, GanttChart, GripVertical, Info,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 
 const icons = {
-    progress: CircleGauge, phases: Waypoints, check: Check, alert: TriangleAlert,
+    scatter: ChartScatter, rework: RotateCcw, progress: CircleGauge, phases: Waypoints, check: Check, alert: TriangleAlert,
     chart: ChartNoAxesCombined, settings: SlidersHorizontal, info: Info, lock: LockKeyhole,
     eye: Eye, arrowLeft: ArrowLeft, arrowRight: ArrowRight, play: Play, finish: Flag, search: Search,
     keyboard: Keyboard, folder: Folder, board: Columns3, dashboard: LayoutDashboard,
