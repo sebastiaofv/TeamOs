@@ -6,7 +6,7 @@ import { applyProjectSettings, ProjectDataError, getProjectData } from '@/domain
 import { applyWorkflow, applyWorkflowTypes, functionalWorkitemTypes, getWorkflow, workflowErrors, workflowKind } from '@/domain/workflow';
 import { areSerializableValuesEqual, cloneSerializable } from '@/domain/serializable';
 import type { DialogPropsByName } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { useSubmission } from '@/shared/hooks/useSubmission';
 
@@ -34,7 +34,7 @@ function useWorkflowDraft(vm: DialogPropsByName['projectSettings'], kind: Workfl
 /** Owns the complete settings draft; views only edit values and render validation. */
 export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings']) {
     const { t } = useI18n();
-    const { saveProjectSettings } = usePortfolioActions();
+    const { saveProjectSettings } = portfolioActions;
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [general, setGeneral] = useState(() => cloneSerializable(original));
     const [originalAutomations] = useState(() => cloneSerializable(getHierarchyAutomations(vm.data)));

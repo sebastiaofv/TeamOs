@@ -4,7 +4,6 @@ import { isRecord, nowIso } from './util';
 
 /** Testing sits between In progress and Completed: development is finished but the workitem is not complete. */
 export const WORKFLOW_CATEGORIES: WorkflowCategory[] = ['backlog', 'to-do', 'in-progress', 'testing', 'completed', 'cancelled'];
-export const BOARD_WORKFLOW_CATEGORIES: WorkflowCategory[] = ['to-do', 'in-progress', 'testing', 'completed'];
 
 export function defaultWorkflow(): Workflow {
     const states: Workflow['states'] = [

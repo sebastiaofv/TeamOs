@@ -5,7 +5,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { BoardRecord, ProjectSaveState } from '@/features/portfolio/types';
 import { useAppStore, type AppState } from '@/features/portfolio/state/store';
 import {
-    clearPortfolioBulkSelection,
     openAssignSprintFromSelection,
     openCreateSprintFromSelection,
     removePortfolioBoard,
@@ -19,7 +18,7 @@ import { normalizePortfolioViewMode } from '@/domain/board';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 
 type ToolbarState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'selectedPortfolioViewMode'>;
 type ChipState = Pick<AppState, 'portfolioBoards' | 'selectedPortfolioBoardId' | 'projectSaveStateById'>;
@@ -94,7 +93,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
 
 function ChipList({ state, expandedProducts, onProductToggle }: { state: ChipState; expandedProducts: Record<string, boolean>; onProductToggle: (key: string, open: boolean) => void }) {
     const { t } = useI18n();
-    const { openProjectSettings } = usePortfolioActions();
+    const { openProjectSettings } = portfolioActions;
     if (state.portfolioBoards.length === 0) {
         return <span className="empty-state-text">{t('toolbar.noProjectsLoaded')}</span>;
     }
@@ -215,7 +214,7 @@ export function PortfolioBulkActions() {
                     : t('toolbar.tasksSelectedPlural', { count: selectedCount })}
             </div>
             <div className="portfolio-bulk-actions-buttons">
-                <button className="btn" type="button" id="portfolioBulkClearBtn" onClick={() => clearPortfolioBulkSelection(boardId)}>{t('common.clear')}</button>
+                <button className="btn" type="button" id="portfolioBulkClearBtn" onClick={() => portfolioActions.clearPortfolioBulkSelection(boardId)}>{t('common.clear')}</button>
                 <button
                     className={`btn${showActions && hasExistingSprints ? '' : ' hidden'}`}
                     type="button"

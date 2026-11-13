@@ -14,7 +14,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlRecords, newControlRecord, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
 import type { BoardData } from '@/domain/types';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { lastCommentAuthor, rememberCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { TaskConversation } from '@/features/portfolio/task/dialogs/TaskConversation';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
@@ -40,7 +40,7 @@ export function ProjectControlDialog() {
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
     const record = controlRecords(data).find((item) => item.id === recordId);
     const { t } = useI18n();
-    const { saveProjectControl, confirmResponsibleParticipantRemoval } = usePortfolioActions();
+    const { saveProjectControl, confirmResponsibleParticipantRemoval } = portfolioActions;
     const project = getProjectData(data);
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
     // A new record opens in the full editor; an existing one opens for viewing,

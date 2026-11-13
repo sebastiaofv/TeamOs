@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { PortfolioCalendarViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { buildPortfolioCalendarViewModel } from '@/features/portfolio/queries';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import {
     setPortfolioCalendarPeriod,
     setPortfolioCalendarView,
@@ -14,7 +14,6 @@ import { CalendarGrid, type CalendarState } from './CalendarGrid';
 import { getCalendarMonthLabel, useI18n } from '@/shared/i18n';
 
 function PortfolioCalendarView({ model, state }: { model: PortfolioCalendarViewModel; state: CalendarState }) {
-    const actions = usePortfolioActions();
     const { language, t } = useI18n();
     const { view, displayMode, year, month } = model;
     const heatmap = displayMode === 'heatmap';

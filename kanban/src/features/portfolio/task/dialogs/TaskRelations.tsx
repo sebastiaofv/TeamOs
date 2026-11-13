@@ -4,14 +4,14 @@ import { useEffect, useReducer, useRef, type KeyboardEvent } from 'react';
 import { initialRelationEditorState, relationEditorReducer, type RelationEditorMode } from './relationEditorState';
 import type { TaskRelationKind } from '@/domain/types';
 import type { TaskDetailViewModel, TaskRelationEntry } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 const GROUPS: TaskRelationKind[] = ['blockedBy', 'blocks', 'related'];
 
 export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
-    const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = usePortfolioActions();
+    const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = portfolioActions;
     const [editor, dispatch] = useReducer(relationEditorReducer, initialRelationEditorState);
     const composing = editor.kind === 'composing' ? editor : null;
     const mode = composing?.mode ?? null;

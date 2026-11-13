@@ -71,16 +71,14 @@ src/
 │   ├── state/                   # Zustand slices, store, derived state
 │   ├── projects/                # project import/create/file-facing actions
 │   ├── hooks/                   # feature lifecycle and browser integration
-│   ├── types.ts                 # feature-owned session and view-model types
-│   └── index.ts                 # public feature entry point
+│   └── types.ts                 # feature-owned session and view-model types
 ├── infrastructure/              # replaceable outside-world adapters
 │   ├── browser/                 # File API and drag/drop/file readers
 │   ├── persistence/              # repository, save queue, file watcher
 │   └── logging/                 # logging adapter
 ├── shared/                      # reusable UI helpers and small shared types
-├── styles/                      # CSS grouped by foundation, feature, overlay
-│   └── app.css                  # cascade manifest imported by the app
-└── types.ts                     # temporary compatibility type facade
+└── styles/                      # CSS grouped by foundation, feature, overlay
+    └── app.css                  # cascade manifest imported by the app
 ```
 
 ## Import rules for new code
@@ -89,7 +87,8 @@ src/
 - Use `@/features/portfolio/...` for portfolio-specific behavior.
 - Use `@/infrastructure/...` for browser, persistence, or logging details.
 - Use `@/shared/...` for reusable UI helpers and shared primitives.
-- Keep `src/types.ts` only for compatibility; new code should import the
-  canonical type module directly.
-- Prefer a feature's public `src/features/portfolio/index.ts` entry point when
-  a consumer needs a stable feature-level interface.
+- Import types from the module that owns them (`domain/types`,
+  `features/portfolio/types`, `infrastructure/browser/types`, `app/types`,
+  `shared/types/ui`); there is no aggregate type facade or feature barrel.
+- Components and shortcuts reach feature actions through the
+  `portfolioActions` singleton in `features/portfolio/commands/portfolioCommands.ts`.

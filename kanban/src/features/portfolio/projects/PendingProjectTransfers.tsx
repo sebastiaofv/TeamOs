@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 export function PendingProjectTransfers() {
     const boards = useAppStore((state) => state.portfolioBoards);
-    const { resumeProjectTransfer } = usePortfolioActions();
+    const { resumeProjectTransfer } = portfolioActions;
     const [busy, setBusy] = useState(false);
     const { t } = useI18n();
     const pending = boards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || [])

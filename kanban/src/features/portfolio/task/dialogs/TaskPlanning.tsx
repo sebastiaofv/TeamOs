@@ -1,5 +1,5 @@
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { getRoadmapExtension } from '@/domain/roadmap';
 import { isLeafPhase } from '@/domain/phaseTree';
 import { useI18n } from '@/shared/i18n';
@@ -7,7 +7,7 @@ import { useI18n } from '@/shared/i18n';
 export function TaskPlanning({ readOnly }: { readOnly: boolean }) {
     const context = useAppStore((state) => state.portfolioDetailContext);
     const board = useAppStore((state) => state.portfolioBoards.find((b) => b.id === state.portfolioDetailContext?.boardId));
-    const { setPortfolioTaskPlanning } = usePortfolioActions();
+    const { setPortfolioTaskPlanning } = portfolioActions;
     const { t } = useI18n();
     const task = board?.data.board.tasks.find((item) => item.id === context?.taskId);
     if (!context || !task || readOnly) return null;

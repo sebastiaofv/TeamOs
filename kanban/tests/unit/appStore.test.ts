@@ -3,6 +3,7 @@ import { ensureBoardTimelineBaseline } from '../../src/domain/timeline';
 import { describe, it, expect, vi } from 'vitest';
 import { createAppStore } from '../../src/features/portfolio/state/store';
 import { createEmptyProjectData } from '../../src/domain/board';
+import { createPortfolioRecord } from '../../src/infrastructure/persistence/portfolioRecord';
 
 function board(id: string, title: string) {
   const data = createEmptyProjectData(title);
@@ -66,5 +67,20 @@ describe('atomic portfolio state', () => {
     expect(store.getState().selectedPortfolioBoardId).toBe('');
     expect(store.getState().selectedPortfolioViewMode).toBe('board');
     expect(store.getState().portfolioVisibleRows).toEqual([]);
+  });
+
+  it('assigns colour seeds to new records without reusing a removed project seed', () => {
+    const store = createAppStore();
+    const first = createPortfolioRecord({ data: createEmptyProjectData('First') });
+    const second = createPortfolioRecord({ data: createEmptyProjectData('Second') });
+    expect(first.colorSeed).toBeNull();
+
+    store.setState({ portfolioBoards: [first, second] });
+    expect(store.getState().portfolioBoards.map((entry) => entry.colorSeed)).toEqual([0, 1]);
+
+    store.setState((state) => ({ portfolioBoards: state.portfolioBoards.slice(0, 1) }));
+    store.setState((state) => ({ portfolioBoards: [...state.portfolioBoards, createPortfolioRecord({ data: createEmptyProjectData('Third') })] }));
+    expect(store.getState().portfolioBoards.map((entry) => entry.colorSeed)).toEqual([0, 2]);
+    expect(store.getState().nextPortfolioProjectColorSeed).toBe(3);
   });
 });

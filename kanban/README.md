@@ -111,7 +111,6 @@ The short version is:
 - `src/infrastructure/` — browser adapters, persistence/repository code, file watching, and logging.
 - `src/shared/` — reusable UI helpers and small shared types.
 - `src/styles/` — CSS grouped into `foundation/`, `portfolio/`, and `overlays/`; `app.css` is the cascade manifest.
-- `src/types.ts` — a temporary compatibility facade. New code should import canonical types from `domain`, `features/portfolio`, `infrastructure/browser`, `app`, or `shared`.
 
 ## Development
 

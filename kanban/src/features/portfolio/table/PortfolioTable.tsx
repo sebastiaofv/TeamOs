@@ -17,7 +17,7 @@ import type { BoardData } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { buildPortfolioRowsFromBoardData, getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { readTableColumnPreferences, saveTableColumnPreferences } from '@/infrastructure/browser/tablePreferences';
 import { downloadCsv } from '@/infrastructure/browser/downloadCsv';
@@ -102,7 +102,6 @@ export function formatClosureDate(iso: string): string {
 }
 
 function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPointsData }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string; canEdit: boolean; sprintPointsData: BoardData }) {
-    const actions = usePortfolioActions();
     const { t, language } = useI18n();
     const [expanded, setExpanded] = useState(false);
     const completeness = group.completeness === null ? t('table.noCompleteness')
@@ -135,7 +134,6 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const { t, language } = useI18n();
     const today = useLocalToday();
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
-    const actions = usePortfolioActions();
     const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
     const [sprintMenuOpen, setSprintMenuOpen] = useState(false);
     const sprintTrigger = useRef<HTMLButtonElement>(null);

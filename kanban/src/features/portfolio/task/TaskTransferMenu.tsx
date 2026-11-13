@@ -1,9 +1,9 @@
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { ActionMenu } from '@/shared/ui/ActionMenu';
 
 export function TaskTransferMenu({ boardId, taskId, historical = false, allowDelete = false }: { boardId: string; taskId: number; historical?: boolean; allowDelete?: boolean }) {
-    const { transferPortfolioTask, deletePortfolioTask } = usePortfolioActions();
+    const { transferPortfolioTask, deletePortfolioTask } = portfolioActions;
     const { t } = useI18n();
     return <ActionMenu trigger={<button type="button" className="task-action-btn" aria-label={t('transfer.actions')} title={t('transfer.actions')}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><circle cx="3" cy="8" r="1" /><circle cx="8" cy="8" r="1" /><circle cx="13" cy="8" r="1" /></svg>
