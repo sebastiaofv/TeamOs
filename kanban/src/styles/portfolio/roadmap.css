@@ -17,7 +17,8 @@
 .roadmap-axis-shell { position: sticky; top: calc(var(--roadmap-controls-height, 0px) + 1px); z-index: 8; isolation: isolate; border-bottom: 1px solid var(--border); background: var(--bg-card); }
 .roadmap-axis-label { position: sticky; left: 1px; z-index: 2; background: var(--bg-card); display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 12px; font-size: 13px; font-weight: 600; }
 .roadmap-axis-label span { font-size: 11px; color: var(--text-secondary); font-weight: 400; }
-.roadmap-axis { position: relative; min-width: 0; }
+/* Keep axis markers below the frozen Timeline label, including on horizontal scroll. */
+.roadmap-axis { position: relative; min-width: 0; isolation: isolate; }
 .roadmap-axis-line { position: relative; height: 44px; }
 .roadmap-axis-ticks { position: absolute; inset: 0; }
 .roadmap-axis-tick { position: absolute; top: 19px; width: 0; font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
@@ -66,7 +67,8 @@
 .roadmap-section-btn { padding: 4px 10px; font-size: 12px; }
 .roadmap-disclosure-btn { display: inline-flex; align-items: center; gap: 4px; padding: 3px 5px; font-size: 11px; white-space: nowrap; color: var(--text-secondary); }
 .roadmap-action-btn:hover, .roadmap-section-btn:hover, .roadmap-disclosure-btn:hover { background: var(--bg-secondary); border-color: var(--accent); }
-.roadmap-row-track { position: relative; min-width: 0; height: 28px; }
+/* Values can extend beyond a short bar, but must stay below frozen row labels. */
+.roadmap-row-track { position: relative; min-width: 0; height: 28px; isolation: isolate; }
 .roadmap-row-timeline-bar { position: absolute; top: 4px; height: 21px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-secondary); color: var(--text-primary); cursor: pointer; padding: 0; }
 .roadmap-bar-fill { position: absolute; top: 0; bottom: 0; left: 0; background: color-mix(in srgb, var(--accent) 35%, var(--bg-card)); }
 .roadmap-row[data-roadmap-kind="sprint"] .roadmap-bar-fill { background: color-mix(in srgb, var(--effort-xs) 35%, var(--bg-card)); }

@@ -36,13 +36,16 @@ function useElementSize<T extends HTMLElement>(initial = 0) {
     return { ref, width, height };
 }
 
-function ProgressBar({ row, left, width, containValue = false }: { row: Pick<RoadmapWorkScope, 'item' | 'progress'>; left: number; width: number; containValue?: boolean }) {
+function ProgressBar({ row, left, width }: { row: Pick<RoadmapWorkScope, 'item' | 'progress'>; left: number; width: number }) {
     const { language } = useI18n(); const percent = useProgressText();
     const bar = useElementSize<HTMLDivElement>();
     const value = percent(row);
     const progress = row.progress.percent || 0;
-    const inside = bar.width * progress / 100 >= value.length * 6.6 + 12;
-    const atEnd = containValue && !inside && left + width >= 99;
+    const valueWidth = value.length * 6.6 + 12;
+    const inside = bar.width * progress / 100 >= valueWidth;
+    // An outside value on a short final bar must not enlarge the scrollable area:
+    // the sticky controls stop at the workspace edge and would then slide left.
+    const atEnd = !inside && left + width >= 99 && bar.width * (1 - progress / 100) < valueWidth;
     return <div ref={bar.ref} role="img" className={`roadmap-row-timeline-bar${row.item!.color ? ' roadmap-custom-phase-color' : ''}`} data-progress={row.progress.percent ?? 'na'} data-start={row.item!.startDate} data-end={row.item!.endDate}
         style={{ left: `${left}%`, width: `${width}%`, ...(row.item!.color ? { '--phase-color': row.item!.color } : {}) } as CSSProperties} title={`${row.item!.title} · ${formatRoadmapDateRange(row.item!, language)} · ${value}`} aria-label={`${row.item!.title} · ${value}`}>
         <span className="roadmap-bar-fill" style={{ width: `${progress}%` }} /><span className={`roadmap-bar-value${inside || atEnd ? ' roadmap-value-inside' : ''}`} style={{ left: `${atEnd ? 100 : progress}%` }}>{value}</span>
@@ -119,7 +122,7 @@ function ProjectGroup({ project, view }: { project: RoadmapProjectGroup; view: P
                     <span className="roadmap-row-title" id={`${id}-title`} title={project.item.title}>{project.item.title}</span>
                     {!placement && <span className="roadmap-row-meta">{percent(project)}</span>}
                 </div>
-                <div className="roadmap-row-track">{placement && <ProgressBar row={project} left={left} width={width} containValue />}</div>
+                <div className="roadmap-row-track">{placement && <ProgressBar row={project} left={left} width={width} />}</div>
             </div>
         </div>
         {project.expanded && <div id={id} className="roadmap-project-phases">{project.view.phaseRows.length
