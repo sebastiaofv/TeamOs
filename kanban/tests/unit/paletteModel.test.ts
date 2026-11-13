@@ -92,10 +92,10 @@ describe('buildPaletteModel', () => {
     expect(labels(buildPaletteModel(input({ query: 'mobile' })), 'projects')).toEqual(['Mobile App']);
   });
 
-  it('lists commands with their keyboard shortcuts, and Roadmap only with a selected project', () => {
+  it('lists commands with their keyboard shortcuts, and Roadmap for both ALL and a selected project', () => {
     const planner = buildPaletteModel(input({ query: 'planner' })).sections.find((section) => section.id === 'commands')!.items[0];
     expect(planner).toMatchObject({ label: 'Go to Day Planner', hint: ['P'], action: { type: 'command', id: 'view-planner' } });
-    expect(labels(buildPaletteModel(input({ query: 'roadmap' })), 'commands')).toEqual([]);
+    expect(labels(buildPaletteModel(input({ query: 'roadmap' })), 'commands')).toEqual(['Go to Roadmap']);
     expect(labels(buildPaletteModel(input({ query: 'roadmap', selectedBoardId: 'web' })), 'commands')).toEqual(['Go to Roadmap']);
   });
 

@@ -89,7 +89,8 @@ test('Roadmap uses compact rows, name editing and the existing Sprint lifecycle 
         version: 3, milestones: [], phases: [{ id: 'p', title: 'Phase name', startDate: '2026-11-01', endDate: '2026-11-30' }], sprints: [{ id: 's', title: 'Sprint name', status: 'planned', startDate: '2026-11-01', endDate: '2026-11-14' }]
     } } }], { selectedBoardId: 'roadmap' });
     await page.locator('[data-view-mode=roadmap]').click();
-    await expect(page.locator('.roadmap-completion-controls, .roadmap-row-meta')).toHaveCount(0);
+    await expect(page.locator('.roadmap-row-meta')).toHaveCount(0);
+    await expect(page.locator('.roadmap-completion-controls')).toHaveCount(1);
     await expect(page.locator('.roadmap-axis-label')).toContainText('Timeline');
     const row = page.locator('#roadmap-row-sprint-s');
     const lifecycle = row.getByRole('button', { name: 'Start Sprint', exact: true });

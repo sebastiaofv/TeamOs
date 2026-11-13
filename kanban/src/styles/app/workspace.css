@@ -43,11 +43,6 @@
 #portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); font-weight: 600; }
 #portfolioBoard .workitem-board-toolbar > .btn[aria-pressed="true"]:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .portfolio-roadmap-view { container: roadmapViewport / size; }
-/* Expanded history and small windows can leave too little room for sticky
-   controls plus the timeline axis. Let both scroll so rows stay reachable. */
-@container roadmapViewport (max-height: 480px) {
-    .roadmap-view-controls, .roadmap-axis-shell { position: relative; top: auto; }
-}
 .table-tools { align-items: center; margin-left: auto; min-width: 0; max-width: 100%; }
 .table-heading .table-export { margin-left: auto; }
 .table-pagination label { margin-right: auto; }

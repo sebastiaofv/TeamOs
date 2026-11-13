@@ -175,7 +175,7 @@ export function createPortfolioControlActions({
         }
         setSelectedPortfolioBoardId(boardId, {
             resetViewModeWhenEmpty: !(!boardId
-                && (state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner'))
+                && (state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner' || state.selectedPortfolioViewMode === 'roadmap'))
         });
 
         syncUrlState();
@@ -243,7 +243,7 @@ export function createPortfolioControlActions({
         const state = getState();
         const normalized = normalizePortfolioViewMode(mode);
         if (normalized === 'calendar') return state.portfolioBoards.length > 0;
-        if (normalized === 'roadmap' || normalized === 'table' || normalized === 'dashboard' || normalized === 'control') return Boolean(state.selectedPortfolioBoardId);
+        if (normalized === 'table' || normalized === 'dashboard' || normalized === 'control') return Boolean(state.selectedPortfolioBoardId);
         return state.portfolioBoards.length > 0;
     }
 

@@ -17,7 +17,7 @@ test.describe('calendar', () => {
     await expect(page.getByRole('button', { name: 'Board', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Day Planner', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Calendar', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Roadmap' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Roadmap' })).toBeVisible();
     await page.getByRole('button', { name: 'Calendar' }).click();
 
     await expect(page.locator('#portfolioCalendarView')).toBeVisible();

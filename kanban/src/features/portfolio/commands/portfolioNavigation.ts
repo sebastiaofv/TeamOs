@@ -49,7 +49,7 @@ export function updatePortfolioUrlState(windowRef: UrlWindow | null = getDefault
     if (state.portfolioSortKey !== 'priority') params.set('ps', state.portfolioSortKey);
     if (state.portfolioSortDir === 'desc') params.set('pd', state.portfolioSortDir);
     if (state.selectedPortfolioBoardId) params.set('pb', state.selectedPortfolioBoardId);
-    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner';
+    const aggregateView = state.selectedPortfolioViewMode === 'calendar' || state.selectedPortfolioViewMode === 'planner' || state.selectedPortfolioViewMode === 'roadmap';
     if (aggregateView && (state.portfolioBoards || []).length > 0) {
         params.set('pv', state.selectedPortfolioViewMode);
     } else if (state.selectedPortfolioBoardId && (state.selectedPortfolioViewMode === 'roadmap' || state.selectedPortfolioViewMode === 'table' || state.selectedPortfolioViewMode === 'dashboard' || state.selectedPortfolioViewMode === 'control')) {

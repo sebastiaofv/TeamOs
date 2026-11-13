@@ -1,3 +1,4 @@
+import { isRoadmapProjectVisible } from '@/domain/roadmap';
 import type { BoardData } from '@/domain/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { setPortfolioViewMode } from './portfolioControls';
@@ -21,4 +22,21 @@ export function navigateToRoadmapItem(boardId: string, kind: 'phases' | 'milesto
         useAppStore.setState((state) => ({ portfolioRoadmapExpandedRowsByBoardId: { ...state.portfolioRoadmapExpandedRowsByBoardId, [boardId]: expanded } }));
     }
     setPortfolioViewMode('roadmap');
+}
+
+export function setAllRoadmapProjectsExpanded(expanded: boolean, boardId?: string) {
+    useAppStore.setState((state) => {
+        const rows = { ...state.portfolioRoadmapExpandedRowsByBoardId };
+        for (const board of state.portfolioBoards) {
+            if (boardId ? board.id !== boardId : !isRoadmapProjectVisible(board.data.extensions.project?.status)) continue;
+            rows[board.id] = { ...rows[board.id], ...(!boardId ? { project: expanded } : {}) };
+            if (!expanded) {
+                for (const key of Object.keys(rows[board.id])) {
+                    if (/^(phase|sprint):/.test(key)) rows[board.id][key] = false;
+                }
+            }
+            for (const phase of board.data.extensions.roadmap?.phases || []) rows[board.id][`tree:${phase.id}`] = !expanded;
+        }
+        return { portfolioRoadmapExpandedRowsByBoardId: rows };
+    });
 }
