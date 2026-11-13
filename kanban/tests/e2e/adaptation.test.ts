@@ -45,7 +45,7 @@ test.describe('touch adaptation', () => {
             await page.locator('[data-view-mode="table"]').tap();
             for (const selector of ['.table-columns']) {
                 const disclosure = page.locator(`#portfolioTable ${selector}`);
-                await disclosure.locator('summary').tap();
+                await disclosure.locator(':scope > button').tap();
                 const panel = await disclosure.locator('[data-table-panel]').boundingBox();
                 expect(panel!.x).toBeGreaterThanOrEqual(0);
                 expect(panel!.x + panel!.width).toBeLessThanOrEqual(320);
@@ -164,7 +164,7 @@ test('Table menus open above their trigger in landscape and stay within the view
     await page.locator('[data-view-mode="table"]').click();
     for (const selector of ['.table-columns']) {
         const menu = page.locator(`#portfolioTable ${selector}`);
-        await menu.locator('summary').click();
+        await menu.locator(':scope > button').click();
         const panel = menu.locator('[data-table-panel]');
         await expect(panel).toBeVisible();
         await expect.poll(() => panel.evaluate((el) => el.getBoundingClientRect().bottom)).toBeLessThanOrEqual(390);
@@ -175,6 +175,6 @@ test('Table menus open above their trigger in landscape and stay within the view
         expect(bounds.x + bounds.width).toBeLessThanOrEqual(844);
         expect(bounds.height).toBeGreaterThan(80);
         await page.keyboard.press('Escape');
-        await expect(menu.locator('summary')).toBeFocused();
+        await expect(menu.locator(':scope > button')).toBeFocused();
     }
 });

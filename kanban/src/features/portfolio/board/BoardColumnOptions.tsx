@@ -1,7 +1,7 @@
 import type { WorkflowKind } from '@/domain/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { getWorkflow } from '@/domain/workflow';
 import { hiddenBoardStates } from '@/domain/boardView';
 import { useI18n } from '@/shared/i18n';
@@ -12,7 +12,7 @@ export function BoardColumnOptions({ mode }: { mode: WorkflowKind }) {
         selectedPortfolioViewMode: value.selectedPortfolioViewMode, portfolioTimelineSelection: value.portfolioTimelineSelection })));
     const { t } = useI18n();
     const hidden = state.selectedPortfolioViewMode !== 'board' || !state.selectedPortfolioBoardId;
-    const { setPortfolioBoardColumnVisibility } = usePortfolioActions();
+    const { setPortfolioBoardColumnVisibility } = portfolioActions;
     const board = state.portfolioBoards.find((record) => record.id === state.selectedPortfolioBoardId);
     if (hidden || !board) return null;
     const preview = getSelectedPortfolioTimelineView(state);

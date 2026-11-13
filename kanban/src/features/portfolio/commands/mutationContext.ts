@@ -9,6 +9,7 @@ import { useAppStore, type AppStore } from '@/features/portfolio/state/store';
 import { getBoardTimelineData } from '@/domain/timeline';
 import { applyWorkitemChange } from './workitemChanges';
 import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
+import { canEditProjectWorkitems, projectAccessBlockers } from '@/features/portfolio/queries/projectAccess';
 import { enqueueProjectSave, markProjectDirty } from '@/infrastructure/persistence/projectFiles';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import { showAlert, showConfirm, showChoice, showPrompt, type ConfirmOptions } from '@/app/overlays/appMessages';
@@ -73,7 +74,7 @@ export function createBoardMutationContext({
     }
 
     function canUsePortfolioTaskMutations(boardId: string): boolean {
-        return isPortfolioBoardMutable(boardId) && !isBoardInHistoricalPreview(getState(), boardId) && !isProjectTransferLocked(boardId);
+        return canEditProjectWorkitems(projectAccessBlockers(getState(), boardId, { transferLocked: isProjectTransferLocked(boardId) }));
     }
 
     function notifyPortfolioMutationUnavailable(boardId: string): void {

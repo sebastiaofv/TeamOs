@@ -6,6 +6,7 @@ import { useI18n } from '@/shared/i18n';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import type { MergeDecisions, ProjectConflict } from '@/domain/projectMerge';
 import { projectHasUnsavedChanges, resolveProjectConflicts, restoreProjectRecovery } from '@/infrastructure/persistence/projectFiles';
+import { isInConflict, type ProjectSaveState } from '@/infrastructure/persistence/projectSaveLifecycle';
 import { listProjectRecovery, removeProjectRecovery, type ProjectRecovery } from '@/infrastructure/persistence/projectRecovery';
 import { checkPortfolioFiles } from './projectCommands';
 
@@ -29,14 +30,14 @@ export function ProjectFileNotices() {
         {boards.map((board) => {
             const state = states.get(board.id);
             return <div key={board.id}>
-                {state?.watchStatus === 'conflict' && <aside className="project-conflict-notice">
+                {isInConflict(state) && <aside className="project-conflict-notice">
                     <span>{t('conflict.paused', { project: board.title })}</span>
                     <button className="btn" onClick={() => { void checkPortfolioFiles(); openDialog('projectReconciliation', { boardId: board.id }); }}>{t('conflict.resolve')}</button>
                     <small>{t('conflict.recoveryHelp')}</small>
                 </aside>}
-                {state?.watchStatus === 'external' && Boolean(state.reconciliation?.changes.length) && <details className="project-merge-notice">
-                    <summary>{t('conflict.merged', { count: state.reconciliation!.changes.length })} {t('conflict.details')}</summary>
-                    <ul>{state.reconciliation!.changes.map((path) => <li key={path}>{path}</li>)}</ul>
+                {state?.notice?.kind === 'merged' && state.notice.merge.changes.length > 0 && <details className="project-merge-notice">
+                    <summary>{t('conflict.merged', { count: state.notice.merge.changes.length })} {t('conflict.details')}</summary>
+                    <ul>{state.notice.merge.changes.map((path) => <li key={path}>{path}</li>)}</ul>
                 </details>}
                 {state?.recoveryError && <p role="alert">{t('conflict.recoveryError', { error: state.recoveryError })}</p>}
                 {recoveries.filter((draft) => draft.projectId === board.data.extensions.project?.id).map((draft) => <aside className="project-conflict-notice" key={draft.id}>
@@ -59,14 +60,20 @@ function conflictLabel(conflict: ProjectConflict, tasks: { permanentId?: string;
     return task ? `${task.title} (#${task.id}) · ${conflict.path.split(']').slice(1).join(']') || conflict.path}` : conflict.path;
 }
 
+function saveError(state: ProjectSaveState | undefined): string {
+    if (state?.phase.kind === 'conflict' || state?.phase.kind === 'failed') return state.phase.error;
+    return '';
+}
+
 function ReconciliationForm({ boardId }: { boardId: string }) {
     const board = useAppStore((state) => state.portfolioBoards.find((board) => board.id === boardId));
     const state = useAppStore((state) => state.projectSaveStateById.get(boardId));
     const [decisions, setDecisions] = useState<MergeDecisions>({});
-    const [busy, setBusy] = useState(false);
-    const [changed, setChanged] = useState(false);
+    // `stillConflicting`: the last confirmation found new or changed conflicts.
+    const [submit, setSubmit] = useState<'idle' | 'submitting' | 'stillConflicting'>('idle');
+    const busy = submit === 'submitting';
     const { t } = useI18n();
-    const conflicts = state?.reconciliation?.conflicts || [];
+    const conflicts = state?.phase.kind === 'conflict' ? state.phase.merge?.conflicts || [] : [];
     const all = (choice: 'local' | 'external') => setDecisions((current) => ({ ...current, ...Object.fromEntries(conflicts.map((conflict) => [conflict.key, choice])) }));
     const value = (data: unknown) => data === undefined ? t('conflict.missing') : JSON.stringify(data, (key, item: unknown) => key === 'dataUrl' ? '(image / attachment)' : item, 2);
     return <>
@@ -94,15 +101,15 @@ function ReconciliationForm({ boardId }: { boardId: string }) {
                 </div>
             </fieldset>)}
         </div>
-        {changed && <p className="reconciliation-description reconciliation-error" role="status">{state?.lastErrorMessage || t('conflict.changed')}</p>}
+        {submit === 'stillConflicting' && <p className="reconciliation-description reconciliation-error" role="status">{saveError(state) || t('conflict.changed')}</p>}
         <div className="modal-footer">
             <button className="btn" disabled={busy} onClick={() => closeDialog('projectReconciliation')}>{t('conflict.defer')}</button>
             <button className="btn btn-primary" disabled={busy || conflicts.some((conflict) => !decisions[conflict.key])} onClick={async () => {
-                setBusy(true);
-                try {
-                    if (await resolveProjectConflicts(boardId, decisions)) closeDialog('projectReconciliation');
-                    else setChanged(true);
-                } finally { setBusy(false); }
+                setSubmit('submitting');
+                let resolved = false;
+                try { resolved = await resolveProjectConflicts(boardId, decisions); }
+                finally { setSubmit(resolved ? 'idle' : 'stillConflicting'); }
+                if (resolved) closeDialog('projectReconciliation');
             }}>{t('conflict.confirm')}</button>
         </div>
     </>;

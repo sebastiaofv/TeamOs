@@ -237,7 +237,7 @@ test('project tabs retain both drafts and save the intended project together', a
     expect(saved.extensions.workflow.states[1].name).toBe('Ready');
     expect(saved.extensions.timeline.events.slice(-2).map((event: { kind: string }) => event.kind)).toEqual(['board.project.updated', 'workflow.updated']);
     expect((await readSavedBoard(page, 'other')).extensions.workflow).toBeUndefined();
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Selected project');
+    await expect(page.locator('.header-project-picker')).toContainText('Selected project');
 });
 
 test('cancelling workflow impact leaves both settings drafts editable and does not save', async ({ page }) => {

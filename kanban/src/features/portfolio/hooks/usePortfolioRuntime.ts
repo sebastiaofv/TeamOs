@@ -1,7 +1,7 @@
 import { useLayoutEffect } from 'react';
 import { applyPortfolioUrlState } from '@/features/portfolio/commands/portfolioNavigation';
 import { handleShortcutKeydown } from '@/features/portfolio/commands/portfolioShortcuts';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useAppStore } from '@/features/portfolio/state/store';
 
 function clearSelectionWhenClickingOutsideCards(event: MouseEvent, clearSelection: () => void) {
@@ -14,13 +14,12 @@ function clearSelectionWhenClickingOutsideCards(event: MouseEvent, clearSelectio
 // Document-level runtime: URL state, keyboard shortcuts, clearing the card
 // selection on outside clicks.
 export function usePortfolioRuntime(): void {
-    const actions = usePortfolioActions();
 
     useLayoutEffect(() => {
         applyPortfolioUrlState();
 
         const handlePopState = () => applyPortfolioUrlState();
-        const handleKeydown = (event: KeyboardEvent) => handleShortcutKeydown(event, actions);
+        const handleKeydown = (event: KeyboardEvent) => handleShortcutKeydown(event);
         const handleDocumentClick = (event: MouseEvent) => clearSelectionWhenClickingOutsideCards(
             event,
             () => actions.setSelectedPortfolioCard(null, null)
@@ -35,5 +34,5 @@ export function usePortfolioRuntime(): void {
             document.removeEventListener('click', handleDocumentClick);
             window.removeEventListener('popstate', handlePopState);
         };
-    }, [actions]);
+    }, []);
 }

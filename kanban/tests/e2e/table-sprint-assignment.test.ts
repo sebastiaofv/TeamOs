@@ -38,7 +38,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeDisabled();
   await select.selectOption('planned');
   await page.keyboard.press('Escape');
-  await expect(page.locator('#tableSprintActions > summary')).toBeFocused();
+  await expect(page.locator('#tableSprintActions > button')).toBeFocused();
   expect(await readSavedBoard(page, 'p')).toEqual(original);
   expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
   for (const id of [1, 2]) await expect(page.locator(`#workitemsTable [data-task-id="${id}"] input`)).toBeChecked();
@@ -60,6 +60,7 @@ test('adds multiple unplanned workitems to a Planned or Active sprint, preservin
   expect(await page.evaluate(() => window.__portfolioTestWrites.length)).toBe(1);
   await expect(page.locator('#workitemsTable tbody tr')).toHaveCount(1);
   await expect(page.locator('#tableCounts')).toHaveText('1 of 1 workitems');
+  await openTableSprintActions(page);
   await expect(add).toBeDisabled();
   await page.locator('#workitemsTable [data-task-id="3"] input').check();
   await openTableSprintActions(page);
@@ -122,6 +123,8 @@ for (const view of ['Table']) {
       await portfolioCard(page, 'Unplanned item').locator('input[type="checkbox"]').check();
       await page.locator('#portfolioBulkAssignSprintBtn').click();
     }
+    // Closing the Radix focus scope schedules the following dialog on a timer.
+    await page.clock.runFor(1);
     const select = page.locator('#roadmapEntityExistingSprint');
     await select.selectOption('ending');
     await expect(page.locator('#roadmapEntityModalSaveBtn')).toBeEnabled();

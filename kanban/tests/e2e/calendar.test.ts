@@ -105,7 +105,7 @@ test.describe('calendar', () => {
     });
 
     expect(styles).not.toBeNull();
-    await expect(page.locator('#portfolioBoardsChips .portfolio-chip.active [data-action="select-board"][data-board-id=""]')).toHaveCount(1);
+    await expect(page.locator('#projectPickerBtn')).toHaveText('All');
     expect(styles!.alphaLabel).toBe('Alpha Due');
     expect(styles!.alphaTitle).toBe('Alpha Due');
     expect(styles!.alphaBackground).not.toBe('rgba(0, 0, 0, 0)');
@@ -120,7 +120,7 @@ test.describe('calendar', () => {
     await expect(page.locator('#detailDescription')).toHaveText('-');
 
     // Opening the task did not select its board or leave calendar mode.
-    await expect(page.locator('#portfolioBoardsChips .portfolio-chip.active [data-action="select-board"][data-board-id=""]')).toHaveCount(1);
+    await expect(page.locator('#projectPickerBtn')).toHaveText('All');
     await expect(page.locator('#portfolioCalendarView')).toBeVisible();
   });
 

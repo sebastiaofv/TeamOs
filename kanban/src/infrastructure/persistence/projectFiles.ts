@@ -1,5 +1,6 @@
 import { withProjectIdentityLock } from './projectLock';
-import { getDirectoryProject, loadDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
+import { validateBoardData } from '@/domain/board';
+import { getDirectoryProject, isDirectoryHistoryLoaded, markDirectoryHistoryLoaded, readDirectoryHistory, mergeDirectoryTimeline, attachHistoryArchives } from './projectDirectory';
 import { parseConversations } from '@/domain/comments';
 import { inheritLegacyTaskIdentities } from '@/domain/taskIdentity';
 import type { BoardData, LooseBoardData } from '@/domain/types';
@@ -8,7 +9,16 @@ import type { BoardData, LooseBoardData } from '@/domain/types';
 // This module owns the conditional save/reconciliation path shared by user
 // saves, autosave and the polling/broadcast watcher.
 
-import type { BoardRecord, ProjectSaveState, WatchStatus } from '@/features/portfolio/types';
+import type { BoardRecord } from '@/features/portfolio/types';
+import {
+    canRetrySave,
+    createProjectSaveState,
+    hasUnsavedChanges,
+    isInConflict,
+    transitionProjectSave,
+    type ProjectSaveEvent,
+    type ProjectSaveState
+} from './projectSaveLifecycle';
 import { useAppStore, getPortfolioBoardRecord, type AppStore } from '@/features/portfolio/state/store';
 import { hashTextContent, serializeBoardDataFromObject } from '@/domain/serialize';
 import { PROJECT_FILE_EXTERNAL_BADGE_MS } from '@/domain/constants';
@@ -40,24 +50,9 @@ type BaselineOptions = {
 
 // Watcher bookkeeping never renders, so it stays out of the store.
 const fileStateById = new Map<string, ProjectFileState>();
-export function createProjectSaveState(): ProjectSaveState {
-    return {
-        status: 'idle',
-        lastErrorMessage: '',
-        lastSavedAt: '',
-        revision: 0,
-        savedRevision: 0,
-        watchStatus: 'idle',
-        watchMessage: '',
-        watchStatusUntil: 0
-    };
-}
+export { createProjectSaveState };
 
-export function applySnapshotToBoardRecord(
-    boardRecord: BoardRecord | null | undefined,
-    parsed: unknown,
-    options: { discardLocalChanges?: boolean } = {}
-): boolean {
+export function applySnapshotToBoardRecord(boardRecord: BoardRecord | null | undefined, parsed: unknown): boolean {
     if (!boardRecord || !parsed) return false;
     const boardId = boardRecord.id;
     const payload = serializeBoardDataFromObject(parsed);
@@ -68,12 +63,6 @@ export function applySnapshotToBoardRecord(
         portfolioBoards: state.portfolioBoards.map((board) => board.id === boardId
             ? { ...board, data: payload, title: payload.board.settings.title } : board)
     }));
-    if (options.discardLocalChanges) {
-        const saveState = getProjectSaveState(boardId, { create: false });
-        if (saveState) updateProjectSaveState(boardId, {
-            revision: saveState.savedRevision, status: 'idle', lastErrorMessage: ''
-        });
-    }
     return true;
 }
 
@@ -81,28 +70,41 @@ export function getProjectSaveState(boardId: string | null | undefined, options:
     if (!boardId) return null;
     const current = useAppStore.getState().projectSaveStateById.get(boardId);
     if (current || options.create === false) return current || null;
-    return updateProjectSaveState(boardId, createProjectSaveState());
+    const created = createProjectSaveState();
+    publishSaveState(boardId, created);
+    return created;
 }
 
-function updateProjectSaveState(boardId: string, changes: Partial<ProjectSaveState>): ProjectSaveState {
-    const current = getProjectSaveState(boardId, { create: false });
-    const next = { ...current, ...changes } as ProjectSaveState;
+function publishSaveState(boardId: string, next: ProjectSaveState): void {
     useAppStore.setState((state) => ({
         projectSaveStateById: new Map(state.projectSaveStateById).set(boardId, next)
     }));
-    return next;
+}
+
+// The only writer of a project's save state: every change is a named
+// lifecycle event. A refused event is a caller bug and leaves the state as is.
+function dispatchProjectSave(boardId: string, event: ProjectSaveEvent): ProjectSaveState | null {
+    const current = getProjectSaveState(boardId, { create: false });
+    if (!current) return null;
+    const result = transitionProjectSave(current, event);
+    if ('refused' in result) {
+        Logger.warn('Project save event refused', { boardId, event: event.type, phase: current.phase.kind, reason: result.refused });
+        return current;
+    }
+    publishSaveState(boardId, result.state);
+    const notice = result.state.notice;
+    if (notice?.badge && notice !== current.notice) {
+        // The badge fades by event, so every reader sees the same moment.
+        setTimeout(() => {
+            if (getProjectSaveState(boardId, { create: false })?.notice === notice) dispatchProjectSave(boardId, { type: 'noticeExpired' });
+        }, PROJECT_FILE_EXTERNAL_BADGE_MS);
+    }
+    return result.state;
 }
 
 export function markProjectDirty(boardId: string): ProjectSaveState | null {
-    const state = getProjectSaveState(boardId);
-    if (!state) return null;
-    const saving = Boolean(getProjectFileState(boardId)!.inFlight);
-    const next = updateProjectSaveState(boardId, {
-        revision: state.revision + 1,
-        status: saving ? 'saving' : state.status === 'error' ? 'error' : 'dirty',
-        ...(state.watchStatus === 'external'
-            ? { watchStatus: 'idle', watchMessage: '', watchStatusUntil: 0 } : {})
-    });
+    if (!getProjectSaveState(boardId)) return null;
+    const next = dispatchProjectSave(boardId, { type: 'edited' });
     persistLocalRecovery(boardId);
     return next;
 }
@@ -128,19 +130,6 @@ export function getProjectFileState(boardId: string | null | undefined, options:
 
 export function forgetProjectFileState(boardId: string): void {
     fileStateById.delete(boardId);
-}
-
-export function setProjectWatchStatus(boardId: string, status: WatchStatus = 'idle', message = '', options: { untilMs?: number } = {}): void {
-    if (!getProjectSaveState(boardId, { create: false })) return;
-    updateProjectSaveState(boardId, {
-        watchStatus: status || 'idle',
-        watchMessage: message || '',
-        watchStatusUntil: Number(options.untilMs) > 0 ? Number(options.untilMs) : 0
-    });
-}
-
-export function clearProjectWatchStatus(boardId: string): void {
-    setProjectWatchStatus(boardId, 'idle', '');
 }
 
 export function syncProjectSaveStates(store: AppStore = useAppStore): void {
@@ -189,9 +178,9 @@ function persistLocalRecovery(boardId: string): void {
     const draft = { projectId: current.data.extensions.project!.id, fileName: current.fileName,
         base: cloneBoardForMutation(runtime.base), baseHash: runtime.lastTextHash, local: cloneBoardForMutation(current.data) };
     runtime.recovery = runtime.recovery.then(() => saveProjectRecovery(draft)).then(() => {
-        updateProjectSaveState(boardId, { recoveryError: '' });
+        dispatchProjectSave(boardId, { type: 'recoveryStored' });
     }).catch((error: unknown) => {
-        updateProjectSaveState(boardId, { recoveryError: formatErrorMessage(error, 'Local recovery failed.') });
+        dispatchProjectSave(boardId, { type: 'recoveryFailed', error: formatErrorMessage(error, 'Local recovery failed.') });
     });
 }
 
@@ -206,13 +195,13 @@ export async function refreshProjectFileBaseline(boardRecord: BoardRecord | null
         if (!runtime.base) setBaseline(runtime, snapshot, boardRecord.data);
         return imported || snapshot;
     } catch (error) {
-        if (options.markError !== false) setProjectWatchStatus(boardRecord.id, 'watch-error', formatErrorMessage(error));
+        if (options.markError !== false) dispatchProjectSave(boardRecord.id, { type: 'diskUnreadable', error: formatErrorMessage(error) });
         return null;
     }
 }
 
 function isValidRecoveryVersion(value: unknown): boolean {
-    try { BoardRepository.validate(BoardRepository.serialize(value)); return true; }
+    try { validateBoardData(BoardRepository.serialize(value)); return true; }
     catch (error) { Logger.error('Project recovery draft is invalid', { error }); return false; }
 }
 
@@ -229,12 +218,12 @@ export function restoreProjectRecovery(boardId: string, draft: ProjectRecovery):
     const metadata = board.data.extensions.projectStorage;
     runtime.lastTextHash = storage?.projectHash && metadata?.convertedFromHash === draft.baseHash ? storage.projectHash : draft.baseHash;
     applySnapshotToBoardRecord(board, draft.local);
-    markProjectDirty(boardId);
     // A recovered draft always requires an explicit reconciliation/check.
-    setProjectWatchStatus(boardId, 'conflict');
+    dispatchProjectSave(boardId, { type: 'draftRestored' });
+    persistLocalRecovery(boardId);
     runtime.recovery = runtime.recovery.then(async () => {
         if (!getProjectSaveState(boardId)?.recoveryError) await removeProjectRecovery(draft.id);
-    }).catch((error: unknown) => updateProjectSaveState(boardId, { recoveryError: formatErrorMessage(error) })).then(() => {});
+    }).catch((error: unknown) => { dispatchProjectSave(boardId, { type: 'recoveryFailed', error: formatErrorMessage(error) }); }).then(() => {});
     return true;
 }
 
@@ -279,7 +268,7 @@ function reconcile(boardId: string, snapshot: BoardSnapshot, decisions?: MergeDe
     });
     runtime.external = snapshot;
     if (result.conflicts.length) {
-        updateProjectSaveState(boardId, { status: 'dirty', watchStatus: 'conflict', reconciliation: result });
+        dispatchProjectSave(boardId, { type: 'conflicted', merge: result });
         persistLocalRecovery(boardId);
         return false;
     }
@@ -288,8 +277,7 @@ function reconcile(boardId: string, snapshot: BoardSnapshot, decisions?: MergeDe
     publishData(boardId, result.merged);
     setBaseline(runtime, snapshot, current.data);
     runtime.external = null;
-    updateProjectSaveState(boardId, { revision: getProjectSaveState(boardId)!.revision + 1,
-        watchStatus: 'external', reconciliation: result, watchStatusUntil: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS });
+    dispatchProjectSave(boardId, { type: 'merged', merge: result });
     persistLocalRecovery(boardId);
     return true;
 }
@@ -300,7 +288,7 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
     const boardId = boardRecord.id;
     const runtime = getProjectFileState(boardId)!;
     if (runtime.inFlight) return runtime.inFlight;
-    if (!options.checkOnly && !options.decisions && getProjectSaveState(boardId)?.watchStatus === 'conflict') {
+    if (!options.checkOnly && !options.decisions && isInConflict(getProjectSaveState(boardId))) {
         persistLocalRecovery(boardId);
         return false;
     }
@@ -316,13 +304,12 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 current = getPortfolioBoardRecord(boardId);
                 if (!current?.handle) return false;
                 if (disk.fileMeta.textHash !== runtime.lastTextHash) {
-                    if (!projectHasUnsavedChanges(boardId) && getProjectSaveState(boardId)?.watchStatus !== 'conflict'
+                    if (!projectHasUnsavedChanges(boardId) && !isInConflict(getProjectSaveState(boardId))
                         && (disk.parsed.meta.revision || 0) > (runtime.base.meta.revision || 0)) {
                         options.onReload?.(boardId);
                         publishData(boardId, normalizeProjectVersion(disk.parsed, current.data));
                         setBaseline(runtime, disk, current.data);
-                        updateProjectSaveState(boardId, { status: 'idle', lastErrorMessage: '', reconciliation: undefined });
-                        setProjectWatchStatus(boardId, 'external', '', { untilMs: Date.now() + PROJECT_FILE_EXTERNAL_BADGE_MS });
+                        dispatchProjectSave(boardId, { type: 'reloaded' });
                         return true;
                     }
                     if (!reconcile(boardId, disk, options.decisions)) return false;
@@ -330,16 +317,11 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                     // have yielded to another machine's write in the meantime.
                     continue;
                 }
-                if (getProjectSaveState(boardId)?.watchStatus === 'conflict') {
-                    // The external version can be reverted while a dialog is open.
-                    // With no difference left, only the current local draft remains.
-                    runtime.external = null;
-                    updateProjectSaveState(boardId, { watchStatus: 'idle', reconciliation: undefined });
-                }
-                if (!projectHasUnsavedChanges(boardId)) {
-                    if (getProjectSaveState(boardId)?.watchStatus === 'watch-error') clearProjectWatchStatus(boardId);
-                    return true;
-                }
+                // The external version can be reverted while a dialog is open.
+                // With no difference left, only the current local draft remains.
+                if (isInConflict(getProjectSaveState(boardId))) runtime.external = null;
+                dispatchProjectSave(boardId, { type: 'diskInSync' });
+                if (!projectHasUnsavedChanges(boardId)) return true;
                 await runtime.recovery;
                 current = getPortfolioBoardRecord(boardId);
                 if (!current?.handle) return false;
@@ -347,13 +329,13 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 const source = current.data;
                 const payload = BoardRepository.serialize(source);
                 payload.meta.revision = Math.max(runtime.base.meta.revision || 0, source.meta.revision || 0) + 1;
-                BoardRepository.validate(payload);
+                validateBoardData(payload);
                 await validateConversationPixels(payload);
                 // Pixel validation may be asynchronous; the final conditional
                 // check is immediately before opening the writable stream.
                 const before = await BoardRepository.readHandleSnapshot(current.handle);
                 if (before.fileMeta.textHash !== runtime.lastTextHash) continue;
-                updateProjectSaveState(boardId, { status: 'saving', lastErrorMessage: '' });
+                dispatchProjectSave(boardId, { type: 'writeStarted' });
                 const written = await writeJsonToFileHandle(current.handle, payload);
                 const savedPayload = written?.data || payload;
                 const text = written?.text || JSON.stringify(payload, null, 2);
@@ -363,7 +345,7 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 const latest = getPortfolioBoardRecord(boardId);
                 if (!latest) return false;
                 publishData(boardId, latest.data === source ? savedPayload : { ...latest.data, meta: { ...latest.data.meta, revision: payload.meta.revision } });
-                updateProjectSaveState(boardId, { savedRevision: targetRevision, lastSavedAt: nowIso() });
+                dispatchProjectSave(boardId, { type: 'written', revision: targetRevision, at: nowIso() });
                 notifications?.postMessage({ projectId: payload.extensions.project?.id });
                 const verification = await BoardRepository.readHandleSnapshot(current.handle);
                 if (verification.fileMeta.textHash !== runtime.lastTextHash) {
@@ -379,18 +361,18 @@ export async function enqueueProjectSave(boardRecord: BoardRecord | null | undef
                 if (saved.revision !== targetRevision) continue;
                 const projectId = payload.extensions.project!.id;
                 runtime.recovery = runtime.recovery.then(() => removeProjectRecovery(recoveryId(projectId))).catch((error: unknown) => {
-                    updateProjectSaveState(boardId, { recoveryError: formatErrorMessage(error) });
+                    dispatchProjectSave(boardId, { type: 'recoveryFailed', error: formatErrorMessage(error) });
                 });
-                updateProjectSaveState(boardId, { status: 'idle', lastErrorMessage: '' });
+                dispatchProjectSave(boardId, { type: 'settled' });
                 return true;
             }
-            updateProjectSaveState(boardId, { status: 'dirty' });
+            dispatchProjectSave(boardId, { type: 'settled' });
             return false;
         } catch (error) {
             Logger.error('Project file check/save failed', { boardId, error });
-            updateProjectSaveState(boardId, options.checkOnly && !projectHasUnsavedChanges(boardId)
-                ? { watchStatus: 'watch-error', watchMessage: formatErrorMessage(error) }
-                : { status: 'error', lastErrorMessage: formatErrorMessage(error, 'Save failed.') });
+            dispatchProjectSave(boardId, options.checkOnly && !projectHasUnsavedChanges(boardId)
+                ? { type: 'diskUnreadable', error: formatErrorMessage(error) }
+                : { type: 'saveFailed', error: formatErrorMessage(error, 'Save failed.') });
             return false;
         }
     })).finally(() => { runtime.inFlight = null; });
@@ -408,42 +390,39 @@ export async function resolveProjectConflicts(boardId: string, decisions: MergeD
 export function retryProjectSave(boardId: string): boolean {
     const boardRecord = getPortfolioBoardRecord(boardId);
     if (!boardRecord || !boardRecord.handle) return false;
-    const state = getProjectSaveState(boardId);
-    if (!state) return false;
-    if (!projectHasUnsavedChanges(boardId) && state.status !== 'error') return false;
+    if (!canRetrySave(getProjectSaveState(boardId))) return false;
     enqueueProjectSave(boardRecord);
     return true;
 }
 
 export function projectHasUnsavedChanges(boardId: string): boolean {
-    const state = getProjectSaveState(boardId, { create: false });
-    return Boolean(state && state.revision > state.savedRevision);
+    return hasUnsavedChanges(getProjectSaveState(boardId, { create: false }));
 }
 
 /** Hydration is a read, never a mutation or a new recovery revision. */
 export async function ensureProjectHistoryLoaded(boardId: string): Promise<void> {
     const board = getPortfolioBoardRecord(boardId);
-    const storage = getDirectoryProject(board?.handle);
-    if (!board?.handle || !storage || storage.loaded) return;
+    if (!board?.handle || !getDirectoryProject(board.handle) || isDirectoryHistoryLoaded(board.handle)) return;
     const handle = board.handle;
     const runtime = getProjectFileState(boardId)!;
     if (runtime.historyInFlight) return runtime.historyInFlight;
     runtime.historyInFlight = (async () => {
         if (runtime.inFlight) await runtime.inFlight;
         if (getPortfolioBoardRecord(boardId)?.handle !== handle) return;
-        const persisted = await loadDirectoryHistory(handle);
+        const persisted = await readDirectoryHistory(handle);
         const current = getPortfolioBoardRecord(boardId);
         if (!persisted || current?.handle !== handle) return;
-        const timeline = mergeDirectoryTimeline(persisted, current.data.extensions.timeline, false);
+        const timeline = mergeDirectoryTimeline(persisted.timeline, current.data.extensions.timeline, false);
         parseConversations(current.data.extensions.conversations, timeline.events);
         const hydrated = cloneBoardForMutation(current.data);
         hydrated.extensions.timeline = timeline;
-        attachHistoryArchives(hydrated, storage.archives);
-        BoardRepository.validate(hydrated);
-        storage.loaded = true;
+        attachHistoryArchives(hydrated, persisted.archives);
+        validateBoardData(hydrated);
+        // Synchronous from validation on: saves made while reading join the loaded history here.
+        const loaded = markDirectoryHistoryLoaded(handle, persisted)!;
         if (runtime.base) {
-            runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: persisted } };
-            attachHistoryArchives(runtime.base, storage.archives);
+            runtime.base = { ...runtime.base, extensions: { ...runtime.base.extensions, timeline: loaded.timeline } };
+            attachHistoryArchives(runtime.base, loaded.archives);
         }
         publishData(boardId, hydrated);
         useAppStore.setState({ portfolioTimelineSelection: { boardId, eventIndex: Math.max(0, timeline.events.length - 1) } });
