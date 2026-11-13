@@ -129,6 +129,12 @@ test('execution plots share first-transition weekdays and rework drilldown clear
     await expect(point).toHaveAttribute('aria-label', /First execution.*3 SP.*4 business days/);
     await page.locator('[data-cycle-mean="3"]').focus();
     await expect(page.locator('.sprint-chart-tooltip')).toContainText('Mean: 3 business days · 2 workitems');
+    await page.locator('[data-cycle-mean="3"]').evaluate(element => { if (element instanceof SVGElement) element.blur(); });
+    await page.mouse.move(1, 1);
+    await expect(page.locator('.sprint-chart-tooltip')).toHaveCount(0);
+    await page.locator('[data-cycle-average]').hover();
+    await expect(page.locator('.sprint-chart-tooltip')).toContainText('Mean:');
+    await expect(page.locator('.sprint-chart-tooltip')).toContainText('workitems');
     await point.focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('#taskDetailModal')).toBeVisible();

@@ -47,7 +47,12 @@ export function CycleChart({ cycles, onOpen }: { cycles: SprintCycle[]; onOpen?:
                 <svg width={width} height={244} viewBox={`0 0 ${width} 244`} role="group" aria-label={label}>
                     <text x={8} y={12} className="sprint-axis">{t('dashboard.analytics.businessDays')}</text>
                     {[0, .5, 1].map(fraction => <g key={fraction}><line x1={left} x2={right} y1={y(max * fraction)} y2={y(max * fraction)} className="sprint-gridline" /><text x={left - 8} y={y(max * fraction) + 4} textAnchor="end" className="sprint-axis">{formatSprintMetric(max * fraction)}</text></g>)}
-                    {onOpen && <polyline data-cycle-average="true" points={groups.map(group => `${x(group.points)},${y(group.mean)}`).join(' ')} fill="none" stroke="var(--sprint-amber)" strokeWidth={2.5} />}
+                    {onOpen && <polyline data-cycle-average="true" points={groups.map(group => `${x(group.points)},${y(group.mean)}`).join(' ')} fill="none" stroke="var(--sprint-amber)" strokeWidth={2.5} onMouseMove={event => {
+                        const bounds = event.currentTarget.ownerSVGElement!.getBoundingClientRect();
+                        const pointerX = (event.clientX - bounds.left) * width / bounds.width;
+                        const nearest = groups.reduce((closest, group) => Math.abs(x(group.points) - pointerX) < Math.abs(x(closest.points) - pointerX) ? group : closest);
+                        setTooltip(averageDescription(nearest));
+                    }} onMouseLeave={() => setTooltip('')}><title>{groups.map(averageDescription).join('\n')}</title></polyline>}
                     {groups.map((group, index) => {
                         const cx = x(group.points), half = Math.min(22, (right - left) / Math.max(groups.length, 1) * .25);
                         const stats = `${group.points} SP · ${t('dashboard.analytics.median')}: ${formatSprintMetric(group.median)} · Q1: ${formatSprintMetric(group.q1)} · Q3: ${formatSprintMetric(group.q3)} · ${group.low}–${group.high} ${t('dashboard.analytics.businessDays')} · ${group.members.length} ${t('dashboard.analytics.workitems')}`;
