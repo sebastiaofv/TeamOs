@@ -11,7 +11,7 @@ for (const context of ['workitems', 'control']) test(`${context} column chooser 
     }
     const table = page.locator(context === 'control' ? '.control-table' : '#workitemsTable');
     const menu = page.locator(context === 'control' ? '#tableColumns-control-risks' : '#tableColumns');
-    await menu.locator('summary').click();
+    await menu.locator(':scope > button').click();
     const visible = menu.getByRole('region', { name: 'Visible', exact: true });
     const hidden = menu.getByRole('region', { name: 'Hidden', exact: true });
     await expect(visible.locator('[data-column-choice=id] .table-column-lock')).toBeVisible();
@@ -41,7 +41,7 @@ for (const context of ['workitems', 'control']) test(`${context} column chooser 
     expect(panel.width).toBeGreaterThanOrEqual(520); expect(panel.width).toBeLessThanOrEqual(600); expect(panel.height).toBeLessThanOrEqual(500);
     await menu.getByRole('button', { name: 'Reset to default', exact: true }).click();
     await page.keyboard.press('Escape');
-    await expect(menu.locator('summary')).toBeFocused();
+    await expect(menu.locator(':scope > button')).toBeFocused();
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
 });
 
@@ -53,7 +53,7 @@ test('long IDs stay complete while Table view preferences remain independent bet
     const id = page.locator('#workitemsTable tbody [data-column=id] .table-item-link');
     expect(await id.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true);
     await expect(id).toHaveCSS('white-space', 'nowrap');
-    await page.locator('#tableColumns summary').click();
+    await page.locator('#tableColumns > button').click();
     await page.getByRole('button', { name: 'Hide Priority', exact: true }).click();
     await page.keyboard.press('Escape');
     await selectTableView(page, 'unplanned');
@@ -98,7 +98,7 @@ test('Roadmap uses compact rows, name editing and the existing Sprint lifecycle 
     expect((await row.locator('.roadmap-row-main').boundingBox())!.height).toBeLessThanOrEqual(40);
     await page.getByRole('button', { name: 'Phase name', exact: true }).click();
     await expect(page.locator('#roadmapEntityTitle')).toHaveValue('Phase name');
-    const menu = (await page.locator('#roadmapEntityModal .modal-header summary').boundingBox())!, close = (await page.locator('#roadmapEntityModalCloseBtn').boundingBox())!;
+    const menu = (await page.locator('#roadmapEntityModal .modal-header .task-transfer-menu > button').boundingBox())!, close = (await page.locator('#roadmapEntityModalCloseBtn').boundingBox())!;
     expect(menu.x).toBeLessThan(close.x);
     await page.keyboard.press('Escape');
     await lifecycle.click();
@@ -131,5 +131,5 @@ test('milestone strip uses one lane unless diamonds collide, then scrolls after 
     expect(box.x + box.width).toBeLessThanOrEqual(1280);
     await last.click();
     await expect(page.locator('#milestoneWorkitemsModal .roadmap-completion-controls')).toHaveCount(0);
-    await expect(page.locator('#milestoneWorkitemsModal .modal-header summary')).toBeVisible();
+    await expect(page.locator('#milestoneWorkitemsModal .modal-header .task-transfer-menu > button')).toBeVisible();
 });

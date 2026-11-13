@@ -26,8 +26,8 @@ test('first child relocation is explicit and atomic; progress is global and tree
     await expect(page.getByRole('button', { name: 'Show tasks for Delivery' })).toHaveCount(1);
     await expect(page.locator('[data-roadmap-task-list="phase:phase"]')).toHaveCount(0);
     await page.getByRole('button', { name: 'Delivery', exact: true }).click();
-    await page.locator('#roadmapEntityModal .modal-header summary').click();
-    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header .task-transfer-menu > button').click();
+    await page.locator('#roadmapEntityModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     await answerAppMessage(page, { expectText: 'Move or delete subphases first' });
     expect((await readSavedBoard(page, 'p')).extensions.roadmap.phases).toHaveLength(2);
 });

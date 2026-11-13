@@ -173,7 +173,7 @@ test('deletion remains available in workitem details', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'delete', title: 'Delete', hasHandle: true, tasks: [{ id: 1, title: 'Delete this' }] }], { selectedBoardId: 'delete' });
     await portfolioCard(page, 'Delete this').click();
     await page.locator('#taskDetailModal').getByLabel('Task actions', { exact: true }).click();
-    await page.locator('#taskDetailModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#taskDetailModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     await answerAppMessage(page, { button: 'Delete' });
     await expect(portfolioCard(page, 'Delete this')).toHaveCount(0);
 });

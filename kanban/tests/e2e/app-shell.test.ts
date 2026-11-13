@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-import { buildBoardPayload, gotoApp, seedPortfolioBoards, portfolioCard, focusIsInside, closeDialogBy, portfolioProjectChipButtons, mockImportProjectsPicker, toggleTheme, toggleLanguage } from '../support/portfolio';
+import { buildBoardPayload, gotoApp, seedPortfolioBoards, portfolioCard, focusIsInside, closeDialogBy, expectProjectCount, mockImportProjectsPicker, toggleTheme, toggleLanguage } from '../support/portfolio';
 
 test.describe('app shell', () => {
   test.beforeEach(async ({ page }) => {
@@ -22,6 +22,7 @@ test.describe('app shell', () => {
     await expect(page.getByText('All columns are hidden. Use Board columns to show them again.', { exact: true })).toHaveCount(0);
     await mockImportProjectsPicker(page, [{ fileName: 'welcome.board.json', payload: buildBoardPayload({ title: 'Welcome project', tasks: [] }) }]);
     await page.locator('#portfolioEmptyState').getByRole('button', { name: 'Import Projects', exact: true }).click();
+    await page.locator('#projectPickerBtn').click();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Welcome project');
     await expect(page.locator('#portfolioEmptyState')).toHaveCount(0);
   });
@@ -100,7 +101,7 @@ test.describe('app shell', () => {
     await expect(page.locator('#portfolioRoadmapView')).toBeHidden();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.locator('#portfolioEmptyState h2')).toHaveText('No projects loaded');
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(0);
+    await expectProjectCount(page, 0);
     await expect(page.locator('#portfolioCalendarView')).toBeHidden();
   });
 
@@ -131,6 +132,7 @@ test.describe('app shell', () => {
     ]);
 
     await page.keyboard.press('i');
+    await page.locator('#projectPickerBtn').click();
     await expect(page.locator('#portfolioBoardsChips')).toContainText('Imported Via Shortcut');
     await expect(portfolioCard(page, 'Shortcut import task')).toBeVisible();
   });

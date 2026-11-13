@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { filledTextSchema, positiveIntegerSchema, recordSchema } from './fileValidation';
 import { isRecord, normalizeTimestamp } from './util';
 import {
     assertWorkitemFile, closureFromFile, controlFromFile, creditFromFile, dayPlannerFromFile, KNOWN_PROJECT_EXTENSIONS, memberIndexFor, participationFromFile,
@@ -26,20 +28,6 @@ export const PROJECT_COLLECTION_PATHS = [
 export type ProjectCollectionPath = typeof PROJECT_COLLECTION_PATHS[number];
 export const PROJECT_BLOCK_PATHS = ['project', 'workflow', 'relations', 'dayPlanner', 'views', 'extensions'] as const;
 export type ProjectBlockPath = typeof PROJECT_BLOCK_PATHS[number];
-export type ProjectPatchOp =
-    | { op: 'upsert'; at: ProjectCollectionPath; key: string; value: Row }
-    | { op: 'remove'; at: ProjectCollectionPath; key: string }
-    | { op: 'order'; at: ProjectCollectionPath; keys: string[] }
-    | { op: 'set'; at: ProjectBlockPath; value: unknown };
-
-/** The fields each operation must have, and no others. */
-const OPERATION_FIELDS: Record<string, readonly string[]> = {
-    set: ['op', 'at', 'value'],
-    upsert: ['op', 'at', 'key', 'value'],
-    order: ['op', 'at', 'keys'],
-    remove: ['op', 'at', 'key']
-};
-
 /** The identity of a stored row. `runtime` reads the in-memory row, whose field names differ. */
 export function projectCollectionIdentity(at: ProjectCollectionPath, row: Row, runtime = false): string {
     if (at === 'roadmap.sprintParticipation') return `${String(row.sprintId)}:${String((row[runtime ? 'task' : 'workitem'] as Row).id)}`;
@@ -49,7 +37,6 @@ export function projectCollectionIdentity(at: ProjectCollectionPath, row: Row, r
 }
 
 const isFilledText = (value: unknown): value is string => typeof value === 'string' && value !== '';
-const isPositiveInteger = (value: unknown) => Number.isSafeInteger(value) && Number(value) > 0;
 const isUniqueTextList = (value: unknown): value is string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string' && item.trim()) && new Set(value).size === value.length;
 
@@ -85,16 +72,10 @@ function validEntity(at: ProjectCollectionPath, row: Row): boolean {
     return Boolean(normalizeRoadmapItems([row], dates, dates, !milestone, !sprint, sprint));
 }
 
-function validRelations(value: Row): boolean {
-    const validEdge = (edge: unknown) => isRecord(edge)
-        && isFilledText(edge.source) && isFilledText(edge.target) && edge.source !== edge.target
-        && ['related', 'blocks'].includes(String(edge.kind));
-    const validExternal = (entry: unknown) => isRecord(entry)
-        && typeof entry.projectId === 'string' && typeof entry.projectTitle === 'string' && typeof entry.title === 'string'
-        && isPositiveInteger(entry.workitemId);
-    return Array.isArray(value.edges) && value.edges.every(validEdge)
-        && isRecord(value.external) && Object.values(value.external).every(validExternal);
-}
+const relationsSchema = z.looseObject({
+    edges: z.array(z.looseObject({ source: filledTextSchema, target: filledTextSchema, kind: z.enum(['related', 'blocks']) }).refine(edge => edge.source !== edge.target)),
+    external: z.record(z.string(), z.looseObject({ projectId: z.string(), projectTitle: z.string(), title: z.string(), workitemId: positiveIntegerSchema }))
+});
 
 function validBlock(at: ProjectBlockPath, value: unknown): boolean {
     if (at === 'extensions') {
@@ -121,28 +102,25 @@ function validBlock(at: ProjectBlockPath, value: unknown): boolean {
         return true;
     }
     if (at === 'dayPlanner') return Array.isArray(value.blocks) && Boolean(normalizeDayPlannerExtension({ version: 1, blocks: dayPlannerFromFile(value.blocks) }));
-    if (at === 'relations') return validRelations(value);
+    if (at === 'relations') return relationsSchema.safeParse(value).success;
     return false;
 }
 
-function validOperation(op: unknown): boolean {
-    if (!isRecord(op) || typeof op.at !== 'string') return false;
-    const fields = OPERATION_FIELDS[String(op.op)];
-    if (!fields || Object.keys(op).some((key) => !fields.includes(key)) || fields.some((key) => !(key in op))) return false;
-    if (op.op === 'set') {
-        return (PROJECT_BLOCK_PATHS as readonly string[]).includes(op.at) && validBlock(op.at as ProjectBlockPath, op.value);
-    }
-    if (!(PROJECT_COLLECTION_PATHS as readonly string[]).includes(op.at)) return false;
-    const at = op.at as ProjectCollectionPath;
-    if (op.op === 'order') return isUniqueTextList(op.keys);
-    if (!isFilledText(op.key)) return false;
-    if (op.op === 'remove') return true;
-    return isRecord(op.value) && validEntity(at, op.value) && projectCollectionIdentity(at, op.value) === op.key;
-}
+export const projectPatchOpSchema = z.discriminatedUnion('op', [
+    z.strictObject({ op: z.literal('upsert'), at: z.enum(PROJECT_COLLECTION_PATHS), key: filledTextSchema, value: recordSchema }),
+    z.strictObject({ op: z.literal('remove'), at: z.enum(PROJECT_COLLECTION_PATHS), key: filledTextSchema }),
+    z.strictObject({ op: z.literal('order'), at: z.enum(PROJECT_COLLECTION_PATHS), keys: z.array(z.string()).refine(isUniqueTextList) }),
+    z.strictObject({ op: z.literal('set'), at: z.enum(PROJECT_BLOCK_PATHS), value: z.unknown() })
+]).refine(op => {
+    if (op.op === 'set') return validBlock(op.at, op.value);
+    if (op.op === 'upsert') return validEntity(op.at, op.value) && projectCollectionIdentity(op.at, op.value) === op.key;
+    return true;
+});
+export type ProjectPatchOp = z.infer<typeof projectPatchOpSchema>;
+export const projectPatchSchema = z.array(projectPatchOpSchema);
 
 /** Strict validation at import/save boundaries; replay operates on this contract. */
 export function isProjectPatch(value: unknown): value is ProjectPatchOp[] {
-    if (!Array.isArray(value)) return false;
-    try { return value.every(validOperation); }
+    try { return projectPatchSchema.safeParse(value).success; }
     catch { return false; }
 }

@@ -1,4 +1,4 @@
-import { useAnchoredPanel } from '@/shared/hooks/useAnchoredPanel';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { useRef, useState, type ReactNode } from 'react';
 import { createNewProject } from '@/features/portfolio/projects/projectCommands';
 import { useShallow } from 'zustand/react/shallow';
@@ -92,7 +92,7 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     </nav>;
 }
 
-function ChipList({ state }: { state: ChipState }) {
+function ChipList({ state, expandedProducts, onProductToggle }: { state: ChipState; expandedProducts: Record<string, boolean>; onProductToggle: (key: string, open: boolean) => void }) {
     const { t } = useI18n();
     const { openProjectSettings } = usePortfolioActions();
     if (state.portfolioBoards.length === 0) {
@@ -139,7 +139,7 @@ function ChipList({ state }: { state: ChipState }) {
                 <button className="chip-link" type="button" data-action="select-board" data-board-id="" aria-pressed={!state.selectedPortfolioBoardId} onClick={() => selectPortfolioBoard('')}>{t('common.all')}</button>
             </span>
             {groups.map((group) => group.product ? <ProductProjectMenu key={group.key} product={group.product}
-                active={group.boards.some((board) => board.id === state.selectedPortfolioBoardId)}>
+                active={group.boards.some((board) => board.id === state.selectedPortfolioBoardId)} open={Boolean(expandedProducts[group.key])} onOpenChange={open => onProductToggle(group.key, open)}>
                 {group.boards.map((board) => renderBoard(board, true))}
                 <button type="button" className="product-create btn" onClick={() => { void createNewProject(group.product); }}>{t('header.newProject')}</button>
             </ProductProjectMenu> : group.boards.map((board) => renderBoard(board)))}
@@ -147,8 +147,8 @@ function ChipList({ state }: { state: ChipState }) {
     );
 }
 
-function ProductProjectMenu({ product, active, children }: { product: string; active: boolean; children: ReactNode }) {
-    return <details className={`product-project-menu${active ? ' active' : ''}`}>
+function ProductProjectMenu({ product, active, children, open, onOpenChange }: { product: string; active: boolean; children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) {
+    return <details className={`product-project-menu${active ? ' active' : ''}`} open={open} onToggle={event => onOpenChange(event.currentTarget.open)}>
         <summary><span>{product}</span><span aria-hidden="true">›</span></summary>
         <div className="product-projects">{children}</div>
     </details>;
@@ -175,27 +175,25 @@ export function PortfolioProjectPicker() {
     })));
     const { t } = useI18n();
     const [open, setOpen] = useState(false);
+    const [expandedProducts, setExpandedProducts] = useState<Record<string, boolean>>({});
     const panel = useRef<HTMLDivElement>(null);
-    const place = useAnchoredPanel(open, 'projectPickerBtn', panel);
     const selected = state.portfolioBoards.find((board) => board.id === state.selectedPortfolioBoardId);
     const label = selected?.title || selected?.fileName || t('common.all');
     const saveUi = selected && getChipSaveUiState(state.projectSaveStateById.get(selected.id), t);
     if (!state.portfolioBoards.length) return null;
-    return <div className="header-project-picker">
+    return <Popover.Root open={open} onOpenChange={setOpen}><div className="header-project-picker">
         <span className="toolbar-divider" aria-hidden="true" />
-        <button id="projectPickerBtn" className="project-picker-trigger" type="button" popoverTarget="portfolioBoardsChips"
+        <Popover.Trigger asChild><button id="projectPickerBtn" className="project-picker-trigger" type="button" data-project-count={state.portfolioBoards.length}
             aria-label={`${t('toolbar.projectSelection')}: ${label}`} title={label} aria-haspopup="dialog" aria-expanded={open}>
             <span>{label}</span><WorkspaceIcon name="chevronDown" />
-        </button>
+        </button></Popover.Trigger>
         {saveUi?.text && <span className={`chip-save-state ${saveUi.status}`} title={saveUi.title} role="status">{saveUi.status === 'saving' && <span className="save-spinner" aria-hidden="true" />}{saveUi.text}</span>}
-        <div ref={panel} className="project-picker-panel" id="portfolioBoardsChips" popover="auto" role="dialog" aria-label={t('toolbar.projectSelection')}
-            onBeforeToggle={(event) => { if (event.newState === 'open') place(); }}
-            onToggle={(event) => setOpen(event.newState === 'open')}
-            onClick={(event) => { if ((event.target as Element).closest('button')) panel.current?.hidePopover(); }}
+        <FloatingPanel ref={panel} align="start" className="project-picker-panel" id="portfolioBoardsChips" role="dialog" aria-label={t('toolbar.projectSelection')}
+            onClick={(event) => { if ((event.target as Element).closest('button')) setOpen(false); }}
             onKeyDown={(event) => event.stopPropagation()}>
-            <ChipList state={state} />
-        </div>
-    </div>;
+            <ChipList state={state} expandedProducts={expandedProducts} onProductToggle={(key, open) => setExpandedProducts(current => current[key] === open ? current : { ...current, [key]: open })} />
+        </FloatingPanel>
+    </div></Popover.Root>;
 }
 
 export function PortfolioBulkActions() {

@@ -94,8 +94,8 @@ test.describe('timeline', () => {
 
     await page.locator('#milestoneWorkitemsModal .modal-close').click();
     await page.locator('.milestone-annotation[data-roadmap-id="m1"]').click();
-    await page.locator('#milestoneWorkitemsModal .modal-header summary').click();
-    await page.locator('#milestoneWorkitemsModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#milestoneWorkitemsModal .modal-header .task-transfer-menu > button').click();
+    await page.locator('#milestoneWorkitemsModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageSelection')).toHaveValue('0');
     await answerAppMessage(page, { button: 'Confirm' });
 

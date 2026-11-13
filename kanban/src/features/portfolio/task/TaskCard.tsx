@@ -131,6 +131,11 @@ export const PortfolioTaskCard = memo(function PortfolioTaskCard({ item, state, 
             aria-labelledby={`portfolio-task-title-${item.boardId}-${taskId}`}
             aria-hidden={overlay ? 'true' : undefined}
             onClick={overlay ? undefined : handleCardClick}
+            onKeyDownCapture={overlay ? undefined : event => {
+                // Enter opens details before the drag activator sees it. Leave
+                // Space/drop/cancel events entirely to the keyboard sensor.
+                if (event.key === 'Enter' && !dragging) handleCardKeyDown(event);
+            }}
             onKeyDown={overlay ? undefined : handleCardKeyDown}
             onMouseEnter={overlay ? undefined : () => actions.setHoveredPortfolioCard(item.boardId, taskId)}
             onMouseLeave={overlay ? undefined : () => actions.setHoveredPortfolioCard(null, null)}

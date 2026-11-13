@@ -81,8 +81,8 @@ async function editTableTitle(page: Page, id: number, title: string) {
 
 async function openColumnOptions(page: Page) {
   const options = page.locator('#tableColumns');
-  if ((await options.getAttribute('open')) === null) await options.locator('summary').click();
-  await expect(options).toHaveAttribute('open', '');
+  if ((await options.locator(':scope > button').getAttribute('aria-expanded')) !== 'true') await options.locator(':scope > button').click();
+  await expect(options.locator(':scope > button')).toHaveAttribute('aria-expanded', 'true');
 }
 
 async function expectColumnOrder(page: Page, labels: string[]) {
@@ -216,7 +216,7 @@ test.describe('workitems table', () => {
       await page.setViewportSize({ width, height: 900 });
       for (const selector of ['.table-columns']) {
         const disclosure = page.locator(`#portfolioTable ${selector}`);
-        await disclosure.locator('summary').click();
+        await disclosure.locator(':scope > button').click();
         const panel = disclosure.locator('[data-table-panel]');
         await expect(panel).toBeVisible();
         await expect.poll(async () => {
@@ -229,7 +229,7 @@ test.describe('workitems table', () => {
         expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
         await page.keyboard.press('Escape');
         await expect(panel).toBeHidden();
-        await expect(disclosure.locator('summary')).toBeFocused();
+        await expect(disclosure.locator(':scope > button')).toBeFocused();
       }
     }
   });
@@ -308,13 +308,13 @@ test.describe('workitems table', () => {
     await expect(page.locator('#portfolioBlockedFilter')).toBeHidden();
     await expect(page.locator('#portfolioFiltersBtn')).toBeFocused();
     await page.locator('#portfolioFiltersBtn').click();
-    await page.locator('#tableColumns > summary').focus();
+    await page.locator('#tableColumns > button').focus();
     await page.keyboard.press('Enter');
     await expect(page.locator('#portfolioFiltersBtn')).toHaveAttribute('aria-expanded', 'false');
-    await expect(page.locator('#tableColumns')).toHaveAttribute('open', '');
+    await expect(page.locator('#tableColumns > button')).toHaveAttribute('aria-expanded', 'true');
     await page.keyboard.press('Escape');
-    await expect(page.locator('#tableColumns')).not.toHaveAttribute('open', '');
-    await expect(page.locator('#tableColumns > summary')).toBeFocused();
+    await expect(page.locator('#tableColumns > button')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#tableColumns > button')).toBeFocused();
   });
 
   test('is project-scoped and includes workitems with legacy archive metadata', async ({ page }) => {
@@ -813,7 +813,7 @@ test.describe('workitems table', () => {
     await installControlledPortfolioWriter(page, { boardId: 'retry', failWrites: 1 });
     await editTableTitle(page, 1, 'Unsaved edit');
     await expect(tableRow(page, 1)).toContainText('Unsaved edit');
-    const chip = page.locator('.portfolio-chip.active');
+    const chip = page.locator('.header-project-picker');
     await expect(chip).toContainText('Save failed');
     expect((await readSavedBoard(page, 'retry')).board.tasks[0].title).toBe('Before edit');
     expect(await page.evaluate(() => window.__portfolioTestWrites)).toEqual([]);
@@ -835,7 +835,7 @@ test.describe('workitems table', () => {
     await selectTableFilter(page, '#portfolioStatusesFilter', 'doing');
     await installControlledPortfolioWriter(page, { boardId: 'conflict', failWrites: 1 });
     await editTableTitle(page, 1, 'Local unsaved item');
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Save failed');
+    await expect(page.locator('.header-project-picker')).toContainText('Save failed');
 
     await mutateExternalBoardFile(page, {
       boardId: 'conflict',
@@ -854,7 +854,7 @@ test.describe('workitems table', () => {
     await expect(tableRow(page, 1)).toContainText('External item');
     await expect(tableRow(page, 1)).not.toContainText('Local unsaved item');
     await expectTableFilter(page, '#portfolioStatusesFilter', ['doing']);
-    await expect(page.locator('.portfolio-chip.active')).not.toContainText('Save failed');
+    await expect(page.locator('.header-project-picker')).not.toContainText('Save failed');
     await expect.poll(() => page.evaluate(() => window.__portfolioTestWrites.length)).toBe(1);
   });
 
@@ -868,7 +868,7 @@ test.describe('workitems table', () => {
     await mutateExternalBoardFile(page, { boardId: 'invalid', invalidText: '{ invalid json' });
     await triggerExternalFileCheck(page);
 
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Watch error');
+    await expect(page.locator('.header-project-picker')).toContainText('Watch error');
     await expectRowIds(page, [1]);
     await expect(tableRow(page, 1)).toContainText('Safe in-memory item');
     await expectTableSearch(page, 'Safe');
