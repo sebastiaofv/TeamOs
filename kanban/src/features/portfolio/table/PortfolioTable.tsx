@@ -11,13 +11,13 @@ import { SprintPoints } from '@/features/portfolio/roadmap/SprintPoints';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
 import { isPlanningUnit, workitemType, epicOf, storyOf, WORKITEM_TYPES } from '@/domain/workitems';
-import { useEffect, useMemo, useState, type MouseEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { BoardData } from '@/domain/types';
 import type { PortfolioRow } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { buildPortfolioRowsFromBoardData, getSelectedPortfolioTimelineView } from '@/features/portfolio/queries';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { readTableColumnPreferences, saveTableColumnPreferences } from '@/infrastructure/browser/tablePreferences';
 import { downloadCsv } from '@/infrastructure/browser/downloadCsv';
@@ -28,7 +28,7 @@ import {
 } from './tableModel';
 import { clearTableFilters, clearTablePanelFilters, DEFAULT_TABLE_FILTER_STATE, setTableFilter, setTableSort } from './tableControls';
 import { PRIORITY_LABELS, COLUMN_LABELS } from './tableLabels';
-import { useTableDisclosure } from './useTableDisclosure';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { formatTableTimestamp } from './tablePresentation';
 import { buildSprintTableGroups, currentSprintRosters, unplannedTableRows, type SprintTableGroup, type TableView } from './tableViews';
 import { useFocusTarget } from '@/shared/hooks/useFocusTarget';
@@ -66,22 +66,22 @@ function ProjectTable({ hidden, boardId, project, boardData, sourceRows, canCrea
     const { t } = useI18n();
     const [view, setView] = useState<TableView>('hierarchy');
     const [lastWorkitemView, setLastWorkitemView] = useState<TableView>('hierarchy');
-    const viewMenu = useTableDisclosure(hidden);
+    const [viewMenuOpen, setViewMenuOpen] = useState(false);
     const today = useLocalToday();
     const groups = useMemo(() => view === 'sprints' ? buildSprintTableGroups(currentSprintRosters(boardData, sourceRows), today) : [], [view, boardData, sourceRows, today]);
     const viewLabels = { hierarchy: 'workitems.hierarchyAll', epics: 'workitems.type.epic', stories: 'workitems.stories', independent: 'workitems.independent', all: 'workitems.all', unplanned: 'table.unplannedWorkitems', sprints: 'table.sprints' } as const;
     return <section id="portfolioTable" className={`portfolio-table${hidden ? ' hidden' : ''}`} aria-labelledby="tableTitle">
         <h2 id="tableTitle" className="sr-only">{t('table.title', { project })}</h2>
         <div className="table-view-options" role="group" aria-label={t('table.perspectives')}>
-            <details className="table-view-menu" ref={viewMenu.detailsRef} onToggle={viewMenu.onToggle} onKeyDown={viewMenu.onKeyDown}>
-                <summary id="tableViewBtn" className={`btn${view !== 'unplanned' && view !== 'sprints' ? ' active' : ''}`} role="button" ref={viewMenu.summaryRef}>
+            <Popover.Root open={viewMenuOpen && !hidden} onOpenChange={setViewMenuOpen}><div className="table-view-menu">
+                <Popover.Trigger asChild><button type="button" id="tableViewBtn" className={`btn${view !== 'unplanned' && view !== 'sprints' ? ' active' : ''}`}>
                     {t(viewLabels[lastWorkitemView])}<WorkspaceIcon name="chevronDown" />
-                </summary>
-                <div className="table-view-panel" data-table-panel>
+                </button></Popover.Trigger>
+                <FloatingPanel className="table-view-panel" data-table-panel aria-label={t('table.perspectives')}>
                     {(['hierarchy', 'epics', 'stories', 'independent', 'all'] as const).map(key => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
-                        data-table-view={key} aria-pressed={view === key} onClick={() => { setView(key); setLastWorkitemView(key); viewMenu.close(); }}>{t(viewLabels[key])}</button>)}
-                </div>
-            </details>
+                        data-table-view={key} aria-pressed={view === key} onClick={() => { setView(key); setLastWorkitemView(key); setViewMenuOpen(false); }}>{t(viewLabels[key])}</button>)}
+                </FloatingPanel>
+            </div></Popover.Root>
             {(['unplanned', 'sprints'] as const).map(key => <button className={`btn${view === key ? ' active' : ''}`} type="button" key={key}
                 data-table-view={key} aria-pressed={view === key} onClick={() => setView(key)}>{t(viewLabels[key])}</button>)}
         </div>
@@ -102,7 +102,6 @@ export function formatClosureDate(iso: string): string {
 }
 
 function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPointsData }: { group: SprintTableGroup; hidden: boolean; boardId: string; project: string; canEdit: boolean; sprintPointsData: BoardData }) {
-    const actions = usePortfolioActions();
     const { t, language } = useI18n();
     const [expanded, setExpanded] = useState(false);
     const completeness = group.completeness === null ? t('table.noCompleteness')
@@ -135,9 +134,10 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const { t, language } = useI18n();
     const today = useLocalToday();
     const hasAssignableSprints = planning && buildAssignableSprintOptions(boardData, today, language).length > 0;
-    const actions = usePortfolioActions();
     const sortRef = useFocusTarget<HTMLButtonElement>('portfolioTableSort', !hidden && !compact);
-    const sprintDisclosure = useTableDisclosure(hidden);
+    const [sprintMenuOpen, setSprintMenuOpen] = useState(false);
+    const sprintTrigger = useRef<HTMLButtonElement>(null);
+    const pendingSprintAction = useRef<(() => void) | null>(null);
     const preferenceScope = `${boardData.extensions.project?.id || boardId}.${preferenceContext || scope || 'all'}`;
     const filters = useAppStore(state => state.tableFiltersByScope[preferenceScope] || DEFAULT_TABLE_FILTER_STATE);
     useEffect(() => { if (!hidden && !bare) useAppStore.setState({ activeTableFilterScope: preferenceScope }); }, [hidden, bare, preferenceScope]);
@@ -232,18 +232,22 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                         <button className="btn icon-btn" id={scopedId('tableExportCsv')} type="button" aria-label={t('table.export')} title={t('table.export')} disabled={rows.length === 0} onClick={() => void exportCsv()}><WorkspaceIcon name="export" /></button>
                         {canCreate && <div className="table-management-actions">
                             <span className="toolbar-divider" aria-hidden="true" />
-                            {planning && <details id={scopedId('tableSprintActions')} className="table-sprint-actions" ref={sprintDisclosure.detailsRef} onKeyDown={sprintDisclosure.onKeyDown} onToggle={sprintDisclosure.onToggle}>
-                                <summary className="btn" role="button" ref={sprintDisclosure.summaryRef}><WorkspaceIcon name="runner" />{t('table.sprintActions')}<WorkspaceIcon name="chevronDown" /></summary>
-                                <div className="table-sprint-actions-panel" data-table-panel>
+                            {planning && <Popover.Root open={sprintMenuOpen && !hidden} onOpenChange={setSprintMenuOpen}><div id={scopedId('tableSprintActions')} className="table-sprint-actions">
+                                <Popover.Trigger asChild><button type="button" ref={sprintTrigger} className="btn"><WorkspaceIcon name="runner" />{t('table.sprintActions')}<WorkspaceIcon name="chevronDown" /></button></Popover.Trigger>
+                                <FloatingPanel className="table-sprint-actions-panel" data-table-panel aria-label={t('table.sprintActions')} onCloseAutoFocus={event => {
+                                    if (!pendingSprintAction.current) return;
+                                    event.preventDefault(); sprintTrigger.current?.focus({ preventScroll: true });
+                                    const run = pendingSprintAction.current; pendingSprintAction.current = null; run();
+                                }}>
                                     <button className="btn" id={scopedId('tableCreateSprint')} type="button" disabled={selectedCount === 0}
-                                        onClick={() => { sprintDisclosure.close(); actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',
-                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }}>{t('toolbar.createSprint')}</button>
+                                        onClick={() => { setSprintMenuOpen(false); pendingSprintAction.current = () => { actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'create-sprint-from-selection',
+                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }; }}>{t('toolbar.createSprint')}</button>
                                     <button className="btn" id={scopedId('tableAddToSprint')} type="button" disabled={selectedCount === 0 || !hasAssignableSprints}
                                         title={!hasAssignableSprints ? t('roadmapDialog.noEligibleSprints') : undefined}
-                                        onClick={() => { sprintDisclosure.close(); actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'assign-sprint-from-selection',
-                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }}>{t('table.addToSprint')}</button>
-                                </div>
-                            </details>}
+                                        onClick={() => { setSprintMenuOpen(false); pendingSprintAction.current = () => { actions.openRoadmapEntityModal('sprints', '', { boardId, mode: 'assign-sprint-from-selection',
+                                            unplannedTaskIds: sourceRows.filter(row => selected.has(row.taskId)).map(row => row.taskId) }); }; }}>{t('table.addToSprint')}</button>
+                                </FloatingPanel>
+                            </div></Popover.Root>}
                             <button className="btn btn-primary icon-btn" id={scopedId('tableCreateTask')} type="button" aria-label={t('table.create')} title={t('table.create')} onClick={() => actions.openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: createType, preferredSprintId: createSprintId })}><WorkspaceIcon name="plus" /></button>
                         </div>}
                     </div>

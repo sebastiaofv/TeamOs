@@ -30,8 +30,7 @@ import { useTheme } from '@/shared/hooks/useTheme';
 import { usePortfolioFileIntegration } from '@/features/portfolio/hooks/usePortfolioFileIntegration';
 import { closeDialog } from '@/app/overlays/dialogs';
 import { cancelAppMessages } from '@/app/overlays/appMessages';
-import type { PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
-import { PortfolioActionsProvider, usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions, type PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useInitializeLanguage, useI18n } from '@/shared/i18n';
 
@@ -57,8 +56,7 @@ function PortfolioReadOnlyNotice() {
     );
 }
 
-function AppContent() {
-    const actions = usePortfolioActions();
+export function App() {
     usePortfolioRuntime();
     useInitializeLanguage();
     const { theme } = useTheme();
@@ -123,13 +121,5 @@ function AppContent() {
                 <UndoToast />
             </ErrorBoundary>
         </>
-    );
-}
-
-export function App() {
-    return (
-        <PortfolioActionsProvider>
-            <AppContent />
-        </PortfolioActionsProvider>
     );
 }

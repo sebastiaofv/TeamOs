@@ -10,7 +10,7 @@ import { isPlanningUnit } from '@/domain/workitems';
 import { ControlBadge } from '@/features/portfolio/control/ControlBadge';
 import { ControlRecordDialog } from '@/features/portfolio/control/ControlRecordDialog';
 import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; phaseId: string; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
@@ -22,7 +22,6 @@ function Ring({ percent, label, children }: { percent: number | null; label: str
 
 function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: BoardData; boardId: string; contexts?: Map<number, BoardData> }) {
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     return !tasks.length ? <p>{t('dashboard.noWorkitems')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th></tr></thead><tbody>
         {tasks.map((task) => {
             const context = data.board.tasks.some((row) => row.id === task.id && row.createdAt === task.createdAt) ? data : contexts?.get(task.id) || data;

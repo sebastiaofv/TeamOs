@@ -9,7 +9,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useShallow } from 'zustand/react/shallow';
 import type { PortfolioRoadmapViewModel, RoadmapMilestoneMarker, RoadmapPlanningRow, RoadmapWorkScope, RoadmapProjectGroup } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries';
 import { formatRoadmapDateRange, getRoadmapAxisTicks, getRoadmapYearTicks, getRoadmapTimelinePlacement, getRoadmapTodayMarker } from '@/domain/roadmap';
 import { formatDueDateForUi } from '@/domain/calendar';
@@ -77,7 +77,6 @@ function WorkArea({ row, view }: { row: RoadmapPlanningRow; view: PortfolioRoadm
 }
 
 function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: PortfolioRoadmapViewModel; canEdit: boolean }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const item = row.item!;
     const singular = row.kind === 'phases' ? 'phase' : 'sprint';
@@ -106,7 +105,7 @@ function PlanningRow({ row, view, canEdit }: { row: RoadmapPlanningRow; view: Po
 }
 
 function ProjectGroup({ project, view }: { project: RoadmapProjectGroup; view: PortfolioRoadmapViewModel }) {
-    const { t } = useI18n(); const actions = usePortfolioActions(); const percent = useProgressText();
+    const { t } = useI18n(); const percent = useProgressText();
     const id = `roadmap-project-${domId(project.view.boardId)}`;
     const placement = getRoadmapTimelinePlacement(project.item, view.range);
     const width = Math.max(placement?.width || 0, 5);
@@ -177,7 +176,7 @@ function MilestoneGuide({ marker, markers, top, local = false }: { marker: Roadm
 }
 
 function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMilestoneMarker; view: PortfolioRoadmapViewModel; canEdit: boolean; close: () => void }) {
-    const { t } = useI18n(); const percent = useProgressText(0); const actions = usePortfolioActions();
+    const { t } = useI18n(); const percent = useProgressText(0);
     const returnFocus = useReturnFocus();
     const anotherDialog = useAppStore((state) => Boolean(state.activeDialog || state.appMessage));
     return <Dialog.Root open={Boolean(marker)} onOpenChange={(open) => { if (!open && !anotherDialog) close(); }}><Dialog.Portal><Dialog.Overlay className="modal active milestone-modal" id="milestoneWorkitemsModal">
@@ -192,7 +191,7 @@ function MilestoneDialog({ marker, view, canEdit, close }: { marker?: RoadmapMil
 }
 
 function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
-    const { t, language } = useI18n(); const actions = usePortfolioActions();
+    const { t, language } = useI18n();
     const canEdit = useAppStore((state) => Boolean(state.portfolioBoards.find((board) => board.id === view.boardId)?.handle)) && !view.historical;
     const milestoneId = useAppStore((state) => state.portfolioRoadmapMilestoneByBoardId[view.boardId] || '');
     const setMilestoneId = (id: string) => selectRoadmapMilestone(view.boardId, id);

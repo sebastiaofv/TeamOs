@@ -10,7 +10,7 @@ import { CommentError } from '@/domain/commentImages';
 import { calculateBoardAttachmentBytes } from '@/domain/attachments';
 import { ATTACHMENT_PROJECT_SOFT_TOTAL_BYTES } from '@/domain/constants';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { readCommentImage } from '@/infrastructure/browser/commentImages';
 import { useI18n } from '@/shared/i18n';
 import { discardConversationDraft, draftKey, getConversationDraft, lastCommentAuthor, rememberCommentAuthor, sessionDraftWorkitemKey, updateConversationDraft, useConversationDraftRevision } from '../conversationDrafts';
@@ -29,7 +29,7 @@ function PlainCommentText({ text }: { text: string }) {
 export function TaskConversation({ context }: { context: ConversationContext }) {
     const { t } = useI18n();
     const board = useAppStore((state) => state.portfolioBoards.find((item) => item.id === context.boardId));
-    const { publishPortfolioComment, publishControlComment } = usePortfolioActions();
+    const { publishPortfolioComment, publishControlComment } = portfolioActions;
     useConversationDraftRevision();
     const [visible, setVisible] = useState(50);
     const [busy, setBusy] = useState(false);

@@ -1,6 +1,6 @@
 import { createPortal } from 'react-dom';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 
 // The established markup and classes are rendered only while a toast is
@@ -8,7 +8,7 @@ import { useI18n } from '@/shared/i18n';
 // viewport and pointer behavior. pointer-events: auto keeps Undo clickable
 // while a Radix modal has set pointer-events: none on body.
 export function UndoToast() {
-    const { performUndo } = usePortfolioActions();
+    const { performUndo } = portfolioActions;
     const toast = useAppStore((s) => s.undoToast);
     const { t } = useI18n();
     if (!toast) return null;

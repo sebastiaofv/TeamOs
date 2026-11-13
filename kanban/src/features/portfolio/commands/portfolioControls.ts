@@ -12,10 +12,7 @@ import { DEFAULT_PORTFOLIO_FILTERS, PANEL_PORTFOLIO_FILTERS, normalizePortfolioF
 import { getRoadmapExtension } from '@/domain/roadmap';
 import { shiftPlannerDate } from '@/domain/dayPlanner';
 import { todayLocalIsoDate } from '@/domain/util';
-import {
-    clearPortfolioTimelineSelection as defaultClearPortfolioTimelineSelection,
-    openRoadmapEntityModal as defaultOpenRoadmapEntityModal
-} from './portfolioCommands';
+import { portfolioActions } from './portfolioCommands';
 import { closePortfolioContextsForProject as defaultClosePortfolioContextsForProject } from '@/app/overlays/dialogs';
 import {
     forgetProjectFileState,
@@ -35,7 +32,6 @@ export type PortfolioControlOptions = {
     clearPortfolioTimelineSelection?: () => void;
     openCreateSprintModal?: (boardId: string) => unknown;
     openAssignSprintModal?: (boardId: string) => unknown;
-    retrySave?: (boardId: string) => boolean;
     forgetFileState?: (boardId: string) => void;
 };
 
@@ -75,10 +71,9 @@ export function createPortfolioControlActions({
     updateUrlState = null,
     primeProjectFiles = primeProjectFileBaselines,
     closePortfolioContextsForProject = defaultClosePortfolioContextsForProject,
-    clearPortfolioTimelineSelection = () => defaultClearPortfolioTimelineSelection(),
-    openCreateSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection', boardId }),
-    openAssignSprintModal = (boardId) => defaultOpenRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection', boardId }),
-    retrySave = retryProjectSave,
+    clearPortfolioTimelineSelection = () => portfolioActions.clearPortfolioTimelineSelection(),
+    openCreateSprintModal = (boardId) => portfolioActions.openRoadmapEntityModal('sprints', '', { mode: 'create-sprint-from-selection', boardId }),
+    openAssignSprintModal = (boardId) => portfolioActions.openRoadmapEntityModal('sprints', '', { mode: 'assign-sprint-from-selection', boardId }),
     forgetFileState = forgetProjectFileState
 }: PortfolioControlOptions = {}) {
     const getState = () => store.getState();
@@ -89,21 +84,6 @@ export function createPortfolioControlActions({
 
     function commitState(partial: Partial<AppState>) {
         store.setState(partial);
-    }
-
-    function clearBulkSelectionState(boardId = '') {
-        const state = getState();
-        const nextSelection = { ...(state.portfolioBulkSelectionByBoardId || {}) };
-        if (boardId) {
-            delete nextSelection[boardId];
-        } else {
-            Object.keys(nextSelection).forEach((key) => delete nextSelection[key]);
-        }
-        commitState({ portfolioBulkSelectionByBoardId: nextSelection });
-    }
-
-    function clearPortfolioBulkSelection(boardId = '') {
-        clearBulkSelectionState(boardId);
     }
 
     function setSelectedPortfolioBoardId(boardId: string | null | undefined, options: { resetViewModeWhenEmpty?: boolean } = {}) {
@@ -314,7 +294,7 @@ export function createPortfolioControlActions({
     }
 
     function retryPortfolioSave(boardId: string) {
-        return retrySave(boardId);
+        return retryProjectSave(boardId);
     }
 
     function setPortfolioCalendarPeriod(year: unknown, month: unknown) {
@@ -374,7 +354,6 @@ export function createPortfolioControlActions({
     return {
         appendPortfolioRecords,
         canUsePortfolioViewMode,
-        clearPortfolioBulkSelection,
         clearPortfolioFilter,
         clearPortfolioFilters,
         openAssignSprintFromSelection,
@@ -398,30 +377,26 @@ export function createPortfolioControlActions({
     };
 }
 
-type PortfolioControlActions = ReturnType<typeof createPortfolioControlActions>;
-
-const activeActions = createPortfolioControlActions();
-
-export const appendPortfolioRecords: PortfolioControlActions['appendPortfolioRecords'] = (...args) => activeActions.appendPortfolioRecords(...args);
-export const canUsePortfolioViewMode: PortfolioControlActions['canUsePortfolioViewMode'] = (...args) => activeActions.canUsePortfolioViewMode(...args);
-export const clearPortfolioBulkSelection: PortfolioControlActions['clearPortfolioBulkSelection'] = (...args) => activeActions.clearPortfolioBulkSelection(...args);
-export const openAssignSprintFromSelection: PortfolioControlActions['openAssignSprintFromSelection'] = (...args) => activeActions.openAssignSprintFromSelection(...args);
-export const openCreateSprintFromSelection: PortfolioControlActions['openCreateSprintFromSelection'] = (...args) => activeActions.openCreateSprintFromSelection(...args);
-export const removePortfolioBoard: PortfolioControlActions['removePortfolioBoard'] = (...args) => activeActions.removePortfolioBoard(...args);
-export const resetPortfolioFilters: PortfolioControlActions['resetPortfolioFilters'] = (...args) => activeActions.resetPortfolioFilters(...args);
-export const retryPortfolioSave: PortfolioControlActions['retryPortfolioSave'] = (...args) => activeActions.retryPortfolioSave(...args);
-export const selectPortfolioBoard: PortfolioControlActions['selectPortfolioBoard'] = (...args) => activeActions.selectPortfolioBoard(...args);
-export const setPortfolioCalendarPeriod: PortfolioControlActions['setPortfolioCalendarPeriod'] = (...args) => activeActions.setPortfolioCalendarPeriod(...args);
-export const setPortfolioCalendarView: PortfolioControlActions['setPortfolioCalendarView'] = (...args) => activeActions.setPortfolioCalendarView(...args);
-export const setPortfolioFilter: PortfolioControlActions['setPortfolioFilter'] = (...args) => activeActions.setPortfolioFilter(...args);
-export const setPortfolioSort: PortfolioControlActions['setPortfolioSort'] = (...args) => activeActions.setPortfolioSort(...args);
-export const setPortfolioViewMode: PortfolioControlActions['setPortfolioViewMode'] = (...args) => activeActions.setPortfolioViewMode(...args);
-export const setSelectedPortfolioBoardId: PortfolioControlActions['setSelectedPortfolioBoardId'] = (...args) => activeActions.setSelectedPortfolioBoardId(...args);
-export const shiftPortfolioCalendarMonth: PortfolioControlActions['shiftPortfolioCalendarMonth'] = (...args) => activeActions.shiftPortfolioCalendarMonth(...args);
-export const shiftPortfolioCalendarYear: PortfolioControlActions['shiftPortfolioCalendarYear'] = (...args) => activeActions.shiftPortfolioCalendarYear(...args);
-export const togglePortfolioCalendarDisplayMode: PortfolioControlActions['togglePortfolioCalendarDisplayMode'] = (...args) => activeActions.togglePortfolioCalendarDisplayMode(...args);
-export const setPortfolioPlannerMode: PortfolioControlActions['setPortfolioPlannerMode'] = (...args) => activeActions.setPortfolioPlannerMode(...args);
-export const shiftPortfolioPlannerDate: PortfolioControlActions['shiftPortfolioPlannerDate'] = (...args) => activeActions.shiftPortfolioPlannerDate(...args);
-export const showPortfolioPlannerToday: PortfolioControlActions['showPortfolioPlannerToday'] = (...args) => activeActions.showPortfolioPlannerToday(...args);
-export const clearPortfolioFilter: PortfolioControlActions['clearPortfolioFilter'] = (...args) => activeActions.clearPortfolioFilter(...args);
-export const clearPortfolioFilters: PortfolioControlActions['clearPortfolioFilters'] = (...args) => activeActions.clearPortfolioFilters(...args);
+export const {
+    appendPortfolioRecords,
+    openAssignSprintFromSelection,
+    openCreateSprintFromSelection,
+    removePortfolioBoard,
+    resetPortfolioFilters,
+    retryPortfolioSave,
+    selectPortfolioBoard,
+    setPortfolioCalendarPeriod,
+    setPortfolioCalendarView,
+    setPortfolioFilter,
+    setPortfolioSort,
+    setPortfolioViewMode,
+    setSelectedPortfolioBoardId,
+    shiftPortfolioCalendarMonth,
+    shiftPortfolioCalendarYear,
+    togglePortfolioCalendarDisplayMode,
+    setPortfolioPlannerMode,
+    shiftPortfolioPlannerDate,
+    showPortfolioPlannerToday,
+    clearPortfolioFilter,
+    clearPortfolioFilters,
+} = createPortfolioControlActions();

@@ -1,90 +1,23 @@
+import { z } from 'zod';
+import { filledTextSchema, positiveIntegerSchema, timestampSchema, uniqueIdListSchema, recordSchema } from './fileValidation';
 // Shapes and validation of the entities stored in project.json v1 (see PROJECT_FORMAT.md).
 //
 // The field tables below are the single source for writing, validating and
 // documenting which fields each workitem type and Project Control type carries;
 // tests/unit/projectFileSchema.test.ts keeps the tables in PROJECT_FORMAT.md equal to them.
 
-import type { Attachment, ChecklistItem, DayPlanBlock, Effort, Priority, ProjectMember, SprintClosure, SprintCredit, Task, Workflow, WorkflowTypes, WorkitemType } from './types';
+import type { Attachment, DayPlanBlock, ProjectMember, SprintClosure, SprintCredit, Task, Workflow, WorkflowTypes, WorkitemType } from './types';
 import type { Assessment, ControlKind, ControlRelated } from './projectControl';
 import { WORKITEM_FIELDS, WORKITEM_TYPES, workitemFieldNames } from './workitems';
 import { parseRoadmapIsoDate } from './roadmap';
-import { isRecord, normalizeTimestamp } from './util';
 
 type Rec = Record<string, unknown>;
-type PlanningMode = NonNullable<Task['phaseMode']>;
 type WorkitemTextField = typeof WORKITEM_FIELDS[number];
-
-export type WorkitemFile = {
-    id: number;
-    permanentId?: string;
-    displayId?: string;
-    type: WorkitemType;
-    title: string;
-    description: string;
-    status: string;
-    parentId?: number | null;
-    assigneeIds: string[];
-    responsibleId: string | null;
-    tags: string[];
-    priority: Priority | null;
-    effort?: Effort | null;
-    storyPoints?: number | null;
-    dueDate: string | null;
-    sprintId?: string | null;
-    phaseMode: PlanningMode;
-    phaseId?: string;
-    milestoneMode: PlanningMode;
-    milestoneId?: string;
-    blocked: boolean;
-    blockerReason?: string;
-    archived: boolean;
-    checklist: ChecklistItem[];
-    pullRequests?: string[];
-    /** `dataUrl` references in memory; bare `sha256` hashes in the file text. */
-    attachments: Attachment[];
-    severity?: string;
-    acceptance?: Task['acceptance'];
-    sprintHistory?: Task['sprintHistory'];
-    createdAt: string;
-    updatedAt: string;
-    statusChangedAt?: string;
-} & Partial<Record<WorkitemTextField, string>>;
 
 /** Project Control record types as stored: singular, like workitem types. */
 export type ControlTypeFile = 'risk' | 'decision' | 'deliverable';
 export const CONTROL_TYPE_TO_FILE: Readonly<Record<ControlKind, ControlTypeFile>> = { risks: 'risk', decisions: 'decision', deliverables: 'deliverable' };
 export const CONTROL_KIND_FROM_FILE: Readonly<Record<string, ControlKind>> = { risk: 'risks', decision: 'decisions', deliverable: 'deliverables' };
-
-export type ControlRecordFile = {
-    id: string;
-    type: ControlTypeFile;
-    title: string;
-    description: string;
-    status: string;
-    ownerId: string | null;
-    assigneeIds: string[];
-    tags: string[];
-    related: ControlRelated;
-    dueDate: string | null;
-    createdAt: string;
-    updatedAt: string;
-    legacyWorkitemIds?: number[];
-    // Risks
-    probability?: Assessment;
-    impact?: Assessment;
-    mitigationPlan?: string;
-    contingencyPlan?: string;
-    materializedDate?: string | null;
-    actualImpact?: string;
-    // Decisions
-    decisionMaker?: string;
-    decisionDate?: string | null;
-    rationale?: string;
-    // Deliverables
-    validator?: string;
-    deliveredDate?: string | null;
-    acceptedDate?: string | null;
-};
 
 /** Names at the moment a row was frozen, for the member ids its rows use. */
 export type FrozenMembersFile = ProjectMember[];
@@ -135,101 +68,77 @@ export const CONTROL_TYPE_FIELDS: Readonly<Record<ControlTypeFile, readonly stri
 export const CONTROL_DATE_FIELDS: ReadonlySet<string> = new Set(['decisionDate', 'dueDate', 'deliveredDate', 'acceptedDate', 'materializedDate']);
 const ALL_CONTROL_TYPE_FIELDS = Object.values(CONTROL_TYPE_FIELDS).flat();
 
-const PLANNING_MODES = ['none', 'inherit', 'explicit'];
-const SHA256 = /^[a-f0-9]{64}$/;
+const attachmentFileSchema = z.looseObject({
+    id: filledTextSchema, name: z.string(), mime: z.string(),
+    kind: z.enum(['file', 'image']), sizeBytes: z.number().nonnegative(), createdAt: timestampSchema
+}).refine(value => typeof value.dataUrl === 'string' || (typeof value.sha256 === 'string' && /^[a-f0-9]{64}$/.test(value.sha256)));
+const planningModeSchema = z.enum(['none', 'inherit', 'explicit']);
+const roadmapDateSchema = z.string().refine(value => Boolean(parseRoadmapIsoDate(value)));
+const optionalTextFields = Object.fromEntries(WORKITEM_FIELDS.map(field => [field, z.string().optional()]));
+const checkedOptionalFields = ['permanentId', 'displayId', 'severity', 'blockerReason', 'statusChangedAt', 'pullRequests',
+    'parentId', 'phaseId', 'milestoneId', 'sprintId', 'storyPoints', 'effort', ...WORKITEM_FIELDS];
 
-const isText = (value: unknown): value is string => typeof value === 'string';
-const isFilledText = (value: unknown): value is string => typeof value === 'string' && value !== '';
-const isPositiveInteger = (value: unknown): boolean => Number.isSafeInteger(value) && Number(value) >= 1;
-const isUniqueIdList = (value: unknown): value is string[] =>
-    Array.isArray(value) && value.every(isFilledText) && new Set(value).size === value.length;
-const isNullOr = (value: unknown, check: (value: unknown) => boolean): boolean => value === null || check(value);
-/** An optional key: absent is fine, present must pass. */
-const optional = (value: Rec, field: string, check: (value: unknown) => boolean): boolean => !(field in value) || check(value[field]);
+/** Loose objects retain extension fields. Validation never replaces or coerces the input. */
+export const workitemFileSchema = z.looseObject({
+    ...optionalTextFields,
+    id: positiveIntegerSchema, type: z.enum(WORKITEM_TYPES),
+    permanentId: z.string().optional(), displayId: z.string().optional(),
+    title: z.string().refine(value => Boolean(value.trim())), description: z.string(),
+    status: z.string().refine(value => Boolean(value.trim())), parentId: positiveIntegerSchema.nullable().optional(),
+    assigneeIds: uniqueIdListSchema, responsibleId: z.string().nullable(), tags: z.array(z.string()),
+    priority: z.enum(['high', 'medium', 'low']).nullable(), effort: z.enum(['XS', 'S', 'M', 'L', 'XL']).nullable().optional(),
+    storyPoints: z.number().nonnegative().nullable().optional(), dueDate: roadmapDateSchema.nullable(),
+    sprintId: filledTextSchema.nullable().optional(), phaseMode: planningModeSchema, milestoneMode: planningModeSchema,
+    phaseId: filledTextSchema.nullable().optional(), milestoneId: filledTextSchema.nullable().optional(),
+    blocked: z.boolean(), blockerReason: z.string().optional(), archived: z.boolean(),
+    checklist: z.array(z.looseObject({ text: z.string(), done: z.boolean() })), pullRequests: z.array(z.string()).optional(),
+    // Files may carry hashes before attachment hydration; the runtime converter owns that distinction.
+    attachments: z.array(z.custom<Attachment>(value => attachmentFileSchema.safeParse(value).success)),
+    severity: z.string().optional(), acceptance: z.custom<Task['acceptance']>().optional(),
+    sprintHistory: z.custom<Task['sprintHistory']>().optional(),
+    createdAt: timestampSchema, updatedAt: timestampSchema, statusChangedAt: timestampSchema.optional()
+}).superRefine((value, context) => {
+    if (value.responsibleId !== null && !value.assigneeIds.includes(value.responsibleId)) context.addIssue({ code: 'custom', path: ['responsibleId'], message: 'Responsible must be an assignee.' });
+    for (const field of ['phase', 'milestone'] as const) if (value[`${field}Mode`] === 'explicit' && !value[`${field}Id`]) context.addIssue({ code: 'custom', path: [`${field}Id`], message: 'Explicit planning requires an id.' });
+    // Optional means absent, not an explicitly present undefined value.
+    for (const field of checkedOptionalFields) if (field in value && value[field] === undefined) context.addIssue({ code: 'custom', path: [field], message: 'Invalid present field.' });
+});
+export type WorkitemFile = z.infer<typeof workitemFileSchema> & Partial<Record<WorkitemTextField, string>>;
 
-function isAttachmentFile(value: unknown): boolean {
-    if (!isRecord(value)) return false;
-    const stored = isText(value.dataUrl) || (isText(value.sha256) && SHA256.test(value.sha256));
-    return isFilledText(value.id) && isText(value.name) && isText(value.mime)
-        && ['file', 'image'].includes(String(value.kind))
-        && typeof value.sizeBytes === 'number' && Number.isFinite(value.sizeBytes) && value.sizeBytes >= 0
-        && Boolean(normalizeTimestamp(value.createdAt))
-        && stored;
-}
+const assessmentSchema = z.custom<Assessment>(value => typeof value === 'string');
+export const controlRecordFileSchema = z.looseObject({
+    id: filledTextSchema, type: z.enum(['risk', 'decision', 'deliverable']), title: z.string(), description: z.string(), status: z.string(),
+    ownerId: filledTextSchema.nullable(), assigneeIds: uniqueIdListSchema, tags: z.array(z.string()),
+    related: z.custom<ControlRelated>(value => recordSchema.safeParse(value).success), dueDate: z.string().nullable(),
+    createdAt: timestampSchema, updatedAt: timestampSchema,
+    legacyWorkitemIds: z.custom<number[]>(Array.isArray).optional(),
+    probability: assessmentSchema.optional(), impact: assessmentSchema.optional(), mitigationPlan: z.string().optional(),
+    contingencyPlan: z.string().optional(), materializedDate: z.string().nullable().optional(), actualImpact: z.string().optional(),
+    decisionMaker: z.string().optional(), decisionDate: z.string().nullable().optional(), rationale: z.string().optional(),
+    validator: z.string().optional(), deliveredDate: z.string().nullable().optional(), acceptedDate: z.string().nullable().optional()
+}).superRefine((value, context) => {
+    for (const field of CONTROL_TYPE_FIELDS[value.type]) if (value[field] === undefined) context.addIssue({ code: 'custom', path: [field], message: 'Missing type-specific field.' });
+    if ('legacyWorkitemIds' in value && value.legacyWorkitemIds === undefined) context.addIssue({ code: 'custom', path: ['legacyWorkitemIds'], message: 'Invalid present field.' });
+});
+export type ControlRecordFile = z.infer<typeof controlRecordFileSchema>;
 
-const isChecklistItem = (value: unknown): boolean => isRecord(value) && isText(value.text) && typeof value.done === 'boolean';
-
-/** Reading rejects a malformed workitem and any field that does not apply to its type. */
+/** Keep boundary errors stable while schemas own structural validation. */
 export function assertWorkitemFile(value: Rec): asserts value is WorkitemFile {
+    if (!workitemFileSchema.safeParse(value).success) throw new Error(`Invalid project.json: malformed workitem ${String(value.id)}.`);
     const type = String(value.type);
-    const malformed = (): never => { throw new Error(`Invalid project.json: malformed workitem ${String(value.id)}.`); };
-    const notApplicable = (field: string): never => {
-        throw new Error(`Invalid project.json: workitem ${String(value.id)} has field ${field}, which does not apply to ${type}.`);
-    };
-
-    const identity = (WORKITEM_TYPES as readonly string[]).includes(type) && isPositiveInteger(value.id)
-        && isText(value.title) && value.title.trim() !== ''
-        && isText(value.description)
-        && isText(value.status) && value.status.trim() !== ''
-        && ['permanentId', 'displayId', 'severity', 'blockerReason'].every((field) => optional(value, field, isText));
-    if (!identity) malformed();
-
-    const assignments = isUniqueIdList(value.assigneeIds)
-        && isNullOr(value.responsibleId, (id) => isText(id) && (value.assigneeIds as string[]).includes(id));
-    if (!assignments) malformed();
-
-    const timestamps = Boolean(normalizeTimestamp(value.createdAt)) && Boolean(normalizeTimestamp(value.updatedAt))
-        && optional(value, 'statusChangedAt', (at) => Boolean(normalizeTimestamp(at)));
-    if (!timestamps) malformed();
-
-    const content = typeof value.blocked === 'boolean' && typeof value.archived === 'boolean'
-        && Array.isArray(value.checklist) && value.checklist.every(isChecklistItem)
-        && Array.isArray(value.attachments) && value.attachments.every(isAttachmentFile)
-        && Array.isArray(value.tags) && value.tags.every(isText)
-        && optional(value, 'pullRequests', (links) => Array.isArray(links) && links.every(isText))
-        && WORKITEM_FIELDS.every((field) => optional(value, field, isText));
-    if (!content) malformed();
-
-    const planning = PLANNING_MODES.includes(String(value.phaseMode)) && PLANNING_MODES.includes(String(value.milestoneMode))
-        && isNullOr(value.dueDate, (date) => isText(date) && Boolean(parseRoadmapIsoDate(date)))
-        && optional(value, 'parentId', (id) => isNullOr(id, isPositiveInteger))
-        && ['phaseId', 'milestoneId', 'sprintId'].every((field) => optional(value, field, (id) => isNullOr(id, isFilledText)))
-        && (value.phaseMode !== 'explicit' || isFilledText(value.phaseId))
-        && (value.milestoneMode !== 'explicit' || isFilledText(value.milestoneId))
-        && optional(value, 'storyPoints', (points) => isNullOr(points, (n) => typeof n === 'number' && Number.isFinite(n) && n >= 0))
-        && isNullOr(value.priority, (priority) => ['high', 'medium', 'low'].includes(String(priority)))
-        && optional(value, 'effort', (effort) => isNullOr(effort, (size) => ['XS', 'S', 'M', 'L', 'XL'].includes(String(size))));
-    if (!planning) malformed();
-
+    const notApplicable = (field: string): never => { throw new Error(`Invalid project.json: workitem ${String(value.id)} has field ${field}, which does not apply to ${type}.`); };
     for (const field of Object.keys(WORKITEM_FIELD_TYPES)) if (field in value && !workitemFieldApplies(field, type)) notApplicable(field);
     if ('phaseId' in value && value.phaseMode !== 'explicit') notApplicable('phaseId');
     if ('milestoneId' in value && value.milestoneMode !== 'explicit') notApplicable('milestoneId');
     if ('blockerReason' in value && value.blocked !== true) notApplicable('blockerReason');
 }
 
-/** Reading rejects a malformed record, a field of another type, and a missing field of its own type. */
 export function assertControlRecordFile(value: Rec): asserts value is ControlRecordFile {
     const type = String(value.type) as ControlTypeFile;
     const malformed = (): never => { throw new Error(`Invalid project.json: malformed Project Control record ${String(value.id)}.`); };
-    const own = Object.hasOwn(CONTROL_TYPE_FIELDS, type) ? CONTROL_TYPE_FIELDS[type] : undefined;
-    if (!own || 'kind' in value) malformed();
-
-    for (const field of ALL_CONTROL_TYPE_FIELDS) {
-        if (field in value && !own!.includes(field)) {
-            throw new Error(`Invalid project.json: record ${String(value.id)} has field ${field}, which does not apply to ${type}.`);
-        }
+    if (!Object.hasOwn(CONTROL_TYPE_FIELDS, type) || 'kind' in value) malformed();
+    for (const field of ALL_CONTROL_TYPE_FIELDS) if (field in value && !CONTROL_TYPE_FIELDS[type].includes(field)) {
+        throw new Error(`Invalid project.json: record ${String(value.id)} has field ${field}, which does not apply to ${type}.`);
     }
-    const dateOrNull = (date: unknown) => isNullOr(date, isText);
-    const common = isFilledText(value.id) && isText(value.title) && isText(value.description) && isText(value.status)
-        && isNullOr(value.ownerId, isFilledText)
-        && isUniqueIdList(value.assigneeIds)
-        && Array.isArray(value.tags) && value.tags.every(isText)
-        && isRecord(value.related)
-        && dateOrNull(value.dueDate)
-        && Boolean(normalizeTimestamp(value.createdAt)) && Boolean(normalizeTimestamp(value.updatedAt))
-        && optional(value, 'legacyWorkitemIds', Array.isArray);
-    if (!common) malformed();
-
-    const specific = own!.every((field) => (CONTROL_DATE_FIELDS.has(field) ? dateOrNull(value[field]) : isText(value[field])));
-    if (!specific) malformed();
+    if (!controlRecordFileSchema.safeParse(value).success) malformed();
 }

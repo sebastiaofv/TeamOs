@@ -16,11 +16,13 @@ import {
 
 type DerivedState = Pick<AppState, 'portfolioTasks' | 'portfolioFilters' | 'portfolioVisibleRows' | 'portfolioTimelineView'>;
 
-function syncPortfolioProjectColors(state: AppState): BoardRecord[] {
+// New records arrive without a seed. They take the next seed from a counter that
+// only grows, so a removed project's colour is not handed to the next one opened.
+function syncPortfolioProjectColors(state: AppState): { boards: BoardRecord[]; nextColorSeed: number } {
     const original = Array.isArray(state?.portfolioBoards) ? state.portfolioBoards : [];
     const boards = original.map((board) => ({ ...board }));
     const usedSeeds = new Set<number>();
-    let nextSeed = 0;
+    let nextSeed = Math.max(0, state.nextPortfolioProjectColorSeed || 0);
 
     boards.forEach((board) => {
         if (!board) return;
@@ -61,11 +63,14 @@ function syncPortfolioProjectColors(state: AppState): BoardRecord[] {
             usedColorKeys.add(key);
         });
 
-    return boards.map((board, index) => (
-        board.colorSeed === original[index].colorSeed
-        && portfolioProjectColorKey(board.projectColor) === portfolioProjectColorKey(original[index].projectColor || {})
-            ? original[index] : board
-    ));
+    return {
+        boards: boards.map((board, index) => (
+            board.colorSeed === original[index].colorSeed
+            && portfolioProjectColorKey(board.projectColor) === portfolioProjectColorKey(original[index].projectColor || {})
+                ? original[index] : board
+        )),
+        nextColorSeed: nextSeed
+    };
 }
 
 function normalizeSelection(state: AppState) {
@@ -107,8 +112,9 @@ export function buildPortfolioDerivedState(state: AppState, previous: Partial<Ap
 // save-status changes retain the existing projections and board identities.
 export function derivePortfolioState(state: AppState, previous: Partial<AppState> = {}): AppState {
     const boardsChanged = state.portfolioBoards !== previous.portfolioBoards;
-    const portfolioBoards = boardsChanged ? syncPortfolioProjectColors(state) : state.portfolioBoards;
-    const next: AppState = { ...state, portfolioBoards };
+    const colors = boardsChanged ? syncPortfolioProjectColors(state) : null;
+    const portfolioBoards = colors ? colors.boards : state.portfolioBoards;
+    const next: AppState = { ...state, portfolioBoards, ...(colors ? { nextPortfolioProjectColorSeed: colors.nextColorSeed } : {}) };
     if (boardsChanged) {
         assertPermanentGraph(allPermanentRelations(portfolioBoards));
         const loaded = new Set(portfolioBoards.map((board) => board.data.extensions.project?.id));

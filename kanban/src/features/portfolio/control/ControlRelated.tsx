@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { BoardData } from '@/domain/types';
 import type { ControlRelated as Related } from '@/domain/projectControl';
 import { useI18n } from '@/shared/i18n';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 
 export function projectElementOptions(data: BoardData) {
     return [
@@ -12,7 +12,6 @@ export function projectElementOptions(data: BoardData) {
 }
 export function ControlRelated({ boardId, data, value, onChange, onNavigate }: { boardId: string; data: BoardData; value: Related; onChange?: (value: Related) => void; onNavigate: () => void }) {
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     const [search, setSearch] = useState('');
     const options = projectElementOptions(data);
     return <section className="control-related">

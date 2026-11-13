@@ -39,7 +39,7 @@ test('table dates, status colors, blocked emphasis and minimum widths match the 
   ] }], { selectedBoardId: 'p' });
   await page.locator('[data-view-mode="table"]').click();
   await expect(page.locator('#workitemsTable [data-task-id="1"] [data-column="updatedAt"]')).toHaveText('17/10/2026 10:27:42');
-  await page.locator('#tableColumns summary').click();
+  await page.locator('#tableColumns > button').click();
   for (const column of ['blocked', 'blockerReason', 'dueDate', 'createdAt', 'milestone', 'sprint', 'effort', 'tags']) {
     await page.locator(`.table-column-panel [data-column-choice="${column}"]`).getByRole('button', { name: /^Show / }).click();
   }

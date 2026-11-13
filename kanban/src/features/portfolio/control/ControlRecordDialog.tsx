@@ -14,7 +14,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlRecords, newControlRecord, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
 import type { BoardData } from '@/domain/types';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { lastCommentAuthor, rememberCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
 import { TaskConversation } from '@/features/portfolio/task/dialogs/TaskConversation';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
@@ -40,17 +40,20 @@ export function ProjectControlDialog() {
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
     const record = controlRecords(data).find((item) => item.id === recordId);
     const { t } = useI18n();
-    const { saveProjectControl, confirmResponsibleParticipantRemoval } = usePortfolioActions();
+    const { saveProjectControl, confirmResponsibleParticipantRemoval } = portfolioActions;
     const project = getProjectData(data);
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
-    const [editing, setEditing] = useState(!recordId);
+    // A new record opens in the full editor; an existing one opens for viewing,
+    // with inline fields saved on change, until Edit switches to the full editor.
+    const [mode, setMode] = useState<'viewing' | 'editing' | 'savingToClose'>(recordId ? 'viewing' : 'editing');
+    const editing = mode !== 'viewing';
+    const busy = mode === 'savingToClose';
     const [author, setAuthor] = useState(() => lastCommentAuthor(boardId));
     const [tab, setTab] = useState<'details' | 'response' | 'comments' | 'history'>('details');
     const historyLoad = useProjectHistory(boardId, tab === 'history');
     const [acronym, setAcronym] = useState('');
     const activeKind = draft.kind;
     const tabs = activeKind === 'risks' ? ['details', 'response', 'comments', 'history'] as const : ['details', 'comments', 'history'] as const;
-    const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     // The parent Radix layer may still own Escape briefly after a nested dialog opens.
     // Handle it before document listeners so closing the child preserves the parent draft.
@@ -71,7 +74,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     async function save(next: ControlRecord, closeAfterSave: boolean) {
         if (busy || readonly) return;
         if (!next.title.trim() || !author.trim()) { setTab('details'); setError(t('control.invalid')); return; }
-        if (closeAfterSave) setBusy(true);
+        if (closeAfterSave) setMode('savingToClose');
         setError('');
         rememberCommentAuthor(boardId, author);
         try {
@@ -80,11 +83,11 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                 onSaved?.(saved);
                 if (closeAfterSave) onClose();
             }, acronym);
-        } finally { if (closeAfterSave) setBusy(false); }
+        } finally { if (closeAfterSave) setMode('editing'); }
     }
     function edit() {
         if (readonly || busy || !record) return;
-        setDraft(structuredClone(record)); setEditing(true); setError(''); setTab('details');
+        setDraft(structuredClone(record)); setMode('editing'); setError(''); setTab('details');
     }
     useLayoutEffect(() => {
         if (editing && !readonly) titleRef.current?.focus();

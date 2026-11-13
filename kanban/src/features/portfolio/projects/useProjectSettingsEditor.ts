@@ -1,13 +1,14 @@
 import { getHierarchyAutomations, type HierarchyAutomations } from '@/domain/hierarchyAutomations';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Workflow, WorkflowKind, WorkitemType } from '@/domain/types';
 import type { ProjectSettingsDraft } from '@/domain/projectData';
 import { applyProjectSettings, ProjectDataError, getProjectData } from '@/domain/projectData';
 import { applyWorkflow, applyWorkflowTypes, functionalWorkitemTypes, getWorkflow, workflowErrors, workflowKind } from '@/domain/workflow';
 import { areSerializableValuesEqual, cloneSerializable } from '@/domain/serializable';
 import type { DialogPropsByName } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
+import { useSubmission } from '@/shared/hooks/useSubmission';
 
 type Tab = 'general' | 'automations' | WorkflowKind;
 type WorkflowSection = 'states' | 'references' | 'types';
@@ -33,16 +34,15 @@ function useWorkflowDraft(vm: DialogPropsByName['projectSettings'], kind: Workfl
 /** Owns the complete settings draft; views only edit values and render validation. */
 export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings']) {
     const { t } = useI18n();
-    const { saveProjectSettings } = usePortfolioActions();
+    const { saveProjectSettings } = portfolioActions;
     const [original] = useState(() => ({ name: vm.data.board.settings.title, project: getProjectData(vm.data) }));
     const [general, setGeneral] = useState(() => cloneSerializable(original));
     const [originalAutomations] = useState(() => cloneSerializable(getHierarchyAutomations(vm.data)));
     const [automations, setAutomations] = useState(originalAutomations);
     const [tab, selectTab] = useState<Tab>('general');
     const [error, setError] = useState('');
-    const [busy, setBusy] = useState(false);
-    const saving = useRef(false);
-    const canEdit = () => !vm.readOnly && !saving.current;
+    const { busy, run, isRunning } = useSubmission();
+    const canEdit = () => !vm.readOnly && !isRunning();
     const technical = useWorkflowDraft(vm, 'technical', canEdit);
     const functional = useWorkflowDraft(vm, 'functional', canEdit);
     const [originalTypes] = useState<WorkitemType[]>(() => functionalWorkitemTypes(vm.data));
@@ -62,22 +62,27 @@ export function useProjectSettingsEditor(vm: DialogPropsByName['projectSettings'
             }
         }
         const typesChanged = !areSerializableValuesEqual([...originalTypes].sort(), [...functionalTypes].sort());
-        saving.current = true; setBusy(true); technical.clearError(); functional.clearError();
-        try {
-            if (vm.onCreate) {
-                const data = cloneSerializable(vm.data);
-                applyProjectSettings(data, general);
-                data.extensions.hierarchyAutomations = cloneSerializable(automations);
-                if (!data.extensions.project?.acronym) throw new ProjectDataError('acronym');
-                for (const editor of changed) applyWorkflow(data, editor.draft, editor.relocations, editor.kind);
-                if (typesChanged) applyWorkflowTypes(data, functionalTypes);
-                await vm.onCreate(data);
-                return;
+        technical.clearError(); functional.clearError();
+        await run(async () => {
+            try {
+                if (vm.onCreate) {
+                    const data = cloneSerializable(vm.data);
+                    applyProjectSettings(data, general);
+                    data.extensions.hierarchyAutomations = cloneSerializable(automations);
+                    if (!data.extensions.project?.acronym) throw new ProjectDataError('acronym');
+                    for (const editor of changed) applyWorkflow(data, editor.draft, editor.relocations, editor.kind);
+                    if (typesChanged) applyWorkflowTypes(data, functionalTypes);
+                    await vm.onCreate(data);
+                    return;
+                }
+                await saveProjectSettings(vm.boardId, general, original, changed.length ? changed.map((editor) => ({
+                    kind: editor.kind, original: editor.original, workflow: editor.draft, relocations: editor.relocations
+                })) : undefined, typesChanged ? { original: originalTypes, functional: functionalTypes } : undefined, { original: originalAutomations, config: automations });
+            } catch (error) {
+                if (!(error instanceof ProjectDataError)) throw error;
+                selectTab('general'); setError(t(`project.error.${error.code}`));
             }
-            await saveProjectSettings(vm.boardId, general, original, changed.length ? changed.map((editor) => ({
-                kind: editor.kind, original: editor.original, workflow: editor.draft, relocations: editor.relocations
-            })) : undefined, typesChanged ? { original: originalTypes, functional: functionalTypes } : undefined, { original: originalAutomations, config: automations });
-        } catch (error) { if (!(error instanceof ProjectDataError)) throw error; selectTab('general'); setError(t(`project.error.${error.code}`)); } finally { saving.current = false; setBusy(false); }
+        });
     }
 
     return {

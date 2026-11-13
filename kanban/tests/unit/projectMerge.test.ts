@@ -107,11 +107,14 @@ describe('three-way project merge', () => {
         validateBoardData(local); validateBoardData(external);
         expect(mergeProject(base, local, external).conflicts.some((c) => c.reason === 'integrity')).toBe(true);
     });
-    it('never automatically accepts collisions in project-local workitem numbers', () => {
+    it('renumbers a workitem created concurrently with the same project-local number instead of losing either', () => {
         const { base, local, external } = versions();
         local.board.tasks.push({ ...cloneSerializable(local.board.tasks[0]), id: 3, permanentId: 'new-local' });
         external.board.tasks.push({ ...cloneSerializable(external.board.tasks[0]), id: 3, permanentId: 'new-external' });
-        expect(mergeProject(base, local, external).conflicts.some((c) => c.reason === 'integrity')).toBe(true);
+        const { merged, conflicts } = mergeProject(base, local, external);
+        expect(conflicts).toEqual([]);
+        expect(merged.board.tasks.find((task) => task.permanentId === 'new-local')!.id).toBe(3);
+        expect(merged.board.tasks.find((task) => task.permanentId === 'new-external')!.id).toBe(4);
     });
     it('merges workflow and settings fields and treats rollback differences as conflicts', () => {
         const { base, local, external } = versions();
