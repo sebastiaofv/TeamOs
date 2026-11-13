@@ -9,20 +9,20 @@ import { nextTaskIdForBoard } from '@/domain/task';
 import { checkPortfolioFiles } from '@/features/portfolio/projects/projectCommands';
 import type { BoardMutationContext } from './mutationContext';
 import type { BoardData } from '@/domain/types';
-import { sameProduct, prepareProjectTransfer, removeTransferredSource, transferBatch, TransferError, type TransferMode, type TransferOperation } from '@/domain/projectTransfers';
+import { nextTransferStep, sameProduct, prepareProjectTransfer, removeTransferredSource, transferBatch, TransferError, type TransferMode, type TransferOperation } from '@/domain/projectTransfers';
 import { cloneSerializable } from '@/domain/serializable';
 import { statusCategory } from '@/domain/workflow';
 import { validateBoardData } from '@/domain/board';
-import { isBoardInHistoricalPreview } from '@/features/portfolio/queries';
+import { canTransferProjectFile, projectAccessBlockers } from '@/features/portfolio/queries/projectAccess';
 import { translateCurrent as t } from '@/shared/i18n';
 import { lockProjectTransfers, isProjectTransferLocked } from './projectTransferLocks';
 
 export function createProjectTransferActions(context: BoardMutationContext, checkFiles = () => checkPortfolioFiles()) {
     const { getState, getBoardRecord, commitState, enqueueSave, markDirty, alert, choose, confirm, prompt, onBoardChanged } = context;
+    // One transfer is prepared at a time; its progress afterwards lives only in
+    // the persisted operation (see nextTransferStep), so retries need no session state.
     let preparing = false;
-    const failedCopies = new Map<string, { boardId: string; operationId: string }>();
-    const writable = (id: string) => Boolean(getBoardRecord(id)?.handle) && !isBoardInHistoricalPreview(getState(), id)
-        && !['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(id)?.watchStatus || '');
+    const writable = (id: string) => canTransferProjectFile(projectAccessBlockers(getState(), id));
     function publish(boardId: string, data: BoardData) {
         const firstEvent = getBoardRecord(boardId)?.data.extensions.timeline?.events.length || 0;
         const actor = projectActor(boardId);
@@ -52,23 +52,21 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
         try {
             // Retry the same persisted operation. Never allocate another destination identity.
             if (!await enqueueSave(getBoardRecord(destinationId))) return false;
-            if (operation.mode === 'copy') {
-                if (operation.status === 'complete') return true;
-                return await saveCompletedReceipt(destinationId, operation);
-            }
-            await checkFiles();
-            if (!getBoardRecord(destinationId)?.data.board.tasks.some((task) => task.permanentId === operation.to.permanentId)) throw new TransferError('stale');
-            const currentSource = getBoardRecord(source!.id)!;
-            const currentDestination = getBoardRecord(destinationId)!;
-            if (!writable(source!.id) || !writable(destinationId)) throw new TransferError('unavailable');
-            const nextSource = removeTransferredSource(currentSource.data, operation, currentDestination.data);
-            if (nextSource !== currentSource.data) {
+            if (operation.mode === 'move') await checkFiles();
+            const step = nextTransferStep(operation, getBoardRecord(destinationId)!.data, source ? getBoardRecord(source.id)?.data || null : null);
+            if (step === 'complete') return true;
+            if (step === 'removeSource') {
+                const currentSource = getBoardRecord(source!.id)!;
+                const currentDestination = getBoardRecord(destinationId)!;
+                if (!writable(source!.id) || !writable(destinationId)) throw new TransferError('unavailable');
+                const nextSource = removeTransferredSource(currentSource.data, operation, currentDestination.data);
                 const review = resolveHierarchyAutomations(nextSource, currentSource.data, confirm);
                 if (review) await review;
                 if (getBoardRecord(source!.id)?.data !== currentSource.data) throw new TransferError('stale');
                 publish(source!.id, nextSource);
             }
-            if (!await enqueueSave(getBoardRecord(source!.id))) return false;
+            // A removal published by an earlier attempt may still be unsaved.
+            if (operation.mode === 'move' && !await enqueueSave(getBoardRecord(source!.id))) return false;
             return await saveCompletedReceipt(destinationId, operation);
         } finally { unlock(); onBoardChanged(destinationId); if (source) onBoardChanged(source.id); }
     }
@@ -81,7 +79,6 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             const source = getState().portfolioBoards.find((board) => board.data.extensions.project?.id === operation.from.projectId);
             if (source) await ensureProjectHistoryLoaded(source.id);
             const complete = await finish(destinationId, operation);
-            if (complete) for (const [key, value] of failedCopies) if (value.operationId === operationId) failedCopies.delete(key);
             await alert(t(complete ? 'transfer.complete' : 'transfer.pending'));
             return complete;
         } catch (error) { await alert(t(error instanceof WorkitemError ? `workitems.error.${error.code}` : error instanceof TransferError ? `transfer.error.${error.code}` : 'transfer.pending')); return false; }
@@ -94,9 +91,9 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             await ensureProjectHistoryLoaded(boardId);
             const source = getBoardRecord(boardId);
             const task = source?.data.board.tasks.find((item) => item.id === taskId);
-            if (!source || !task || isBoardInHistoricalPreview(getState(), boardId) || ['conflict', 'watch-error'].includes(getState().projectSaveStateById.get(boardId)?.watchStatus || '') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
-            const failedCopy = failedCopies.get(`${boardId}:${task.permanentId}`);
-            if (mode === 'copy' && failedCopy) return await resumeProjectTransfer(failedCopy.boardId, failedCopy.operationId);
+            // A copy may come from a read-only file, but never from a stale or historical view of it.
+            const blockers = projectAccessBlockers(getState(), boardId).filter((blocker) => mode === 'move' || blocker !== 'noFile');
+            if (!source || !task || !canTransferProjectFile(blockers)) throw new TransferError('unavailable');
             const pending = getState().portfolioBoards.flatMap((board) => (board.data.extensions.projectTransfers?.operations || []).filter((operation) => operation.status === 'pending' && (operation.from.permanentId === task.permanentId || operation.to.permanentId === task.permanentId)).map((operation) => ({ board, operation })))[0];
             if (pending) return await resumeProjectTransfer(pending.board.id, pending.operation.id);
             const children = mode === 'move' ? transferDescendants(source.data, taskId) : [];
@@ -144,14 +141,12 @@ export function createProjectTransferActions(context: BoardMutationContext, chec
             // Watch both files again after the user has reviewed the draft.
             await checkFiles();
             if (getBoardRecord(boardId)?.data !== source.data || getBoardRecord(destinationId)?.data !== destination.data) throw new TransferError('stale');
-            if (!writable(destinationId) || isBoardInHistoricalPreview(getState(), boardId) || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
+            if (!writable(destinationId) || projectAccessBlockers(getState(), boardId).includes('history') || (mode === 'move' && !writable(boardId))) throw new TransferError('unavailable');
             const prepared = prepareProjectTransfer(source, destination, taskId, mode, stateId, mapping, getState().portfolioBoards, undefined, getState().unloadedRelationSources.flatMap((entry) => entry.relations), acceptanceAuthor, childChoices);
             // Validate before publishing: an invalid draft cannot affect either project.
             validateBoardData(prepared.destination);
             publish(destinationId, prepared.destination);
-            if (mode === 'copy') failedCopies.set(`${boardId}:${task.permanentId}`, { boardId: destinationId, operationId: prepared.operation.id });
             const complete = await finish(destinationId, prepared.operation);
-            if (complete) failedCopies.delete(`${boardId}:${task.permanentId}`);
             if (complete && mode === 'move') context.closeDialogFn('taskDetail');
             await alert(t(complete ? 'transfer.complete' : 'transfer.pending'));
             return complete;

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, portfolioProjectChipButtons, selectPortfolioBoard } from '../support/portfolio';
+import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, expectProjectCount, selectPortfolioBoard } from '../support/portfolio';
 import { fixtureTree, mockFolderPicker, readFolderJson } from '../support/folderProjects';
 
 const root = 'test-board/teamos-development';
@@ -17,7 +17,7 @@ test('imports the historical example, explores native views, saves and reopens i
     for (const path of Object.keys(tree.files)) if (path.endsWith('.md') || path === 'summary.json') delete tree.files[path];
     await mockFolderPicker(page, tree);
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await identifyOpenProjects(page);
     await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
     await expect(page.locator('#appMessageModal')).toHaveCount(0);
@@ -87,13 +87,13 @@ test('imports the historical example, explores native views, saves and reopens i
     if (await page.locator('#taskDetailModalCloseBtn').isVisible()) await page.locator('#taskDetailModalCloseBtn').click();
     await openProjectPicker(page);
     await page.locator('.portfolio-chip').filter({ hasText: 'Desenvolvimento da Aplicação' }).getByRole('button', { name: 'Remove project' }).click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(0);
+    await expectProjectCount(page, 0);
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await expect(page.locator('#projectIdentityModal')).toBeVisible();
     await identifyOpenProjects(page);
     await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await page.locator('[data-view-mode="table"]').click();
     await page.keyboard.press('ControlOrMeta+k');
     await page.locator('#commandPaletteInput').fill(candidate.displayId);
@@ -111,7 +111,7 @@ test('the historical example changes Dashboard counts between June and October',
     for (const path of Object.keys(tree.files)) if (path.endsWith('.md') || path === 'summary.json') delete tree.files[path];
     await mockFolderPicker(page, tree);
     await page.locator('#importProjectsBtn').click();
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     await identifyOpenProjects(page);
     await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
     await showTimeline(page);

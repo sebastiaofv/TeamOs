@@ -222,7 +222,6 @@ button.portfolio-calendar-item {
 button.portfolio-calendar-item:hover,
 button.portfolio-calendar-item:focus-visible {
     border-color: var(--accent);
-    outline: none;
 }
 
 .portfolio-calendar-item-range {

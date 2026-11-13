@@ -215,8 +215,9 @@ test('nearby milestones remain separately accessible, empty groups use N/A, and 
     await expect(modal.locator('.milestone-diamond')).toHaveAttribute('data-progress', 'na');
     await expect(modal).toContainText('No tasks assigned');
     await expect(modal.getByRole('button', { name: 'Edit', exact: true })).toBeDisabled();
-    await modal.locator('.modal-header summary').click();
-    await expect(modal.getByRole('button', { name: 'Delete', exact: true })).toBeDisabled();
+    await modal.locator('.modal-header .task-transfer-menu > button').click();
+    await expect(modal.getByRole('menuitem', { name: 'Delete', exact: true })).toBeDisabled();
+    await page.keyboard.press('Escape');
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'Add Phase', exact: true })).toBeDisabled();
 });
@@ -228,8 +229,8 @@ test('parent-only phase moves save and structural confirmations identify archive
     await page.getByRole('button', { name: 'Save Item', exact: true }).click();
     await expect.poll(async () => (await readSavedBoard(page, 'p')).extensions.roadmap.phases.find((phase: { id: string }) => phase.id === 'future').parentId).toBe('delivery');
     await page.getByRole('button', { name: 'Interface', exact: true }).click();
-    await page.locator('#roadmapEntityModal .modal-header summary').click();
-    await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
+    await page.locator('#roadmapEntityModal .modal-header .task-transfer-menu > button').click();
+    await page.locator('#roadmapEntityModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     await expect(page.locator('#appMessageModal')).toContainText('#503 · Archived research');
     await expect(page.locator('#appMessageModal')).toContainText('#504 · UI build');
     await answerAppMessage(page, { button: 'Cancel' });

@@ -234,7 +234,7 @@ describe('transfer restrictions', () => {
         expect(await historical.actions.transferPortfolioTask('Source', 1, 'copy')).toBe(false);
         expect(historical.save).not.toHaveBeenCalled();
         const conflict = actionsSetup();
-        conflict.store.setState({ projectSaveStateById: new Map([['Destination', fromPartial({ watchStatus: 'conflict' })]]) });
+        conflict.store.setState({ projectSaveStateById: new Map([['Destination', fromPartial({ phase: { kind: 'conflict', source: 'merge', merge: null, error: '' } })]]) });
         expect(await conflict.actions.transferPortfolioTask('Source', 1, 'move')).toBe(false);
         expect(conflict.save).not.toHaveBeenCalled();
     });

@@ -24,8 +24,10 @@ import type { Language, Theme, ThemeStyle } from '@/shared/types/ui';
 import type { TableSort } from '@/features/portfolio/table/tableModel';
 import { DEFAULT_PORTFOLIO_FILTERS } from '@/domain/portfolioFilters';
 
-export type EditContext = { boardId: string; taskId: number; returnToDetail?: DetailContext };
-export type CreateContext = { boardId: string; status: TaskStatus; sprintId?: string; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
+/** What the open task editor is doing. Lives exactly as long as the `taskEditor` dialog. */
+export type TaskEditorContext =
+    | { mode: 'edit'; boardId: string; taskId: number; returnToDetail?: DetailContext }
+    | { mode: 'create'; boardId: string; status: TaskStatus; sprintId?: string; returnToDetail?: DetailContext; relatedTo?: { taskId: number; kind: TaskRelationKind } };
 export type DetailContext = { boardId: string; taskId: number; readOnly: boolean; historyEventIndex?: number; returnToDetail?: DetailContext };
 export type RoadmapEntityContext = { boardId: string; kind: RoadmapKind; itemId: string; mode: RoadmapEntityMode; unplannedTaskIds?: number[] };
 export type TimelineSelection = { boardId: string; eventIndex: number | null };
@@ -48,8 +50,9 @@ export type PortfolioSlice = {
     portfolioTableSortByBoardId: Record<string, TableSort>;
     portfolioSortKey: PortfolioSortKey;
     portfolioSortDir: SortDir;
-    portfolioEditContext: EditContext | null;
-    portfolioCreateContext: CreateContext | null;
+    // Each dialog context lives exactly as long as its dialog; see DIALOG_CONTEXT in app/overlays/dialogs.ts.
+    // `returnToDetail` chains form the back stack restored when the editor or a related detail closes.
+    taskEditorContext: TaskEditorContext | null;
     portfolioDetailContext: DetailContext | null;
     roadmapEntityContext: RoadmapEntityContext | null;
     portfolioBulkSelectionByBoardId: Record<string, number[]>;
@@ -114,8 +117,7 @@ export function createPortfolioSlice(): PortfolioSlice {
         activeTableFilterScope: '',
         portfolioSortKey: 'priority',
         portfolioSortDir: 'asc',
-        portfolioEditContext: null,
-        portfolioCreateContext: null,
+        taskEditorContext: null,
         portfolioDetailContext: null,
         roadmapEntityContext: null,
         portfolioBulkSelectionByBoardId: {},

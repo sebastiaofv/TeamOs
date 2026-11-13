@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
-import { getDirectoryProject } from '@/infrastructure/persistence/projectDirectory';
+import { getDirectoryProject, isDirectoryHistoryLoaded } from '@/infrastructure/persistence/projectDirectory';
 import { flushSync } from 'react-dom';
 import type { PortfolioTimelineViewModel } from '@/features/portfolio/types';
 import type { TimelineEvent } from '@/domain/types';
@@ -229,7 +229,7 @@ export function PortfolioTimeline() {
     const storage = getDirectoryProject(board?.handle);
     const [requestedBoard, setRequestedBoard] = useState('');
     const historyLoad = useProjectHistory(boardId, requestedBoard === boardId);
-    const deferred = storage && !storage.loaded;
+    const deferred = storage && !isDirectoryHistoryLoaded(board?.handle);
     const className = boardId
         ? `timeline-panel active${view?.isExpanded ? '' : ' collapsed'}`
         : 'timeline-panel';

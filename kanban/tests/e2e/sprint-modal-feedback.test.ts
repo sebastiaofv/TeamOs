@@ -15,8 +15,8 @@ for (const entry of ['roadmap', 'table'] as const) test(`deleting a Sprint from 
         await page.getByRole('button', { name: 'Edit Delete me', exact: true }).click();
     }
     const remove = async () => {
-        await page.locator('#roadmapEntityModal .modal-header summary').click();
-        await page.locator('#roadmapEntityModal').getByRole('button', { name: 'Delete', exact: true }).click();
+        await page.locator('#roadmapEntityModal .modal-header .task-transfer-menu > button').click();
+        await page.locator('#roadmapEntityModal').getByRole('menuitem', { name: 'Delete', exact: true }).click();
     };
     await remove();
     const modal = page.getByRole('alertdialog');

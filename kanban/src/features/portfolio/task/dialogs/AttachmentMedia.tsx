@@ -14,18 +14,35 @@ export async function attachmentObjectUrl(source: string, mime = ''): Promise<st
     }
     return URL.createObjectURL(new Blob([blob], { type: mime || blob.type || 'application/octet-stream' }));
 }
+export type AttachmentImageView = { status: 'loading' } | { status: 'ready'; url: string } | { status: 'error'; message: string };
+/** The settled result of resolving one stored attachment, tagged with the source it belongs to. */
+export type AttachmentImageLoad = { source: string; view: Exclude<AttachmentImageView, { status: 'loading' }> } | null;
+
+export const attachmentImageSource = (src: string, mime: string): string => parseAttachmentReference(src) ? `${mime}\n${src}` : '';
+
+/** A plain URL is shown as is; a stored attachment is loading until a result for this exact source arrives. */
+export function attachmentImageView(src: string, mime: string, load: AttachmentImageLoad): AttachmentImageView {
+    const source = attachmentImageSource(src, mime);
+    if (!source) return { status: 'ready', url: src };
+    return load?.source === source ? load.view : { status: 'loading' };
+}
+
 export function AttachmentImage({ src = '', mime = '', alt, ...props }: ImgHTMLAttributes<HTMLImageElement> & { mime?: string }) {
-    const [url, setUrl] = useState(''); const [error, setError] = useState('');
+    const [load, setLoad] = useState<AttachmentImageLoad>(null);
+    const source = attachmentImageSource(src, mime);
     useEffect(() => {
-        if (!parseAttachmentReference(src)) { setUrl(src); return; }
+        if (!source) return;
         let active = true; let created = '';
-        setError(''); setUrl('');
         attachmentObjectUrl(src, mime).then((next) => {
-            created = next; if (active) setUrl(next); else URL.revokeObjectURL(next);
-        }).catch((reason: unknown) => { if (active) setError(formatErrorMessage(reason)); });
+            created = next;
+            if (active) setLoad({ source, view: { status: 'ready', url: next } }); else URL.revokeObjectURL(next);
+        }).catch((reason: unknown) => { if (active) setLoad({ source, view: { status: 'error', message: formatErrorMessage(reason) } }); });
         return () => { active = false; if (created) URL.revokeObjectURL(created); };
-    }, [src, mime]);
-    return error ? <span role="alert">{error}</span> : url ? <img {...props} src={url} alt={alt} /> : <span role="status">…</span>;
+    }, [source, src, mime]);
+    const view = attachmentImageView(src, mime, load);
+    if (view.status === 'error') return <span role="alert">{view.message}</span>;
+    if (view.status === 'loading') return <span role="status">…</span>;
+    return <img {...props} src={view.url} alt={alt} />;
 }
 export function AttachmentDownload({ href = '', download, children, ...props }: AnchorHTMLAttributes<HTMLAnchorElement>) {
     const [error, setError] = useState('');

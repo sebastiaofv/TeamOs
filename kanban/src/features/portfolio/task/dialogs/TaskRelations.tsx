@@ -1,6 +1,7 @@
 import { importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { workitemId, workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useReducer, useRef, type KeyboardEvent } from 'react';
+import { initialRelationEditorState, relationEditorReducer, type RelationEditorMode } from './relationEditorState';
 import type { TaskRelationKind } from '@/domain/types';
 import type { TaskDetailViewModel, TaskRelationEntry } from '@/features/portfolio/types';
 import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
@@ -11,13 +12,15 @@ const GROUPS: TaskRelationKind[] = ['blockedBy', 'blocks', 'related'];
 export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
     const { associatePortfolioTasks, removePortfolioTaskRelation, openPortfolioCreateRelatedTask, openPortfolioTaskDetails } = portfolioActions;
-    const [mode, setMode] = useState<'link' | 'create' | 'edit' | null>(null);
-    const [search, setSearch] = useState('');
-    const [otherId, setOtherId] = useState('');
-    const [kind, setKind] = useState<TaskRelationKind | ''>('');
-    const [busy, setBusy] = useState(false);
-    const [pickerOpen, setPickerOpen] = useState(false);
-    const [activeIndex, setActiveIndex] = useState(-1);
+    const [editor, dispatch] = useReducer(relationEditorReducer, initialRelationEditorState);
+    const composing = editor.kind === 'composing' ? editor : null;
+    const mode = composing?.mode ?? null;
+    const search = composing?.search ?? '';
+    const otherId = composing?.otherId ?? '';
+    const kind = composing?.relation ?? '';
+    const pickerOpen = Boolean(composing?.picker.open);
+    const activeIndex = composing?.picker.open ? composing.picker.active : -1;
+    const busy = editor.busy;
     const searchRef = useRef<HTMLInputElement>(null);
     const activeOptionRef = useRef<HTMLButtonElement>(null);
     const query = otherId ? '' : search.trim().toLowerCase().replace(/^#/, '');
@@ -25,15 +28,11 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     const activeTask = pickerOpen ? candidates[activeIndex] : undefined;
     const existing = GROUPS.some((group) => vm.relations[group].some((task) => !task.external && task.id === Number(otherId)));
     const label = (task: TaskRelationEntry) => `${workitemLabel(task)} ${task.title} · ${task.status}`;
-    const start = (nextMode: 'link' | 'create' | 'edit', task?: TaskRelationEntry) => {
-        setMode(nextMode);
-        setSearch(task ? label(task) : '');
-        setOtherId(task ? String(task.id) : '');
-        setPickerOpen(false);
-        setActiveIndex(-1);
-        // Replacement requires an explicit choice, including the direction.
-        setKind('');
+    const start = (nextMode: RelationEditorMode, task?: TaskRelationEntry) => {
+        dispatch({ type: 'start', mode: nextMode, ...(task ? { otherId: String(task.id), search: label(task) } : {}) });
     };
+    const cancel = () => dispatch({ type: 'cancel' });
+    const chooseRelation = (relation: TaskRelationKind | '') => dispatch({ type: 'relationChosen', relation });
     useEffect(() => {
         activeOptionRef.current?.scrollIntoView({ block: 'nearest' });
     }, [activeTask?.id]);
@@ -48,33 +47,28 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
     }, [pickerOpen]);
 
     const selectTask = (task: TaskRelationEntry) => {
-        setOtherId(String(task.id));
-        setSearch(label(task));
-        setKind('');
+        dispatch({ type: 'itemChosen', otherId: String(task.id), search: label(task) });
         searchRef.current?.focus();
-        setPickerOpen(false);
-        setActiveIndex(-1);
     };
     const onPickerKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
             event.preventDefault();
-            setPickerOpen(true);
-            if (!candidates.length) return;
-            const step = event.key === 'ArrowDown' ? 1 : -1;
-            const firstIndex = step === 1 ? 0 : candidates.length - 1;
-            setActiveIndex(activeIndex < 0 ? firstIndex : (activeIndex + step + candidates.length) % candidates.length);
+            dispatch({ type: 'pickerMoved', step: event.key === 'ArrowDown' ? 1 : -1, count: candidates.length });
         } else if (event.key === 'Enter' && pickerOpen) {
             event.preventDefault();
             if (activeTask) selectTask(activeTask);
         } else if (event.key === 'Escape' && pickerOpen) {
             event.preventDefault();
             event.stopPropagation();
-            setPickerOpen(false);
-            setActiveIndex(-1);
+            dispatch({ type: 'pickerClosed' });
         } else if (event.key === 'Tab') {
-            setPickerOpen(false);
-            setActiveIndex(-1);
+            dispatch({ type: 'pickerClosed' });
         }
+    };
+    const request = async (action: () => Promise<boolean>) => {
+        dispatch({ type: 'requestStarted' });
+        let ok = false;
+        try { ok = await action(); } finally { dispatch({ type: 'requestFinished', ok }); }
     };
     const submit = async () => {
         if (!kind || busy) return;
@@ -83,21 +77,11 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
             return;
         }
         if (!otherId) return;
-        setBusy(true);
-        try {
-            if (await associatePortfolioTasks(vm.boardId, vm.taskId, Number(otherId), kind, existing)) setMode(null);
-        } finally {
-            setBusy(false);
-        }
+        await request(() => associatePortfolioTasks(vm.boardId, vm.taskId, Number(otherId), kind, existing));
     };
     const remove = async (taskId: number) => {
         if (busy) return;
-        setBusy(true);
-        try {
-            if (await removePortfolioTaskRelation(vm.boardId, vm.taskId, taskId)) setMode(null);
-        } finally {
-            setBusy(false);
-        }
+        await request(() => removePortfolioTaskRelation(vm.boardId, vm.taskId, taskId));
     };
 
     return (
@@ -135,7 +119,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                                         <form className="relation-form relation-inline-editor" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
                                             <label htmlFor={`relationEditKind-${task.id}`}>{t('relations.kind')}</label>
                                             <select id={`relationEditKind-${task.id}`} value={kind} disabled={busy}
-                                                onChange={(event) => setKind(event.target.value as TaskRelationKind | '')} required>
+                                                onChange={(event) => chooseRelation(event.target.value as TaskRelationKind | '')} required>
                                                 <option value="">{t('common.choose')}</option>
                                                 {GROUPS.filter((choice) => choice !== group).map((choice) =>
                                                     <option value={choice} key={choice}>{t(`relations.choice.${choice}`)}</option>)}
@@ -143,7 +127,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                                             {kind && <p className="relation-preview" role="status">{t(`relations.sentence.${kind}`, { a: workitemLabelFor(vm.sourceBoardData, vm.taskId), b: workitemLabel(task) })}</p>}
                                             <div className="relation-actions">
                                                 <button type="submit" className="btn btn-primary" disabled={busy || !kind}>{t('common.save')}</button>
-                                                <button type="button" className="btn" disabled={busy} onClick={() => setMode(null)}>{t('common.cancel')}</button>
+                                                <button type="button" className="btn" disabled={busy} onClick={cancel}>{t('common.cancel')}</button>
                                             </div>
                                         </form>}
                                 </li>
@@ -162,21 +146,14 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         <label htmlFor="relationSearch">{t('relations.search')}</label>
                         <div className="relation-picker" onBlur={(event) => {
                             if (!event.currentTarget.contains(event.relatedTarget)) {
-                                setPickerOpen(false);
-                                setActiveIndex(-1);
+                                dispatch({ type: 'pickerClosed' });
                             }
                         }}>
                             <input id="relationSearch" ref={searchRef} type="search" role="combobox" autoComplete="off"
                                 aria-expanded={pickerOpen} aria-controls={pickerOpen ? 'relationOptions' : undefined}
                                 aria-autocomplete="list" aria-activedescendant={activeTask ? `relation-option-${activeTask.id}` : undefined}
-                                value={search} onFocus={() => setPickerOpen(true)} onClick={() => setPickerOpen(true)}
-                                onKeyDown={onPickerKeyDown} onChange={(event) => {
-                                    setSearch(event.target.value);
-                                    setOtherId('');
-                                    setKind('');
-                                    setActiveIndex(-1);
-                                    setPickerOpen(true);
-                                }} />
+                                value={search} onFocus={() => dispatch({ type: 'pickerOpened' })} onClick={() => dispatch({ type: 'pickerOpened' })}
+                                onKeyDown={onPickerKeyDown} onChange={(event) => dispatch({ type: 'searchTyped', search: event.target.value })} />
                             {pickerOpen && <div className="relation-picker-dropdown">
                                 <div id="relationOptions" role="listbox" aria-label={t('relations.search')}>
                                     {candidates.map((task, index) => <button type="button" role="option" tabIndex={-1}
@@ -191,7 +168,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         {existing && <p className="relation-help">{t('relations.existing')}</p>}
                     </>}
                     <label htmlFor="relationKind">{t('relations.kind')}</label>
-                    <select id="relationKind" value={kind} onChange={(event) => setKind(event.target.value as TaskRelationKind | '')} required>
+                    <select id="relationKind" value={kind} onChange={(event) => chooseRelation(event.target.value as TaskRelationKind | '')} required>
                         <option value="">{t('common.choose')}</option>
                         {GROUPS.map((group) => <option value={group} key={group}>{t(`relations.choice.${group}`)}</option>)}
                     </select>
@@ -199,7 +176,7 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                         a: workitemLabelFor(vm.sourceBoardData, vm.taskId), b: mode === 'create' ? t('relations.newItem') : workitemLabelFor(vm.sourceBoardData, Number(otherId))
                     })}</p>}
                     <div className="relation-actions">
-                        <button type="button" className="btn" onClick={() => setMode(null)} disabled={busy}>{t('common.cancel')}</button>
+                        <button type="button" className="btn" onClick={cancel} disabled={busy}>{t('common.cancel')}</button>
                         <button type="submit" className="btn btn-primary" disabled={busy || !kind || (mode === 'link' && !otherId)}>
                             {t(mode === 'create' ? 'relations.create' : existing ? 'relations.replace' : 'common.confirm')}
                         </button>

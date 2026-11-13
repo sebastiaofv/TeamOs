@@ -152,6 +152,8 @@ The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Testing
 
+The [issue 93 validation report](docs/issue-93-validation.md) describes the Radix/Zod boundaries, WCAG 2.2 AA pass, before/after accessibility table and local performance measurements.
+
 The single [TeamOS historical example project](test-board/README.md) covers the application in the current folder format, with a walkthrough and explicit fictional-data notices. Import a copy for writable exploration. Legacy regression fixtures live in `tests/fixtures/manual/`.
 
 - `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.

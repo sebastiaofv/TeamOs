@@ -86,20 +86,7 @@ export type PlannerMode = 'day' | 'week';
 export type CalendarView = 'year' | 'month';
 export type CalendarDisplayMode = 'calendar' | 'heatmap';
 
-export type SaveStatus = 'idle' | 'dirty' | 'saving' | 'error';
-export type WatchStatus = 'idle' | 'external' | 'conflict' | 'watch-error';
-export type ProjectSaveState = {
-    reconciliation?: import('@/domain/projectMerge').ProjectMerge;
-    recoveryError?: string;
-    status: SaveStatus;
-    lastErrorMessage: string;
-    lastSavedAt: string;
-    revision: number;
-    savedRevision: number;
-    watchStatus: WatchStatus;
-    watchMessage: string;
-    watchStatusUntil: number;
-};
+export type { ProjectSaveState } from '@/infrastructure/persistence/projectSaveLifecycle';
 
 export type PortfolioCalendarItem = {
     id: string;

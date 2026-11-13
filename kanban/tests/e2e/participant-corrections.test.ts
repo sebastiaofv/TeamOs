@@ -43,7 +43,7 @@ test('duplicate project member names are rejected without merging people or chan
   await portfolioCard(page, 'Correct this item').click(); await page.locator('#taskDetailEditBtn').click();
   const participants = page.locator('#taskAssigneeItems .assignee-editor-row > span');
   await expect(participants).toHaveText(['Ana', 'Rui', 'Marta']);
-  await page.getByRole('button', { name: 'Remove participant', exact: true }).nth(2).click();
+  await page.getByRole('button', { name: /^Remove participant:/ }).nth(2).click();
   await page.locator('#taskModalSaveBtn').click();
   await expect(page.locator('#taskModal')).toBeHidden();
   await waitForBoardWrites(page);
@@ -61,7 +61,7 @@ for (const confirm of [false, true]) {
     await page.keyboard.press('Control+Enter');
     await expect(page.locator('#projectSettingsModal')).toBeHidden();
     await portfolioCard(page, 'Correct this item').click(); await page.locator('#taskDetailEditBtn').click();
-    await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
+    await page.getByRole('button', { name: /^Remove participant:/ }).first().click();
     await expect(appMessage(page)).toContainText('Ana Silva');
     if (confirm) await answerAppMessage(page);
     else await answerAppMessage(page, { button: 'Cancel' });
