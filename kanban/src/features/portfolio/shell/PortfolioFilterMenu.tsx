@@ -1,11 +1,12 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { DateInput } from '@/shared/ui/DateInput';
 // The toolbar's Filters button, its dropdown panel, and the row of active
 // filter tags. Filters apply as soon as they change; the panel closes on an
 // outside click, Escape, or Done, returning focus to the button.
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { OPEN_FILTERS_EVENT } from '@/features/portfolio/palette/openCommandPalette';
 
@@ -43,49 +44,11 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
 }) {
     const { t } = useI18n();
     const [open, setOpen] = useState(false);
-    const rootRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const panelRef = useRef<HTMLDivElement>(null);
     const titleId = useId();
     const scopedId = (id: string) => scope ? `${id}-${scope}` : id;
     const focusSort = useRef(false);
-    useEffect(() => {
-        if (open && focusSort.current) {
-            panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();
-            focusSort.current = false;
-        }
-    }, [open]);
-
-    const close = (returnFocus: boolean) => {
-        setOpen(false);
-        if (returnFocus) buttonRef.current?.focus();
-    };
-
-    // Section controls may sit much lower than the old global toolbar. Keep
-    // their menu inside the viewport, opening upwards when there is more room.
-    useLayoutEffect(() => {
-        if (!open) return;
-        const place = () => {
-            const button = buttonRef.current;
-            const panel = panelRef.current;
-            if (!button || !panel) return;
-            const rect = button.getBoundingClientRect();
-            const width = Math.min(320, window.innerWidth - 24);
-            const below = Math.max(0, window.innerHeight - rect.bottom - 20);
-            const above = Math.max(0, rect.top - 20);
-            const upwards = below < Math.min(panel.scrollHeight, 400) && above > below;
-            const available = upwards ? above : below;
-            const height = Math.min(panel.scrollHeight, available);
-            Object.assign(panel.style, {
-                width: `${width}px`, left: `${Math.max(12, Math.min(rect.left, window.innerWidth - width - 12))}px`,
-                top: `${upwards ? rect.top - height - 8 : rect.bottom + 8}px`, maxHeight: `${available}px`
-            });
-        };
-        place();
-        window.addEventListener('resize', place);
-        window.addEventListener('scroll', place, true);
-        return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
-    }, [open]);
 
     // The command palette's "Open filters" command.
     useEffect(() => {
@@ -102,28 +65,10 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
         return () => window.removeEventListener(OPEN_FILTERS_EVENT, onRequest);
     }, [open]);
 
-    useEffect(() => {
-        if (!open) return undefined;
-        const onPointerDown = (event: PointerEvent) => {
-            if (!rootRef.current?.contains(event.target as Node)) close(false);
-        };
-        const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== 'Escape' || event.defaultPrevented) return;
-            event.preventDefault();
-            close(true);
-        };
-        document.addEventListener('pointerdown', onPointerDown);
-        document.addEventListener('keydown', onKeyDown);
-        return () => {
-            document.removeEventListener('pointerdown', onPointerDown);
-            document.removeEventListener('keydown', onKeyDown);
-        };
-    }, [open]);
-
     return (
-        <div className="portfolio-filters" ref={rootRef} onBlur={dismissOnBlur ? (event) => {
-            if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) close(false);
-        } : undefined}>
+        <Popover.Root open={open} onOpenChange={setOpen}>
+        <div className="portfolio-filters">
+            <Popover.Trigger asChild>
             <button
                 ref={buttonRef}
                 className={`btn${iconOnly ? ' icon-btn' : ''} portfolio-filters-btn${open ? ' open' : ''}${activeCount ? ' has-active' : ''}`}
@@ -134,14 +79,25 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                 aria-expanded={open}
                 aria-controls={scopedId('portfolioFiltersPanel')}
                 aria-label={title || (activeCount ? t('toolbar.filtersActiveLabel', { count: activeCount }) : t('toolbar.filtersButton'))}
-                onClick={() => setOpen((value) => !value)}
             >
                 <FilterIcon />
                 {!iconOnly && <span>{title || t('toolbar.filtersButton')}</span>}
                 {activeCount > 0 && <span className="portfolio-filters-badge" aria-hidden="true">{activeCount}</span>}
             </button>
-            {open && (
-                <div ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id={scopedId('portfolioFiltersPanel')} role="dialog" aria-labelledby={titleId}>
+            </Popover.Trigger>
+                <FloatingPanel align="start" ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id={scopedId('portfolioFiltersPanel')} role="dialog" aria-labelledby={titleId}
+                    onFocusOutside={event => { if (!dismissOnBlur) event.preventDefault(); }}
+                    onCloseAutoFocus={event => {
+                        // A shortcut may move focus before Radix finishes unmounting the panel.
+                        const active = document.activeElement;
+                        if (active && active !== document.body && !panelRef.current?.contains(active)) event.preventDefault();
+                    }}
+                    onOpenAutoFocus={event => {
+                        if (!focusSort.current) return;
+                        event.preventDefault();
+                        panelRef.current?.querySelector<HTMLSelectElement>('#portfolioSortSelect')?.focus();
+                        focusSort.current = false;
+                    }}>
                     <div className="portfolio-filters-panel-head">
                         <h2 id={titleId}>{title || t('toolbar.filtersButton')}</h2>
                         {showClearAll && <button className="btn-text" type="button" disabled={!activeCount} onClick={onClear}>{t('toolbar.clearAllFilters')}</button>}
@@ -178,10 +134,10 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
                                 ? t('toolbar.noFiltersActive')
                                 : t(activeCount === 1 ? 'toolbar.filtersActiveCount' : 'toolbar.filtersActiveCountPlural', { count: activeCount })}
                         </span>
-                        <button className="btn" type="button" onClick={() => close(true)}>{t('toolbar.done')}</button>
+                        <button className="btn" type="button" onClick={() => setOpen(false)}>{t('toolbar.done')}</button>
                     </div>
-                </div>
-            )}
+                </FloatingPanel>
         </div>
+        </Popover.Root>
     );
 }

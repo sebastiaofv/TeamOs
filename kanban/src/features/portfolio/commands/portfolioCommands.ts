@@ -33,37 +33,5 @@ export function createPortfolioMutationActions(options: BoardMutationOptions = {
 
 export type PortfolioMutationActions = ReturnType<typeof createPortfolioMutationActions>;
 
-const activeActions: PortfolioMutationActions = createPortfolioMutationActions();
-
-export function getPortfolioMutationActions(): PortfolioMutationActions {
-    return activeActions;
-}
-
-export const {
-    setSelectedPortfolioCard,
-    setHoveredPortfolioCard,
-    togglePortfolioTaskBulkSelection,
-    endPortfolioCardDrag,
-    dropPortfolioTaskOnColumn,
-    openPortfolioTaskDetails,
-    editPortfolioTask,
-    openPortfolioCreateTaskModal,
-    closeTaskEditor,
-    closeTaskDetail,
-    openPortfolioTaskDetailsForCalendar,
-    deletePortfolioTask,
-    saveTask,
-    toggleTaskDetailChecklistItem,
-    movePortfolioTaskToStatus,
-    performUndo,
-    openRoadmapEntityModal,
-    closeRoadmapEntity,
-    togglePortfolioRoadmapRowExpanded,
-    saveRoadmapEntity,
-    deleteRoadmapEntity,
-    clearPortfolioTimelineSelection,
-    setPortfolioTimelineSelection,
-    movePortfolioTimelineToLatest,
-    setPortfolioTimelineExpanded,
-    restorePortfolioTimelineSelection,
-} = activeActions;
+/** The application's actions. Tests build isolated sets with `createPortfolioMutationActions`. */
+export const portfolioActions: PortfolioMutationActions = createPortfolioMutationActions();

@@ -11,7 +11,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { CommandPaletteProps } from '@/features/portfolio/types';
 import { todayLocalIsoDate } from '@/domain/util';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { closeDialog, openDialog } from '@/app/overlays/dialogs';
 import {
     resetPortfolioFilters,
@@ -64,7 +64,6 @@ const sameFrame = (a: PaletteFrame | undefined, b: PaletteFrame) => Boolean(a)
 
 function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPaletteProps['contextTask']; initialQuery: string }) {
     const { t, language, toggleLanguage } = useI18n();
-    const actions = usePortfolioActions();
     const state = useAppStore(useShallow((s) => ({
         boards: s.portfolioBoards,
         rows: s.portfolioTasks,
@@ -130,7 +129,7 @@ function PaletteBody({ contextTask, initialQuery }: { contextTask: CommandPalett
         },
         showUndo: (message, undo) => actions.showUndo(message, undo),
         t
-    }), [actions, t, toggleLanguage]);
+    }), [t, toggleLanguage]);
 
     const changeQuery = (value: string) => {
         setQuery(value);

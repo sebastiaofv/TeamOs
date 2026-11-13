@@ -5,7 +5,7 @@ import { workitemType } from '@/domain/workitems';
 import { memo, useState, useCallback, useEffect, useRef, type KeyboardEvent, type MouseEvent } from 'react';
 import type { useDraggable } from '@dnd-kit/core';
 import type { PortfolioRow } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import type { AppState } from '@/features/portfolio/state/store';
 import { escapeRegExp } from '@/domain/util';
 import { useI18n } from '@/shared/i18n';
@@ -59,7 +59,6 @@ export const PortfolioTaskCard = memo(function PortfolioTaskCard({ item, state, 
     drag?: CardDrag | null;
     overlay?: boolean;
 }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const task = item.task;
     const canMutate = Boolean(item.canMutate) && !item.historical;
@@ -131,6 +130,11 @@ export const PortfolioTaskCard = memo(function PortfolioTaskCard({ item, state, 
             aria-labelledby={`portfolio-task-title-${item.boardId}-${taskId}`}
             aria-hidden={overlay ? 'true' : undefined}
             onClick={overlay ? undefined : handleCardClick}
+            onKeyDownCapture={overlay ? undefined : event => {
+                // Enter opens details before the drag activator sees it. Leave
+                // Space/drop/cancel events entirely to the keyboard sensor.
+                if (event.key === 'Enter' && !dragging) handleCardKeyDown(event);
+            }}
             onKeyDown={overlay ? undefined : handleCardKeyDown}
             onMouseEnter={overlay ? undefined : () => actions.setHoveredPortfolioCard(item.boardId, taskId)}
             onMouseLeave={overlay ? undefined : () => actions.setHoveredPortfolioCard(null, null)}

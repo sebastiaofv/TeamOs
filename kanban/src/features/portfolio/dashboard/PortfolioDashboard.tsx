@@ -3,7 +3,7 @@ import { dashboardActivityLayout, type DashboardActivityLayout } from '@/domain/
 import { permanentBlockedIds } from '@/domain/permanentRelations';
 import { formatDate } from '@/domain/dates';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { useTableDisclosure } from '@/features/portfolio/table/useTableDisclosure';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
@@ -16,7 +16,7 @@ import { DashboardWidgetMenu } from './DashboardWidgetMenu';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { getSelectedPortfolioTimelineView } from '@/features/portfolio/queries/portfolioTimelineViews';
 import { navigateToRoadmapItem } from '@/features/portfolio/commands/roadmapNavigation';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
 import { useLocalToday } from '@/shared/hooks/useLocalToday';
 
@@ -35,9 +35,8 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
     }, [historyUnavailable, timeline, board]);
     const today = useLocalToday();
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     const [tab, setTab] = useState<'overview' | 'sprintAnalytics'>('overview');
-    const dates = useTableDisclosure(hidden || tab !== 'overview');
+    const [datesOpen, setDatesOpen] = useState(false);
     const [selectedSprint, setSelectedSprint] = useState('');
     const sprintOptions = useMemo(() => {
         if (!data || tab !== 'sprintAnalytics') return [];
@@ -83,18 +82,18 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
         <p className="sr-only dashboard-context" role="status">{timeline.isPreview ? t('dashboard.historical', { at: timeline.selectedEvent!.at }) : tab === 'overview' && end < today ? t('dashboard.asOf', { date: end }) : t('dashboard.current')}</p>
         <div className="dashboard-toolbar">
         <div className="dashboard-tabs" role="group" aria-label={t('dashboard.title')}>
-            {(['overview', 'sprintAnalytics'] as const).map((value) => <button type="button" className={`btn${tab === value ? ' active' : ''}`} key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setDrill(null); }}>{t(`dashboard.${value}`)}</button>)}
+            {(['overview', 'sprintAnalytics'] as const).map((value) => <button type="button" className={`btn${tab === value ? ' active' : ''}`} key={value} aria-pressed={tab === value} onClick={() => { setTab(value); setDatesOpen(false); setDrill(null); }}>{t(`dashboard.${value}`)}</button>)}
         </div>
         <div className="dashboard-controls dashboard-filters">
             {tab === 'overview' ? <><DashboardWidgetMenu layout={activityLayout} onChange={changeActivityLayout} shared={canSaveLayout} hidden={hidden} />
             <div className="dashboard-date-range"><span id="dashboardDatesLabel" className="sr-only">{t('dashboard.dateRange')}</span>
-                <details ref={dates.detailsRef} onKeyDown={dates.onKeyDown} onToggle={dates.onToggle}>
-                    <summary className="btn dashboard-range-field" ref={dates.summaryRef} aria-labelledby="dashboardDatesLabel dashboardDatesValue"><WorkspaceIcon name="planner" /><span id="dashboardDatesValue">{formatDate(from) || t('dashboard.na')} – {formatDate(end)}</span><WorkspaceIcon name="chevronDown" /></summary>
-                    <div className="dashboard-range-panel" data-table-panel>
+                <Popover.Root open={datesOpen && !hidden} onOpenChange={setDatesOpen}>
+                    <Popover.Trigger asChild><button type="button" className="btn dashboard-range-field" aria-labelledby="dashboardDatesLabel dashboardDatesValue"><WorkspaceIcon name="planner" /><span id="dashboardDatesValue">{formatDate(from) || t('dashboard.na')} – {formatDate(end)}</span><WorkspaceIcon name="chevronDown" /></button></Popover.Trigger>
+                    <FloatingPanel className="dashboard-range-panel" data-table-panel aria-labelledby="dashboardDatesLabel">
                         <label>{t('dashboard.startDate')}<DateInput aria-label={t('dashboard.startDate')} value={from} max={end} onChange={(event) => { setFrom(event.target.value); setDrill(current => current && 'kind' in current ? current : null); }} /></label>
                         <label>{t('dashboard.endDate')}<DateInput aria-label={t('dashboard.endDate')} value={end} min={from} max={referenceDate} onChange={(event) => { setTo(event.target.value); setDrill(current => current && 'kind' in current ? current : null); }} /></label>
-                    </div>
-                </details>
+                    </FloatingPanel>
+                </Popover.Root>
             </div></> : <label className="dashboard-sprint-picker"><span className="sr-only">{t('roadmap.sprint')}</span><WorkspaceIcon name="runner" /><select aria-label={t('roadmap.sprint')} value={selectedSprintId} onChange={event => setSelectedSprint(event.target.value)}><option value="">{t('dashboard.allSprints')}</option>{sprintOptions.map(sprint => <option key={sprint.id} value={sprint.id}>{sprint.title}</option>)}</select></label>}
         </div></div>
         {tab === 'sprintAnalytics' ? <SprintAnalytics data={data} selected={selectedSprintId} /> : invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>

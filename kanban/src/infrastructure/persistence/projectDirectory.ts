@@ -18,6 +18,26 @@ import { ensureBoardTimelineBaseline } from '@/domain/timeline';
 const HISTORY_ROOT_KEYS = ['schemaVersion', 'projectId', 'baselineEventId', 'events', 'recordHistory', 'transactions'];
 type RawEvent = Record<string, unknown> & { id: string };
 type HistoryStage = { kind: 'stage'; id: string; projectHash: string; events: RawEvent[]; archives: Archives };
+/** History as read from history.json: the timeline and the record history of control records and transfers. */
+export type PersistedDirectoryHistory = { timeline: TimelineExtension; archives: Archives };
+/**
+ * Whether this session holds the whole history. Opening reads only project.json,
+ * so history starts deferred: saves keep their own timeline in `buffer` until a
+ * history consumer loads the file, and `markDirectoryHistoryLoaded` folds that
+ * buffer into what was read in one step.
+ */
+export type DirectoryHistory =
+    | { kind: 'deferred'; buffer?: TimelineExtension; bufferArchives?: Archives }
+    | ({ kind: 'loaded' } & PersistedDirectoryHistory);
+/**
+ * The journal transaction of the last project.json write. A stage is appended
+ * before project.json and its commit marker after, so a write can be durable
+ * while its marker is still missing (`unconfirmed`), for example after reopening.
+ */
+export type DirectoryHistoryCommit =
+    | { kind: 'none' }
+    | { kind: 'unconfirmed'; id: string }
+    | { kind: 'committed'; id: string };
 type DirectoryProject = {
     directory: ProjectDirectoryHandle;
     history: BoardFileHandle;
@@ -26,19 +46,16 @@ type DirectoryProject = {
     legacyFileName?: string;
     projectHash?: string;
     baselineEventId: string;
-    historyTransactionId?: string;
     checkpointBytes: number;
     patchBytes: number;
-    commitKnown: boolean;
-    loaded: boolean;
-    archives?: Archives;
-    bufferArchives?: Archives;
+    commit: DirectoryHistoryCommit;
+    timelineState: DirectoryHistory;
     sessionArchiveIds: Set<string>;
-    timeline?: TimelineExtension;
-    buffer?: TimelineExtension;
     // IDs imported/created in this session, including events already persisted.
     sessionEventIds: Set<string>;
 };
+const unconfirmedCommit = (id: string | undefined): DirectoryHistoryCommit => id ? { kind: 'unconfirmed', id } : { kind: 'none' };
+const commitId = (commit: DirectoryHistoryCommit): string | undefined => commit.kind === 'none' ? undefined : commit.id;
 const projects = new WeakMap<BoardFileHandle, DirectoryProject>();
 const attachmentDirectories = new Map<string, ProjectDirectoryHandle>();
 const emptyTimeline = (): TimelineExtension => ({ version: 1, baselineEventId: '', events: [] });
@@ -50,6 +67,9 @@ async function writeText(handle: BoardFileHandle, text: string) {
 }
 export function getDirectoryProject(handle: BoardFileHandle | null | undefined) {
     return handle ? projects.get(handle) : undefined;
+}
+export function isDirectoryHistoryLoaded(handle: BoardFileHandle | null | undefined): boolean {
+    return getDirectoryProject(handle)?.timelineState.kind === 'loaded';
 }
 
 /** Validate current state and the small history envelope; events and binaries remain lazy. */
@@ -84,7 +104,7 @@ export async function openProjectDirectory(directory: ProjectDirectoryHandle): P
         assertNoStoredHistory(data);
         const projectId = data.extensions.project?.id;
         if (!projectId) throw new Error('project.json has no valid project identity.');
-        const storage: DirectoryProject = { directory, history, attachments, projectId, ...(metadata.legacyFileName ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: metadata.baselineEventId, historyTransactionId: metadata.historyTransactionId, checkpointBytes: metadata.checkpointBytes || 0, patchBytes: metadata.patchBytes || 0, commitKnown: false, loaded: false, sessionArchiveIds: new Set(), sessionEventIds: new Set() };
+        const storage: DirectoryProject = { directory, history, attachments, projectId, ...(metadata.legacyFileName ? { legacyFileName: metadata.legacyFileName } : {}), projectHash: hashTextContent(projectText), baselineEventId: metadata.baselineEventId, commit: unconfirmedCommit(metadata.historyTransactionId), checkpointBytes: metadata.checkpointBytes || 0, patchBytes: metadata.patchBytes || 0, timelineState: { kind: 'deferred' }, sessionArchiveIds: new Set(), sessionEventIds: new Set() };
         await historyCheck(() => checkHistoryIdentity(history, projectId, metadata.baselineEventId));
         projects.set(handle, storage);
         return handle;
@@ -155,7 +175,7 @@ function mergeJournal(baseEvents: RawEvent[], baseArchives: Archives, transactio
     return { events: [...known.values()], archives };
 }
 
-async function readHistory(handle: BoardFileHandle, storage: DirectoryProject, historyText?: string): Promise<TimelineExtension> {
+async function readHistory(handle: BoardFileHandle, storage: DirectoryProject, historyText?: string): Promise<PersistedDirectoryHistory> {
     try {
         const raw: unknown = JSON.parse(historyText ?? await readText(storage.history));
         if (!isHistoryFileV1(raw)) throw new Error('Unsupported history format.');
@@ -168,8 +188,7 @@ async function readHistory(handle: BoardFileHandle, storage: DirectoryProject, h
         const timeline = normalizeTimelineExtension({ version: 1, baselineEventId: merged.events[0]?.id || '', events: merged.events.map((event) => eventFromFile(attachmentsFromHashes(event, storage.projectId))) });
         if (!timeline || (timeline.events.length && timeline.events[0].kind !== 'board.baseline')) throw new Error('Invalid timeline.');
         if (storage.baselineEventId && timeline.baselineEventId !== storage.baselineEventId) throw new Error('History baseline does not match project.json.');
-        storage.archives = attachmentsFromHashes(merged.archives, storage.projectId);
-        return timeline;
+        return { timeline, archives: attachmentsFromHashes(merged.archives, storage.projectId) };
     } catch (error) { throw new Error(`${storage.directory.name}/history.json: ${formatErrorMessage(error)}`); }
 }
 
@@ -313,15 +332,16 @@ async function appendHistory(storage: DirectoryProject, entry: Record<string, un
     await rememberHistoryAppend(storage.history);
 }
 async function finishHistoryCommit(storage: DirectoryProject): Promise<void> {
-    if (!storage.historyTransactionId || storage.commitKnown) return;
+    if (storage.commit.kind !== 'unconfirmed') return;
+    const { id } = storage.commit;
     // A successful project write whose final commit marker failed is still
     // identifiable after reopening, using only the small end of history.json.
     const file = await storage.history.getFile();
     if (!file.slice) throw new Error('This browser cannot read the history journal.');
     const tail = await file.slice(Math.max(0, (file.size || 0) - 256)).text();
-    const expected = JSON.stringify({ kind: 'commit', id: storage.historyTransactionId });
-    if (!tail.endsWith(`${expected}\n]}\n`)) await appendHistory(storage, { kind: 'commit', id: storage.historyTransactionId });
-    storage.commitKnown = true;
+    const expected = JSON.stringify({ kind: 'commit', id });
+    if (!tail.endsWith(`${expected}\n]}\n`)) await appendHistory(storage, { kind: 'commit', id });
+    storage.commit = { kind: 'committed', id };
 }
 
 /** Journal stages kept after folding: the last one, emptied, so its commit marker still has a transaction. */
@@ -339,40 +359,62 @@ async function readFoldedHistory(handle: BoardFileHandle, storage: DirectoryProj
         // A malformed file is left as it is; readHistory reports it with the file name.
         let raw: unknown;
         try { raw = JSON.parse(historyText); } catch { return historyText; }
-        if (!isHistoryFileV1(raw) || !Array.isArray(raw.transactions) || !storage.historyTransactionId) return historyText;
+        const transactionId = commitId(storage.commit);
+        if (!isHistoryFileV1(raw) || !Array.isArray(raw.transactions) || !transactionId) return historyText;
         const stages = raw.transactions.filter((entry) => isRecord(entry) && entry.kind === 'stage');
         const last = stages.at(-1) as { id?: unknown } | undefined;
-        if (stages.length < 2 || last?.id !== storage.historyTransactionId) return historyText;
+        if (stages.length < 2 || last?.id !== transactionId) return historyText;
         const projectText = await readText(handle);
         if (hashTextContent(projectText) !== storage.projectHash) return historyText;
         const merged = mergeJournal(raw.events as RawEvent[], archivesFromRecordHistory(raw.recordHistory), raw.transactions, storage.projectHash, (entry) => archivesFromRecordHistory(entry.recordHistory));
-        const text = serializeHistoryFile(storage.projectId, storage.baselineEventId, merged.events, merged.archives, foldedJournal(storage.historyTransactionId));
+        const text = serializeHistoryFile(storage.projectId, storage.baselineEventId, merged.events, merged.archives, foldedJournal(transactionId));
         await writeText(storage.history, text);
         if (await readText(storage.history) !== text) throw new Error(`${storage.directory.name}/history.json: folding could not be verified.`);
-        storage.commitKnown = true;
+        storage.commit = { kind: 'committed', id: transactionId };
         return text;
     });
     return folded ?? readText(storage.history);
 }
 
-/** Only history consumers call this. New local events merge without replacing older events. */
-export async function loadDirectoryHistory(handle: BoardFileHandle): Promise<TimelineExtension | undefined> {
+/** Read the whole history without changing whether this session holds it. */
+export async function readDirectoryHistory(handle: BoardFileHandle): Promise<PersistedDirectoryHistory | undefined> {
     const storage = projects.get(handle);
     if (!storage) return undefined;
     const historyText = await readFoldedHistory(handle, storage);
-    const timeline = await readHistory(handle, storage, historyText);
-    storage.timeline = timeline;
-    for (const event of timeline.events) storage.sessionEventIds.add(event.id);
-    for (const [key, archive] of Object.entries(storage.archives || {})) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
-    // The caller marks history loaded only after validating the combined board.
-    return rememberNormalizedTimeline(cloneSerializable(timeline));
+    const persisted = await readHistory(handle, storage, historyText);
+    for (const event of persisted.timeline.events) storage.sessionEventIds.add(event.id);
+    for (const [key, archive] of Object.entries(persisted.archives)) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
+    return { timeline: rememberNormalizedTimeline(cloneSerializable(persisted.timeline)), archives: persisted.archives };
+}
+/** Read the history; a session that already holds it replaces it with what is on disk. */
+export async function loadDirectoryHistory(handle: BoardFileHandle): Promise<TimelineExtension | undefined> {
+    const persisted = await readDirectoryHistory(handle);
+    const storage = projects.get(handle);
+    if (!persisted || !storage) return undefined;
+    if (storage.timelineState.kind === 'loaded') storage.timelineState = { kind: 'loaded', timeline: persisted.timeline, archives: persisted.archives };
+    return rememberNormalizedTimeline(cloneSerializable(persisted.timeline));
+}
+/**
+ * Hold the whole history from now on. Saves that landed while it was being
+ * read are only in the deferred buffer, so they are folded in here, in the
+ * same synchronous step that switches the mode.
+ */
+export function markDirectoryHistoryLoaded(handle: BoardFileHandle, persisted: PersistedDirectoryHistory): PersistedDirectoryHistory | undefined {
+    const storage = projects.get(handle);
+    if (!storage) return undefined;
+    const state = storage.timelineState;
+    if (state.kind === 'loaded') return { timeline: state.timeline, archives: state.archives };
+    const loaded = { kind: 'loaded' as const, timeline: mergeDirectoryTimeline(persisted.timeline, state.buffer, false), archives: mergeArchives(persisted.archives, state.bufferArchives || {}) };
+    storage.timelineState = loaded;
+    return { timeline: loaded.timeline, archives: loaded.archives };
 }
 export function attachDirectoryHistory(handle: BoardFileHandle, data: BoardData): BoardData {
     const storage = projects.get(handle);
     if (storage) {
-        const timeline = storage.loaded ? storage.timeline : storage.buffer;
+        const state = storage.timelineState;
+        const timeline = state.kind === 'loaded' ? state.timeline : state.buffer;
         if (timeline) data.extensions.timeline = rememberNormalizedTimeline({ ...timeline, events: timeline.events.slice() });
-        attachHistoryArchives(data, storage.loaded ? storage.archives : storage.bufferArchives);
+        attachHistoryArchives(data, state.kind === 'loaded' ? state.archives : state.bufferArchives);
     }
     return data;
 }
@@ -469,7 +511,7 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
     }
     const newEvents = (local?.events || []).filter((event) => !storage.sessionEventIds.has(event.id) && !(event.kind === 'board.baseline' && storage.baselineEventId));
     const changed = newEvents.length > 0 || Object.keys(deltaArchives).length > 0;
-    const transactionId = changed ? crypto.randomUUID() : storage.historyTransactionId;
+    const transactionId = changed ? crypto.randomUUID() : commitId(storage.commit);
     const baselineEventId = storage.baselineEventId || local?.baselineEventId || '';
     delete data.extensions.timeline;
     // One read serves both the conflict check and the patch baseline.
@@ -487,27 +529,29 @@ export async function writeDirectoryProject(handle: BoardFileHandle, input: Boar
     const checkProject = async () => {
         if (expectedProjectHash && hashTextContent(await (await handle.getFile()).text()) !== expectedProjectHash) throw changedOnDisk();
     };
-    if (changed || storage.historyTransactionId) await historyCheck(() => verifyHistoryStructure(storage.history, storage.projectId, storage.baselineEventId));
+    if (changed || storage.commit.kind !== 'none') await historyCheck(() => verifyHistoryStructure(storage.history, storage.projectId, storage.baselineEventId));
     await finishHistoryCommit(storage);
     if (changed) await appendHistory(storage, { kind: 'stage', id: transactionId!, projectHash: hashTextContent(text), events: eventsOnDisk, recordHistory: attachmentsToHashes(archivesToRecordHistory(deltaArchives)) });
     await checkProject();
     const stream = await handle.createWritable(); await stream.write(text); await stream.close();
     storage.projectHash = hashTextContent(text);
-    storage.historyTransactionId = transactionId;
-    storage.commitKnown = !changed;
+    // Unchanged writes keep the transaction finishHistoryCommit just confirmed.
+    if (changed) storage.commit = { kind: 'unconfirmed', id: transactionId! };
     // project.json is durable from here on: these events must never be staged again, even if the commit marker fails.
     storage.baselineEventId = baselineEventId;
     storage.checkpointBytes = writer.checkpointBytes; storage.patchBytes = writer.patchBytes;
     for (const event of local?.events || []) storage.sessionEventIds.add(event.id);
     for (const [key, entry] of Object.entries(incomingArchives)) for (const item of entry.history) storage.sessionArchiveIds.add(`${key}:${item.id}`);
-    storage.buffer = local; storage.bufferArchives = incomingArchives;
-    if (storage.loaded) {
-        storage.timeline = mergeDirectoryTimeline(storage.timeline || emptyTimeline(), local, true);
-        storage.archives = mergeArchives(storage.archives || {}, incomingArchives);
-    }
+    const before = storage.timelineState;
+    const after: DirectoryHistory = before.kind === 'loaded'
+        ? { kind: 'loaded', timeline: mergeDirectoryTimeline(before.timeline, local, true), archives: mergeArchives(before.archives, incomingArchives) }
+        : { kind: 'deferred', buffer: local, bufferArchives: incomingArchives };
+    storage.timelineState = after;
     if (changed) await finishHistoryCommit(storage);
-    attachHistoryArchives(data, storage.loaded ? storage.archives : incomingArchives, (storage.loaded ? storage.timeline : local)?.events);
-    if (storage.loaded && storage.timeline) data.extensions.timeline = rememberNormalizedTimeline({ ...storage.timeline, events: storage.timeline.events.slice() });
+    // Read the mode again: history may have finished loading during the commit marker.
+    const settled = storage.timelineState;
+    attachHistoryArchives(data, settled.kind === 'loaded' ? settled.archives : incomingArchives, (settled.kind === 'loaded' ? settled.timeline : local)?.events);
+    if (settled.kind === 'loaded') data.extensions.timeline = rememberNormalizedTimeline({ ...settled.timeline, events: settled.timeline.events.slice() });
     else if (local) data.extensions.timeline = local;
     return { text, data };
 }
@@ -526,7 +570,7 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     ensureBoardTimelineBaseline(data);
     retainControlContext(data, input, input.extensions.timeline?.events);
     const projectId = data.extensions.project!.id;
-    const storage: DirectoryProject = { directory, history, attachments, projectId, baselineEventId: '', checkpointBytes: 0, patchBytes: 0, commitKnown: true, loaded: true, timeline: emptyTimeline(), sessionArchiveIds: new Set(), sessionEventIds: new Set() };
+    const storage: DirectoryProject = { directory, history, attachments, projectId, baselineEventId: '', checkpointBytes: 0, patchBytes: 0, commit: { kind: 'none' }, timelineState: { kind: 'loaded', timeline: emptyTimeline(), archives: {} }, sessionArchiveIds: new Set(), sessionEventIds: new Set() };
     if (data.extensions.projectStorage?.legacyFileName) storage.legacyFileName = data.extensions.projectStorage.legacyFileName;
     projects.set(handle, storage);
     if (!attachmentDirectories.has(projectId)) attachmentDirectories.set(projectId, attachments);
@@ -534,7 +578,7 @@ async function createProjectDirectoryUnlocked(parent: ProjectDirectoryHandle, na
     const separated = await externalize(data, storage) as BoardData;
     const archives = detachHistoryArchives(separated);
     const timeline = separated.extensions.timeline || emptyTimeline();
-    storage.timeline = timeline; storage.archives = archives; storage.baselineEventId = timeline.baselineEventId;
+    storage.timelineState = { kind: 'loaded', timeline, archives }; storage.baselineEventId = timeline.baselineEventId;
     for (const event of timeline.events) storage.sessionEventIds.add(event.id);
     for (const [key, archive] of Object.entries(archives)) for (const entry of archive.history) storage.sessionArchiveIds.add(`${key}:${entry.id}`);
     delete separated.extensions.timeline;
@@ -603,11 +647,11 @@ export async function refreshDirectoryHistory(handle: BoardFileHandle, projectHa
     const storage = projects.get(handle);
     if (!storage) return;
     if (storage.projectHash !== projectHash) {
-        if (storage.loaded) await loadDirectoryHistory(handle);
-        storage.historyTransactionId = data.extensions.projectStorage?.historyTransactionId;
+        if (storage.timelineState.kind === 'loaded') await loadDirectoryHistory(handle);
+        // Another writer's transaction: its commit marker has not been seen yet.
+        storage.commit = unconfirmedCommit(data.extensions.projectStorage?.historyTransactionId);
         storage.checkpointBytes = data.extensions.projectStorage?.checkpointBytes || 0;
         storage.patchBytes = data.extensions.projectStorage?.patchBytes || 0;
-        storage.commitKnown = false;
     }
     storage.projectHash = projectHash;
 }

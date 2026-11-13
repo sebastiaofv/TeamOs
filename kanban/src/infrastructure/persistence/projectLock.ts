@@ -18,3 +18,9 @@ export async function tryWithProjectIdentityLock<T>(id: string, operation: () =>
     if (pending.has(id)) return undefined;
     return withProjectIdentityLock(id, operation);
 }
+
+/** Held for a whole cross-project transfer of one workitem, in every tab of this
+ * browser. Separate from the project lock, which the transfer's saves take. */
+export function tryWithTransferLock<T>(permanentId: string, operation: () => Promise<T>): Promise<T | undefined> {
+    return tryWithProjectIdentityLock(`transfer:${permanentId}`, operation);
+}

@@ -36,14 +36,17 @@ export function PlannerBlock({ block, selected, dragging, handlers }: {
         selected && 'selected', dragging && 'dragging', block.done && 'done',
         block.archived && 'archived', !block.canEdit && 'read-only'].filter(Boolean).join(' ');
 
-    return (
+    const label = compact ? `${block.title} ${block.start}–${block.end}`
+        : `${block.title} ${block.start}–${block.end} · ${formatPlannerDuration(block.endMinutes - block.startMinutes)} · ${block.boardTitle}`;
+    return <div className={`planner-block-position${dragging ? ' dragging' : ''}`} style={style}>
         <div
             className={className}
-            style={style}
+            style={{ inset: 0 }}
             role="button"
             tabIndex={0}
             data-block-id={block.id}
-            aria-label={t('planner.blockLabel', { title: block.title, start: block.start, end: block.end, project: block.boardTitle })}
+            aria-label={label}
+            aria-description={t('planner.blockLabel', { title: block.title, start: block.start, end: block.end, project: block.boardTitle })}
             onClick={() => handlers.onSelect(block)}
             onDoubleClick={() => handlers.onOpen(block)}
             onKeyDown={(event) => handlers.onKeyDown(event, block)}
@@ -51,7 +54,7 @@ export function PlannerBlock({ block, selected, dragging, handlers }: {
         >
             {block.canEdit && <span className="planner-block-handle top" aria-hidden="true" onPointerDown={(event) => handlers.onGestureStart(event, block, 'resize-start')} />}
             <span className="planner-block-title">
-                {block.title}
+                {block.title}{' '}
                 {compact && <span className="planner-block-meta"> {block.start}</span>}
             </span>
             {!compact && (
@@ -59,17 +62,16 @@ export function PlannerBlock({ block, selected, dragging, handlers }: {
                     {block.start}–{block.end} · {formatPlannerDuration(block.endMinutes - block.startMinutes)} · {block.boardTitle}
                 </span>
             )}
-            {block.canEdit && (
-                <button
-                    className="planner-block-remove"
-                    type="button"
-                    tabIndex={-1}
-                    aria-label={t('planner.removeBlock', { title: block.title })}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => { event.stopPropagation(); handlers.onRemove(block); }}
-                ><WorkspaceIcon name="close" /></button>
-            )}
             {block.canEdit && <span className="planner-block-handle bottom" aria-hidden="true" onPointerDown={(event) => handlers.onGestureStart(event, block, 'resize-end')} />}
         </div>
-    );
+        {block.canEdit && (
+            <button
+                className="planner-block-remove"
+                type="button"
+                aria-label={t('planner.removeBlock', { title: block.title })}
+                onPointerDown={(event) => event.stopPropagation()}
+                onClick={(event) => { event.stopPropagation(); handlers.onRemove(block); }}
+            ><WorkspaceIcon name="close" /></button>
+        )}
+    </div>;
 }

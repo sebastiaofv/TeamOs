@@ -1,11 +1,12 @@
-import { useLayoutEffect, useRef } from 'react';
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
-import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import { useLayoutEffect, useRef, useState } from 'react';
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { DASHBOARD_WIDGETS, dashboardActivityLayout, type DashboardActivityLayout, type DashboardWidget } from '@/domain/dashboardActivityLayout';
 import { useI18n } from '@/shared/i18n';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { useTableDisclosure } from '../table/useTableDisclosure';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
 
 function VisibleWidget({ column, title, index, count, move, hide }: {
     column: string; title: string; index: number; count: number; move: (step: number) => void; hide: () => void;
@@ -29,19 +30,21 @@ export function DashboardWidgetMenu({ layout, onChange, shared, hidden }: {
     const label = (key: DashboardWidget) => t(`dashboard.section.${key}`);
     const change = (next: DashboardWidget[]) => onChange({ version: 2, order: [...next, ...layout.order.filter(key => !next.includes(key))], hidden: DASHBOARD_WIDGETS.filter(key => !next.includes(key)) });
     const { t } = useI18n();
-    const disclosure = useTableDisclosure(hidden);
+    const [open, setOpen] = useState(false);
+    const panel = useRef<HTMLDivElement>(null);
     const pendingFocus = useRef<DashboardWidget | null>(null);
     useLayoutEffect(() => {
         if (!pendingFocus.current) return;
-        const row = [...(disclosure.detailsRef.current?.querySelectorAll<HTMLElement>('[data-column-choice]') || [])].find(element => element.dataset.columnChoice === pendingFocus.current);
+        const row = [...(panel.current?.querySelectorAll<HTMLElement>('[data-column-choice]') || [])].find(element => element.dataset.columnChoice === pendingFocus.current);
         row?.querySelector<HTMLButtonElement>('button')?.focus({ preventScroll: true });
         pendingFocus.current = null;
-    }, [columns, disclosure.detailsRef]);
+    }, [columns]);
     function changeVisibility(column: DashboardWidget, next: DashboardWidget[]) {
         pendingFocus.current = column;
         change(next);
     }
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+    const reducedMotion = useReducedMotion();
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates, scrollBehavior: reducedMotion ? 'auto' : 'smooth' }));
     function move(column: DashboardWidget, step: number) {
         const from = columns.indexOf(column), to = from + step;
         if (from >= 0 && to >= 0 && to < columns.length) change(arrayMove(columns, from, to));
@@ -51,9 +54,9 @@ export function DashboardWidgetMenu({ layout, onChange, shared, hidden }: {
         const from = columns.indexOf(active.id as DashboardWidget), to = columns.indexOf(over.id as DashboardWidget);
         if (from >= 0 && to >= 0) change(arrayMove(columns, from, to));
     }
-    return <details className="dashboard-visible-sections table-columns" ref={disclosure.detailsRef} onKeyDown={disclosure.onKeyDown} onToggle={disclosure.onToggle}>
-        <summary className="btn icon-btn" ref={disclosure.summaryRef} aria-label={t('dashboard.visibleSections')} title={t('dashboard.visibleSections')}><WorkspaceIcon name="settings" /></summary>
-        <div className="table-column-panel dashboard-widget-panel" data-table-panel>
+    return <Popover.Root open={open && !hidden} onOpenChange={setOpen}><div className="dashboard-visible-sections table-columns">
+        <Popover.Trigger asChild><button type="button" className="btn icon-btn" aria-label={t('dashboard.visibleSections')} title={t('dashboard.visibleSections')}><WorkspaceIcon name="settings" /></button></Popover.Trigger>
+        <FloatingPanel ref={panel} className="table-column-panel dashboard-widget-panel" data-table-panel aria-label={t('dashboard.visibleSections')}>
             <div className="table-column-options">
                 <section aria-label={t('table.visibleColumns')}><h3>{t('table.visibleColumns')}</h3><div className="table-column-list">
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={drop}>
@@ -72,6 +75,6 @@ export function DashboardWidgetMenu({ layout, onChange, shared, hidden }: {
             <button className="btn" type="button" onClick={() => onChange(dashboardActivityLayout(null))}>{t('dashboard.resetActivity')}</button>
             {shared && <p className="dashboard-note">{t('dashboard.activityShared')}</p>}
             <div className="dashboard-visibility-actions"><button className="btn" type="button" onClick={() => change([...layout.order])}>{t('dashboard.selectAll')}</button><button className="btn" type="button" onClick={() => change([])}>{t('dashboard.clearAll')}</button></div>
-        </div>
-    </details>;
+        </FloatingPanel>
+    </div></Popover.Root>;
 }

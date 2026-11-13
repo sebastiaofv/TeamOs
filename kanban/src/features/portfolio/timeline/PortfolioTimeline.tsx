@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
-import { getDirectoryProject } from '@/infrastructure/persistence/projectDirectory';
+import { getDirectoryProject, isDirectoryHistoryLoaded } from '@/infrastructure/persistence/projectDirectory';
 import { flushSync } from 'react-dom';
 import type { PortfolioTimelineViewModel } from '@/features/portfolio/types';
 import type { TimelineEvent } from '@/domain/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import type { PortfolioMutationActions } from '@/features/portfolio/commands/portfolioCommands';
 import { formatDateTime } from '@/domain/calendar';
 import { formatTimelineValue } from '@/domain/timeline';
@@ -223,14 +223,13 @@ function PortfolioTimelineView({ view, actions }: {
 }
 
 export function PortfolioTimeline() {
-    const actions = usePortfolioActions();
     const view = useAppStore((state) => state.portfolioTimelineView);
     const boardId = view?.boardId || '';
     const board = useAppStore((state) => state.portfolioBoards.find((entry) => entry.id === boardId));
     const storage = getDirectoryProject(board?.handle);
     const [requestedBoard, setRequestedBoard] = useState('');
     const historyLoad = useProjectHistory(boardId, requestedBoard === boardId);
-    const deferred = storage && !storage.loaded;
+    const deferred = storage && !isDirectoryHistoryLoaded(board?.handle);
     const className = boardId
         ? `timeline-panel active${view?.isExpanded ? '' : ' collapsed'}`
         : 'timeline-panel';

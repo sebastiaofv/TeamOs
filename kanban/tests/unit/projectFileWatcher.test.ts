@@ -6,6 +6,7 @@ import { cloneSerializable } from '../../src/domain/serializable';
 import { checkProjectFilesNow, primeProjectFileBaselines } from '../../src/infrastructure/persistence/projectFileWatcher';
 import { createProjectSaveState, enqueueProjectSave, forgetProjectFileState, getProjectFileState, getProjectSaveState, markProjectDirty, resolveProjectConflicts } from '../../src/infrastructure/persistence/projectFiles';
 import { useAppStore } from '../../src/features/portfolio/state/store';
+import { currentProjectMerge } from '../../src/infrastructure/persistence/projectSaveLifecycle';
 
 async function setup() {
   const data = createEmptyProjectData('Initial');
@@ -56,7 +57,7 @@ describe('conditional project persistence', () => {
     expect(s.read().extensions.project!.description).toBe('External');
     expect(s.read().meta.revision).toBe(2);
     expect(s.writes).toHaveLength(1);
-    expect(getProjectSaveState('p1')?.reconciliation?.changes.length).toBeGreaterThan(0);
+    expect(currentProjectMerge(getProjectSaveState('p1'))?.changes.length).toBeGreaterThan(0);
   });
 
   it('keeps conflicts paused across dismissal, more edits and watcher checks', async () => {
@@ -64,13 +65,13 @@ describe('conditional project persistence', () => {
     s.external((data) => { data.board.settings.title = 'External'; });
     s.edit((data) => { data.board.settings.title = 'Local'; });
     expect(await enqueueProjectSave(s.record)).toBe(false);
-    expect(getProjectSaveState('p1')?.watchStatus).toBe('conflict');
+    expect(getProjectSaveState('p1')?.phase.kind).toBe('conflict');
     s.edit((data) => { data.extensions.project!.description = 'More work'; });
     expect(await enqueueProjectSave(s.record)).toBe(false);
     await checkProjectFilesNow();
     expect(s.writes).toEqual([]);
-    expect(getProjectSaveState('p1')?.watchStatus).toBe('conflict');
-    const conflicts = getProjectSaveState('p1')!.reconciliation!.conflicts;
+    expect(getProjectSaveState('p1')?.phase.kind).toBe('conflict');
+    const conflicts = currentProjectMerge(getProjectSaveState('p1'))!.conflicts;
     expect(conflicts[0]).toMatchObject({ base: 'Initial', local: 'Local', external: 'External' });
   });
 
@@ -79,7 +80,7 @@ describe('conditional project persistence', () => {
     s.external((data) => { data.board.settings.title = 'External'; data.extensions.project!.description = 'External description'; });
     s.edit((data) => { data.board.settings.title = 'Local'; data.extensions.project!.productName = 'Local product'; });
     await enqueueProjectSave(s.record);
-    const decisions = Object.fromEntries(getProjectSaveState('p1')!.reconciliation!.conflicts.map((c) => [c.key, 'local' as const]));
+    const decisions = Object.fromEntries(currentProjectMerge(getProjectSaveState('p1'))!.conflicts.map((c) => [c.key, 'local' as const]));
     expect(await resolveProjectConflicts('p1', decisions)).toBe(true);
     expect(s.read().board.settings.title).toBe('Local');
     expect(s.read().extensions.project).toMatchObject({ description: 'External description', productName: 'Local product' });
@@ -90,14 +91,14 @@ describe('conditional project persistence', () => {
     s.external((data) => { data.board.settings.title = 'External'; data.extensions.project!.description = 'External description'; });
     s.edit((data) => { data.board.settings.title = 'Local'; data.extensions.project!.description = 'Local description'; });
     await enqueueProjectSave(s.record);
-    const decisions = Object.fromEntries(getProjectSaveState('p1')!.reconciliation!.conflicts.map((c) => [c.key, 'local' as const]));
+    const decisions = Object.fromEntries(currentProjectMerge(getProjectSaveState('p1'))!.conflicts.map((c) => [c.key, 'local' as const]));
     s.external((data) => { data.board.settings.title = 'New external'; }, 2);
     expect(await resolveProjectConflicts('p1', decisions)).toBe(false);
     expect(s.writes).toEqual([]);
-    expect(getProjectSaveState('p1')!.reconciliation!.conflicts).toHaveLength(1);
-    expect(getProjectSaveState('p1')!.reconciliation!.conflicts[0].external).toBe('New external');
+    expect(currentProjectMerge(getProjectSaveState('p1'))!.conflicts).toHaveLength(1);
+    expect(currentProjectMerge(getProjectSaveState('p1'))!.conflicts[0].external).toBe('New external');
     // A second confirmation includes the earlier valid decision.
-    const remaining = getProjectSaveState('p1')!.reconciliation!.conflicts[0];
+    const remaining = currentProjectMerge(getProjectSaveState('p1'))!.conflicts[0];
     expect(await resolveProjectConflicts('p1', { ...decisions, [remaining.key]: 'external' })).toBe(true);
     expect(s.read().extensions.project!.description).toBe('Local description');
     expect(s.read().board.settings.title).toBe('New external');
@@ -110,7 +111,7 @@ describe('conditional project persistence', () => {
     expect(await enqueueProjectSave(s.record)).toBe(false);
     expect(s.writes).toHaveLength(1);
     expect(getProjectFileState('p1')!.base!.board.settings.title).toBe('Local');
-    expect(getProjectSaveState('p1')?.watchStatus).toBe('conflict');
+    expect(getProjectSaveState('p1')?.phase.kind).toBe('conflict');
     expect(s.read().board.settings.title).toBe('Competing');
   });
 
@@ -119,7 +120,7 @@ describe('conditional project persistence', () => {
     s.external((data) => { data.extensions.project!.description = 'Old copy'; }, 0);
     await checkProjectFilesNow();
     expect(s.writes).toEqual([]);
-    expect(getProjectSaveState('p1')!.reconciliation!.conflicts.every((c) => c.reason === 'regression')).toBe(true);
+    expect(currentProjectMerge(getProjectSaveState('p1'))!.conflicts.every((c) => c.reason === 'regression')).toBe(true);
   });
 
   it('detects changes despite unchanged file size and timestamp and closes stale contexts on reload', async () => {

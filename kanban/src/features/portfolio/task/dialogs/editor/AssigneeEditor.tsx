@@ -19,7 +19,7 @@ export function AssigneeEditor({ value, onChange, pool, onRemove }: {
             {!value.length && <div className="assignee-editor-empty">{t('editor.noAssignees')}</div>}
             {value.map((name, index) => <div className="assignee-editor-row" key={name}>
                 <span>{name}</span>
-                <button type="button" className="assignee-editor-remove" aria-label={t('editor.removeAssignee')}
+                <button type="button" className="assignee-editor-remove" aria-label={`${t('editor.removeAssignee')}: ${name}`}
                     onClick={() => { void onRemove(index); }}><WorkspaceIcon name="close" /></button>
             </div>)}
         </div>

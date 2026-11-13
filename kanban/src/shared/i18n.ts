@@ -112,6 +112,7 @@ const en = {
     "conflict.restore": "Recover changes",
     "conflict.discard": "Discard recovery copy",
     "conflict.recoveryError": "Could not store the local recovery copy: {error}",
+    "conflict.recoveryRefused": "These changes could not be recovered: the copy is not a valid version of this project, or the project has unsaved changes. Save first, or discard the copy.",
     "conflict.changed": "The project changed again. Review the remaining conflicts or retry the save.",
     "conflict.recoveryHelp": "Reopen the project file after reloading to recover unsaved changes.",
 
@@ -474,6 +475,7 @@ const en = {
     "workitems.error.stale": "The project changed while confirmation was open. Review the current effects and retry.",
     "workitems.error.acceptance": "Functional acceptance is required.",
     "workitems.error.sprint": "Choose an eligible Sprint and plan child Tasks through their Story.",
+    "workitems.error.sprintMissing": "This Sprint no longer exists. Choose another Sprint or remove the assignment.",
 
     'project.settings': 'Project settings',
     'project.general': 'General',
@@ -1470,6 +1472,7 @@ const pt: Record<TranslationKey, string> = {
     "conflict.restore": "Recuperar alterações",
     "conflict.discard": "Eliminar cópia de recuperação",
     "conflict.recoveryError": "Não foi possível guardar a cópia de recuperação local: {error}",
+    "conflict.recoveryRefused": "Não foi possível recuperar estas alterações: a cópia não é uma versão válida deste projeto, ou o projeto tem alterações por guardar. Guarde primeiro, ou descarte a cópia.",
     "conflict.changed": "O projeto voltou a mudar. Reveja os conflitos restantes ou tente guardar novamente.",
     "conflict.recoveryHelp": "Volte a abrir o ficheiro do projeto depois de recarregar a página para recuperar alterações por guardar.",
 
@@ -1832,6 +1835,7 @@ const pt: Record<TranslationKey, string> = {
     "workitems.error.stale": "O projeto mudou durante a confirmação. Reveja os efeitos atuais e tente novamente.",
     "workitems.error.acceptance": "É necessária aceitação funcional.",
     "workitems.error.sprint": "Escolha um Sprint elegível e planeie Tasks subordinadas através da Story.",
+    "workitems.error.sprintMissing": "Este Sprint já não existe. Escolha outro Sprint ou remova a atribuição.",
 
     'project.settings': 'Definições do projeto',
     'project.general': 'Geral',

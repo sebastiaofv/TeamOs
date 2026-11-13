@@ -103,7 +103,7 @@ describe('relation commands', () => {
     expect(getRelations(data())).toEqual([]);
     expect(enqueueSave).not.toHaveBeenCalled();
     expect(alert).toHaveBeenCalledWith(expect.stringContaining('Both workitems must exist'));
-    expect(store.getState().portfolioCreateContext).not.toBeNull();
+    expect(store.getState().taskEditorContext).not.toBeNull();
   });
 
   it('rejects relationship mutations in read-only and historical views and rejects cross-project IDs', async () => {
@@ -112,7 +112,7 @@ describe('relation commands', () => {
     store.setState({ portfolioBoards: [{ ...record, handle: null }] });
     await expect(actions.associatePortfolioTasks('p1', 1, 2, 'blocks')).resolves.toBe(false);
     actions.openPortfolioCreateRelatedTask('p1', 1, 'related');
-    expect(store.getState().portfolioCreateContext).toBeNull();
+    expect(store.getState().taskEditorContext).toBeNull();
     store.setState({ portfolioBoards: [record] });
     await expect(actions.associatePortfolioTasks('p1', 1, 99, 'blocks')).resolves.toBe(false);
     await actions.associatePortfolioTasks('p1', 1, 2, 'blocks');
@@ -131,13 +131,13 @@ describe('relation commands', () => {
     expect(data().board.tasks).toHaveLength(2);
     expect(getRelations(data())).toEqual([]);
     actions.openPortfolioCreateRelatedTask('p1', 1, 'blockedBy');
-    const initial = store.getState().portfolioCreateContext;
-    expect(initial?.relatedTo).toEqual({ taskId: 1, kind: 'blockedBy' });
+    const initial = store.getState().taskEditorContext;
+    expect(initial).toMatchObject({ mode: 'create', relatedTo: { taskId: 1, kind: 'blockedBy' } });
     await actions.saveTask(buildTaskDraft({ title: 'New item', description: 'Own description', blocked: false, blockerReason: '', assignees: [], responsible: '', tags: [], checklist: [], attachments: [], dueDate: '', priority: '', effort: '', phaseId: 'phase', milestoneId: 'mile' }));
     expect(data().board.tasks[2]).toMatchObject({ id: 3, title: 'New item', description: 'Own description', status: 'backlog', phaseId: 'phase', milestoneId: 'mile', sprintId: '', assignees: [], responsible: '', tags: [], priority: null, blocked: false });
     expect(data().board.tasks.map((task) => task.id)).toEqual([1, 2, 3]);
     expect(getRelations(data())).toEqual([{ sourceId: 3, targetId: 1, kind: 'blocks' }]);
-    expect(store.getState().portfolioCreateContext).toBeNull();
+    expect(store.getState().taskEditorContext).toBeNull();
   });
   it('uses autosave and timeline replay, updates blocked views, and deletes only the selected item and its links after explaining impacts', async () => {
     const { actions, store, data, confirm, enqueueSave } = setup();

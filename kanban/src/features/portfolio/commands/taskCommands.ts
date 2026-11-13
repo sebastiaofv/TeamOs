@@ -75,8 +75,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         dismissTaskDetail();
         setSelectedPortfolioCard(boardId, taskId);
         commitState({
-            portfolioEditContext: { boardId, taskId, ...(detail?.returnToDetail ? { returnToDetail: detail } : {}) },
-            portfolioCreateContext: null
+            taskEditorContext: { mode: 'edit', boardId, taskId, ...(detail?.returnToDetail ? { returnToDetail: detail } : {}) }
         });
         openDialogFn('taskEditor', buildTaskEditorViewModel(
             source.boardRecord,
@@ -100,8 +99,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const preferred = String(preferredStatus || '').trim();
         const status = workflow.states.some((state) => state.id === preferred) ? preferred : 'backlog';
         commitState({
-            portfolioCreateContext: { boardId, status, ...(options.preferredSprintId ? { sprintId: options.preferredSprintId } : {}), ...(returnToDetail ? { returnToDetail } : {}) },
-            portfolioEditContext: null
+            taskEditorContext: { mode: 'create', boardId, status, ...(options.preferredSprintId ? { sprintId: options.preferredSprintId } : {}), ...(returnToDetail ? { returnToDetail } : {}) }
         });
         const model = buildTaskEditorViewModel(
             boardRecord,
@@ -120,11 +118,11 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         openPortfolioCreateTaskModal(boardId, 'backlog', { preferredType: type });
         const vm = getState().dialogProps as import('@/features/portfolio/types').TaskEditorViewModel;
         if (getState().activeDialog !== 'taskEditor' || !vm?.initial) return;
-        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToDetail }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
+        commitState({ taskEditorContext: { mode: 'create', boardId, status: 'backlog', returnToDetail }, dialogProps: { ...vm, initial: { ...vm.initial, type, parentId, phaseMode: 'inherit', milestoneMode: 'inherit' } } });
     }
 
     function dismissTaskEditor() {
-        commitState({ portfolioEditContext: null, portfolioCreateContext: null });
+        commitState({ taskEditorContext: null });
         closeDialogFn('taskEditor');
     }
 
@@ -141,7 +139,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     function closeTaskEditor() {
         const state = getState();
-        const returnToDetail = state.portfolioCreateContext?.returnToDetail || state.portfolioEditContext?.returnToDetail;
+        const returnToDetail = state.taskEditorContext?.returnToDetail;
         dismissTaskEditor();
         restoreTaskDetail(returnToDetail);
     }
@@ -156,7 +154,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         const detail = getState().portfolioDetailContext;
         const returnToDetail: DetailContext = detail?.boardId === boardId && detail.taskId === taskId ? detail : { boardId, taskId, readOnly: false };
         dismissTaskDetail();
-        commitState({ portfolioCreateContext: { boardId, status: 'backlog', returnToDetail, relatedTo: { taskId, kind } }, portfolioEditContext: null });
+        commitState({ taskEditorContext: { mode: 'create', boardId, status: 'backlog', returnToDetail, relatedTo: { taskId, kind } } });
         const vm = buildTaskEditorViewModel(source.boardRecord, null, getState().portfolioTasks, ++taskEditorOpenCount);
         vm.initial.phaseId = source.task.phaseId;
         vm.initial.milestoneId = source.task.milestoneId;
@@ -253,15 +251,16 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
         }
         const commonFields = setTaskResponsible(buildTaskFieldsFromDraft(draft), draft.responsible);
         const state = getState();
-        const editingBoardId = state.portfolioCreateContext?.boardId || state.portfolioEditContext?.boardId;
+        const editor = state.taskEditorContext;
+        const editingBoardId = editor?.boardId;
         const roadmap = getRoadmapExtension(editingBoardId ? getBoardRecord(editingBoardId)?.data : null);
         if (!isValidRoadmapAssignment(roadmap, 'phaseId', draft.phaseId) || !isValidRoadmapAssignment(roadmap, 'milestoneId', draft.milestoneId)) {
             await alert(translateCurrent('roadmap.invalidAssignment'));
             return;
         }
 
-        if (state.portfolioCreateContext?.boardId) {
-            const { boardId, relatedTo, returnToDetail, sprintId } = state.portfolioCreateContext;
+        if (editor?.mode === 'create') {
+            const { boardId, relatedTo, returnToDetail, sprintId } = editor;
             const boardRecord = getBoardRecord(boardId);
             if (!boardRecord) return;
             if (!canUsePortfolioTaskMutations(boardId)) {
@@ -270,7 +269,7 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             }
 
             const now = nowIso();
-            const status = relatedTo ? 'backlog' : resolveCreateTaskStatus(boardRecord, state.portfolioCreateContext.status);
+            const status = relatedTo ? 'backlog' : resolveCreateTaskStatus(boardRecord, editor.status);
             let createdId = 0;
             await runPortfolioBoardMutation(boardId, (data) => {
                 const nextId = nextTaskIdForBoard({ data });
@@ -303,10 +302,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
             return;
         }
 
-        if (state.portfolioEditContext?.boardId
-            && state.portfolioEditContext.taskId !== null
-            && state.portfolioEditContext.taskId !== undefined) {
-            const { boardId, taskId } = state.portfolioEditContext;
+        if (editor?.mode === 'edit') {
+            const { boardId, taskId } = editor;
             await runPortfolioTaskMutation(boardId, taskId, (task, boardRecord) => {
                 Object.assign(task, commonFields);
                 if (boardRecord?.data) {
@@ -410,7 +407,8 @@ export function createTaskActions({ getState, commitState, getBoardRecord, findP
 
     // Adds `name` to the task's assignees, or removes it when already there.
     async function confirmResponsibleParticipantRemoval(name: string): Promise<boolean> {
-        const context = getState().portfolioEditContext || getState().portfolioDetailContext;
+        const editor = getState().taskEditorContext;
+        const context = editor?.mode === 'edit' ? editor : getState().portfolioDetailContext;
         const source = context ? findPortfolioTaskSource(context.boardId, context.taskId) : null;
         return Boolean(await confirm(translateCurrent('task.removeResponsibleQuestion', { name }), {
             title: translateCurrent('editor.removeAssignee'), confirmLabel: translateCurrent('common.remove'), danger: true,

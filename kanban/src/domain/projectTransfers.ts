@@ -242,6 +242,24 @@ function prepareSingleTransfer(source: RelationProject, destination: RelationPro
 }
 
 /** Called only after destination persistence succeeds; retrying an already removed source is safe. */
+/**
+ * The next step of a persisted transfer, read from the operation and both
+ * projects. A transfer writes the destination first (the operation is then
+ * `pending`), removes a moved item from the source, and finally writes the
+ * receipt that marks the operation `complete`. First runs and retries both
+ * continue from this step, so a failed write is resumed, never repeated.
+ */
+export type TransferStep = 'removeSource' | 'writeReceipt' | 'complete';
+
+export function nextTransferStep(operation: TransferOperation, destination: BoardData, source: BoardData | null): TransferStep {
+    if (operation.status === 'complete') return 'complete';
+    if (operation.mode === 'copy') return 'writeReceipt';
+    if (!destination.board.tasks.some((task) => task.permanentId === operation.to.permanentId)) throw new TransferError('stale');
+    const batch = transferBatch(destination, operation);
+    const sourceStillHasItems = Boolean(source?.board.tasks.some((task) => batch.some((op) => op.from.permanentId === task.permanentId)));
+    return sourceStillHasItems ? 'removeSource' : 'writeReceipt';
+}
+
 export function removeTransferredSource(data: BoardData, operation: TransferOperation, destination: BoardData): BoardData {
     const batch = transferBatch(destination, operation);
     const tasks = batch.map((op) => data.board.tasks.find((item) => item.permanentId === op.from.permanentId));

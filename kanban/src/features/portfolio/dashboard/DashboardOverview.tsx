@@ -9,7 +9,7 @@ import { riskLevel } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { ControlBadge } from '@/features/portfolio/control/ControlBadge';
 import { openDialog } from '@/app/overlays/dialogs';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 
@@ -20,7 +20,6 @@ function Progress({ value, label }: { value: number | null; label: string }) {
 
 export function DashboardOverview({ historyEventIndex, dependencyBlockedIds, boardId, data, source, start, end, visible, selection, onSelect, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
-    const actions = usePortfolioActions();
     const { metrics, planning, milestones, statistics, epics } = useMemo(() => {
         const tasks = dashboardTasks(data);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);

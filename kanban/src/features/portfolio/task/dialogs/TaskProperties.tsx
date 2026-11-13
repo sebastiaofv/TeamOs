@@ -7,7 +7,7 @@ import { workitemLabel } from '@/domain/taskIdentity';
 import { useState } from 'react';
 import type { Task, Workflow } from '@/domain/types';
 import type { TaskDetailViewModel } from '@/features/portfolio/types';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions, portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { getWorkflow, canTransition } from '@/domain/workflow';
 import { eligibleSprint, isPlanningUnit, validParent, workitemType } from '@/domain/workitems';
 import { isTaskBlocked } from '@/domain/taskRelations';
@@ -20,7 +20,6 @@ import { TaskPlanning } from './TaskPlanning';
 import { WorkflowStateBadge } from '../WorkflowStateBadge';
 
 export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Task }) {
-    const actions = usePortfolioActions();
     const { t } = useI18n();
     const data = vm.sourceBoardData;
     const projects = useAppStore((state) => state.portfolioBoards);
@@ -80,7 +79,7 @@ export function TaskProperties({ vm, task }: { vm: TaskDetailViewModel; task: Ta
 }
 
 function StatusEditor({ task, workflow, vm }: { task: Task; workflow: Workflow; vm: TaskDetailViewModel }) {
-    const { movePortfolioTaskToStatus } = usePortfolioActions();
+    const { movePortfolioTaskToStatus } = portfolioActions;
     const { t } = useI18n();
     const state = workflow.states.find((state) => state.id === task.status);
     return <div className="form-group detail-status-editor"><label htmlFor="detailStatusInput">{t('task.status')}</label>

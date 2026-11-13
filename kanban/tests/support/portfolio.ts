@@ -298,13 +298,9 @@ async function seedPortfolioBoards(
     window.showOpenFilePicker = async () => handles;
   }, writableBoards);
 
-  const chips = page.locator('#portfolioBoardsChips');
-
   if (writableBoards.length > 0) {
     await page.locator('#importProjectsBtn').click();
-    for (const board of writableBoards) {
-      await expect(chips).toContainText(board.title);
-    }
+    await expect(page.locator('#projectPickerBtn')).toBeVisible();
     // Import reads each file once to build the record, then the app reads it
     // again to take its external-change baseline. Wait for that second read so
     // a test's later disk mutation is detected as a change, not taken as baseline.
@@ -321,9 +317,7 @@ async function seedPortfolioBoards(
       });
       window.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
     }, readOnlyBoards);
-    for (const board of readOnlyBoards) {
-      await expect(chips).toContainText(board.title);
-    }
+    await expect(page.locator('#projectPickerBtn')).toBeVisible();
   }
 
   if (identify) await identifyOpenProjects(page);
@@ -368,7 +362,7 @@ async function selectPortfolioBoard(page: Page, title: string) {
   if (!(await chip.evaluate((node) => node.classList.contains('active')))) {
     await chip.locator('[data-action="select-board"]').click();
   }
-  await expect(chip).toHaveClass(/\bactive\b/);
+  await expect(page.locator('#projectPickerBtn')).toContainText(title);
   if (await page.locator('#projectPickerBtn').getAttribute('aria-expanded') === 'true') await page.keyboard.press('Escape');
 }
 
@@ -441,6 +435,15 @@ async function closeDialogBy(page: Page, dialogId: string, method: string) {
 // Project chips for loaded boards (excludes the "All" chip).
 function portfolioProjectChipButtons(page: Page) {
   return page.locator('#portfolioBoardsChips [data-action="select-board"]:not([data-board-id=""])');
+}
+
+// Closed Radix content is unmounted. Count the loaded portfolio independently
+// of whether a picker or a modal currently owns focus.
+export async function expectProjectCount(page: Page, expected: number) {
+  await expect.poll(async () => {
+    const picker = page.locator('#projectPickerBtn');
+    return await picker.count() ? Number(await picker.getAttribute('data-project-count')) : 0;
+  }).toBe(expected);
 }
 
 async function openTaskEditor(page: Page, cardTitle: string) {
@@ -748,5 +751,5 @@ export async function confirmCsvExport(page: Page, separator = ',') {
 
 export async function openTableSprintActions(page: Page) {
   const menu = page.locator('#tableSprintActions');
-  if (!await menu.evaluate((node) => (node as HTMLDetailsElement).open)) await menu.locator('summary').click();
+  if (await menu.locator(':scope > button').getAttribute('aria-expanded') !== 'true') await menu.locator(':scope > button').click();
 }

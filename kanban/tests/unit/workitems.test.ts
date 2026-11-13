@@ -229,7 +229,7 @@ describe('US-12 mutation boundaries' , () => {
     });
     it('requires renewed functional acceptance if accepted Story criteria change', async () => {
         const { actions, data, store, prompt } = setup(); data().board.tasks[1].status = 'done'; data().board.tasks[2].status = 'done'; data().board.tasks[1].acceptance = { author: 'Previous reviewer', at: '2026-01-01T00:00:00Z', local: true };
-        store.setState({ portfolioEditContext: { boardId: 'p', taskId: 2 } });
+        store.setState({ taskEditorContext: { mode: 'edit', boardId: 'p', taskId: 2 } });
         prompt.mockResolvedValueOnce(null);
         const task = data().board.tasks[1];
         await actions.saveTask({ ...task, type: 'story', title: task.title, rawDueDate: '', acceptanceCriteria: 'Changed criteria', attachments: [] });

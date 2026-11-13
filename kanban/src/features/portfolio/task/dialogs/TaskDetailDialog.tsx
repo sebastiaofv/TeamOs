@@ -13,7 +13,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { TaskDetailFields, TaskDetailViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
@@ -44,7 +44,7 @@ const FIELD_ROWS: { label: TranslationKey; id: string; key: keyof TaskDetailFiel
 ];
 
 export function TaskDetailDialog() {
-    const { closeTaskDetail, editPortfolioTask } = usePortfolioActions();
+    const { closeTaskDetail, editPortfolioTask } = portfolioActions;
     const open = useAppStore((s) => s.activeDialog === 'taskDetail');
     const initialVm = useAppStore((s) => (s.activeDialog === 'taskDetail' ? s.dialogProps as TaskDetailViewModel : null));
     const boards = useAppStore((state) => state.portfolioBoards);
@@ -181,7 +181,7 @@ function DetailProperties({ vm }: { vm: TaskDetailViewModel }) {
 
 function TaskDetailList({ vm }: { vm: TaskDetailViewModel }) {
     const { t } = useI18n();
-    const { toggleTaskDetailChecklistItem } = usePortfolioActions();
+    const { toggleTaskDetailChecklistItem } = portfolioActions;
     return (
         <dl className="detail-list workitem-supporting-content">
             {workitemType(vm.sourceBoardData.board.tasks.find((task) => task.id === vm.taskId) || {}) === 'task' && <div className="detail-item workitem-section" hidden={!vm.checklist.length}>

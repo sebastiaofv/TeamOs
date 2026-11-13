@@ -367,10 +367,6 @@
 .pending-transfers h3 { color: var(--text-primary); font-size: 12px; margin-bottom: 5px; }
 .pending-transfers > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
 .task-transfer-menu { position: relative; }
-.task-transfer-menu > summary { cursor: pointer; list-style: none; border-radius: 2px; }
-.task-transfer-menu > summary::-webkit-details-marker { display: none; }
-.task-transfer-menu > summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
-.task-transfer-menu[open] > summary { background: var(--bg-secondary); color: var(--text-primary); }
 .task-transfer-options { position: absolute; z-index: 30; right: 0; top: calc(100% + 6px); min-width: 224px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg-card); color: var(--text-primary); box-shadow: 0 8px 24px #0002; padding: 4px; }
 .task-transfer-options button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; background: transparent; border: 0; border-radius: 2px; color: inherit; cursor: pointer; font: inherit; font-size: 12px; white-space: nowrap; }
 .task-transfer-options button svg { color: var(--text-muted); flex: none; }

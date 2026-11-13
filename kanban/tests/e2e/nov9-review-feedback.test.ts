@@ -81,7 +81,7 @@ test('blocking columns and filters recalculate after Done while manual blocking 
         { id: 4, title: 'Both', blocked: true, blockerReason: 'External' }
     ], extensions: { taskRelations: { version: 1, relations: [{ sourceId: 1, targetId: 3, kind: 'blocks' }, { sourceId: 1, targetId: 4, kind: 'blocks' }] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode=table]').click();
-    await page.locator('#tableColumns summary').click();
+    await page.locator('#tableColumns > button').click();
     for (const label of ['Manually Blocked', 'Dependency Blocked']) await page.getByRole('button', { name: `Show ${label}`, exact: true }).click();
     await page.keyboard.press('Escape');
     const both = page.locator('#workitemsTable [data-task-id="4"]');

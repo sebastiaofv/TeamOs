@@ -1,0 +1,37 @@
+/* Load after feature styles so local resets cannot hide keyboard focus. */
+:root :is(button, input, select, textarea, a[href], summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+/* Keep the ring inside controls whose scroll container could clip it. */
+:root :is(.portfolio-calendar-item, .palette-input, .table-item-link, .planner-block-remove):focus-visible {
+    outline-offset: -2px;
+}
+
+/* Inline transforms from drag libraries must also respect this preference. */
+.floating-panel {
+    position: relative;
+    inset: auto;
+    margin: 0;
+    max-width: calc(100vw - 24px);
+    max-height: var(--radix-popper-available-height);
+    overflow: auto;
+}
+.table-column-panel.floating-panel {
+    width: min(600px, var(--radix-popover-trigger-width), calc(100vw - 24px));
+    max-height: min(500px, var(--radix-popper-available-height));
+}
+.table-view-panel.floating-panel { width: min(280px, calc(100vw - 24px)); }
+.portfolio-filters-panel.floating-panel { width: min(320px, calc(100vw - 24px)); }
+.task-transfer-options [data-highlighted] { background: var(--bg-secondary); color: var(--text-primary); }
+.task-transfer-menu > button[data-state="open"] { background: var(--bg-secondary); color: var(--text-primary); }
+.task-transfer-menu > button { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; min-height: 24px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}

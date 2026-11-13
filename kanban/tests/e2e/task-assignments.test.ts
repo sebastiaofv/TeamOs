@@ -20,11 +20,11 @@ test('responsibility and participation stay coherent through editing, confirmati
   await expect(page.locator('#projectSettingsModal')).toBeHidden();
   await portfolioCard(page, 'Plan').click(); await page.locator('#taskDetailEditBtn').click();
   await expect(page.locator('#taskResponsible')).toHaveValue('Ana Silva');
-  await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
+  await page.getByRole('button', { name: /^Remove participant:/ }).first().click();
   await expect(appMessage(page)).toContainText('without a responsible person');
   await answerAppMessage(page, { button: 'Cancel' });
   await expect(page.locator('#taskResponsible')).toHaveValue('Ana Silva');
-  await page.getByRole('button', { name: 'Remove participant', exact: true }).first().click();
+  await page.getByRole('button', { name: /^Remove participant:/ }).first().click();
   await answerAppMessage(page);
   await expect(page.locator('#taskResponsible')).toHaveValue('');
   await page.locator('#taskModalSaveBtn').click();

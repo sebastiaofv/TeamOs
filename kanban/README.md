@@ -112,7 +112,6 @@ The short version is:
 - `src/infrastructure/` — browser adapters, persistence/repository code, file watching, and logging.
 - `src/shared/` — reusable UI helpers and small shared types.
 - `src/styles/` — CSS grouped into `foundation/`, `portfolio/`, and `overlays/`; `app.css` is the cascade manifest.
-- `src/types.ts` — a temporary compatibility facade. New code should import canonical types from `domain`, `features/portfolio`, `infrastructure/browser`, `app`, or `shared`.
 
 ## Development
 
@@ -153,6 +152,8 @@ gh release download kanban-latest --repo sebastiaofv/TeamOs --pattern teamos-kan
 The workflow can also be started by hand from the Actions tab (*Run workflow*).
 
 ## Testing
+
+The [issue 93 validation report](docs/issue-93-validation.md) describes the Radix/Zod boundaries, WCAG 2.2 AA pass, before/after accessibility table and local performance measurements.
 
 The single [TeamOS historical example project](test-board/README.md) covers the application in the current folder format, with a walkthrough and explicit fictional-data notices. Import a copy for writable exploration. Legacy regression fixtures live in `tests/fixtures/manual/`.
 

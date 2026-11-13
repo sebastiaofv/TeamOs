@@ -22,7 +22,7 @@ export function TagEditor({ value, onChange, suggestions }: {
             {!value.length && <div className="tag-editor-empty">{t('editor.noTags')}</div>}
             {value.map((tag, index) => <div className="tag-editor-row" key={tag}>
                 <span>{tag}</span>
-                <button type="button" className="tag-editor-remove" aria-label={t('editor.removeTag')}
+                <button type="button" className="tag-editor-remove" aria-label={`${t('editor.removeTag')}: ${tag}`}
                     onClick={() => onChange(value.filter((_, i) => i !== index))}><WorkspaceIcon name="close" size={12} /></button>
             </div>)}
         </div>

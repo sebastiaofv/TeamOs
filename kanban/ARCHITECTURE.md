@@ -33,6 +33,18 @@ result. Infrastructure owns file and browser details behind small interfaces.
 
 - `infrastructure/persistence/projectDirectory.ts` owns folder validation, content-addressed attachment files, and the history journal. `history.json` contains events, record histories and append-only staged/committed transactions. `project.json` stores only current data and references, including the last history transaction identity. Both use the v1 format in [PROJECT_FORMAT.md](PROJECT_FORMAT.md); `domain/projectFormat.ts`, `projectPatch.ts` and `projectHistoryFormat.ts` are the only translation to and from the in-memory model, with entity types, field tables and validation in `projectFileSchema.ts`, and older folders are converted once on open. Appending uses `createWritable({ keepExistingData: true })`, `seek` and `truncate`; opening checks the history identity from its first and last bytes; the first append of a session verifies the whole root structure with a bounded-memory scan and later appends reread identity plus the closing bytes, while explicit history consumers deserialize and validate events and archives. Conversion shares the project-identity save lock and checks both input files before replacement. A failed current-state write leaves its staged events uncommitted; a successful current-state hash can recover a missing commit marker. `projectFiles.ts` maintains the same disk-hash baselines, save queue, reconciliation and recovery for both formats.
 
+## Explicit state machines
+
+Behavior with distinct modes is modelled as one named state with a transition
+function, never as several flags that readers combine.
+
+- `infrastructure/persistence/projectSaveLifecycle.ts` owns a project's save phase (`synced`, `pending`, `writing`, `failed`, `conflict`, `unreachable`), its version counters and the short-lived disk notice. `projectFiles.ts` changes it only through `transitionProjectSave` events; views and commands read its selectors (`projectSaveBadge`, `needsCloseWarning`, `blocksProjectTransfers`, `currentProjectMerge`). The notice badge fades on a timer event, not during render.
+- `features/portfolio/queries/projectAccess.ts` lists every reason a project is read-only once. `canEditProjectWorkitems` and `canTransferProjectFile` are the two policies over those reasons.
+- `app/overlays/dialogs.ts` ties each dialog's store context (`portfolioDetailContext`, `taskEditorContext`, `roadmapEntityContext`) to the dialog: closing or replacing the dialog clears it. `taskEditorContext` is either `edit` or `create`; `returnToDetail` chains are the detail back stack.
+- `infrastructure/persistence/projectDirectory.ts` keeps a folder project's history as `deferred` (saves buffer their own timeline) or `loaded`; `markDirectoryHistoryLoaded` is the only switch and folds in saves made while history.json was being read. The journal transaction of the last write is `none`, `unconfirmed` (stage written, commit marker not yet seen) or `committed`.
+- `domain/projectTransfers.ts` `nextTransferStep` derives a cross-project transfer's next step from the persisted operation, for first runs and retries alike.
+- Component-local machines use a reducer or a single union state: the relation editor (`task/dialogs/relationEditorState.ts`), pull request links, Project Control records and the reconciliation form. Async loads (`AttachmentImage`, `useProjectHistory`) tag each result with the request it answers, so a result never outlives its request. `shared/hooks/useSubmission.ts` is the single in-flight guard for submissions.
+
 ## Folder map
 
 ```text
@@ -59,16 +71,14 @@ src/
 │   ├── state/                   # Zustand slices, store, derived state
 │   ├── projects/                # project import/create/file-facing actions
 │   ├── hooks/                   # feature lifecycle and browser integration
-│   ├── types.ts                 # feature-owned session and view-model types
-│   └── index.ts                 # public feature entry point
+│   └── types.ts                 # feature-owned session and view-model types
 ├── infrastructure/              # replaceable outside-world adapters
 │   ├── browser/                 # File API and drag/drop/file readers
 │   ├── persistence/              # repository, save queue, file watcher
 │   └── logging/                 # logging adapter
 ├── shared/                      # reusable UI helpers and small shared types
-├── styles/                      # CSS grouped by foundation, feature, overlay
-│   └── app.css                  # cascade manifest imported by the app
-└── types.ts                     # temporary compatibility type facade
+└── styles/                      # CSS grouped by foundation, feature, overlay
+    └── app.css                  # cascade manifest imported by the app
 ```
 
 ## Import rules for new code
@@ -77,9 +87,10 @@ src/
 - Use `@/features/portfolio/...` for portfolio-specific behavior.
 - Use `@/infrastructure/...` for browser, persistence, or logging details.
 - Use `@/shared/...` for reusable UI helpers and shared primitives.
-- Keep `src/types.ts` only for compatibility; new code should import the
-  canonical type module directly.
-- Prefer a feature's public `src/features/portfolio/index.ts` entry point when
-  a consumer needs a stable feature-level interface.
+- Import types from the module that owns them (`domain/types`,
+  `features/portfolio/types`, `infrastructure/browser/types`, `app/types`,
+  `shared/types/ui`); there is no aggregate type facade or feature barrel.
+- Components and shortcuts reach feature actions through the
+  `portfolioActions` singleton in `features/portfolio/commands/portfolioCommands.ts`.
 
 Application icons use `src/shared/ui/WorkspaceIcon.tsx`, the central semantic mapping to named `lucide-react` imports. Reuse that component for UI icons instead of drawing SVG paths or using icon glyphs. Native select backgrounds are generated from Lucide by `scripts/generate-select-icons.mjs`; chart geometry and the brand logo remain separate visual assets.

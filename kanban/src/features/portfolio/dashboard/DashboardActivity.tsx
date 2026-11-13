@@ -6,7 +6,7 @@ import type { ActivityWidget } from '@/domain/dashboardActivityLayout';
 import { workitemType } from '@/domain/workitems';
 import { workitemLabel } from '@/domain/taskIdentity';
 import { getWorkflow } from '@/domain/workflow';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useI18n } from '@/shared/i18n';
 
@@ -20,7 +20,6 @@ export function ActivityWorkitems({ tasks, data, boardId, details }: {
     tasks: Task[]; data: BoardData; boardId: string; details: ActivityDetails;
 }) {
     const { t } = useI18n();
-    const actions = usePortfolioActions();
     const current = useAppStore(state => state.portfolioBoards.find(board => board.id === boardId)?.data);
     return !tasks.length ? <p className="dashboard-activity-empty">{t('dashboard.noActivity')}</p> : <ul className="dashboard-activity-list dashboard-widget-list" aria-label={details.label || t(`dashboard.section.${details.kind || 'activityDetails'}`)}>
         {tasks.map((task) => {

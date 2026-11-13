@@ -9,7 +9,7 @@ import { useLayoutEffect, useRef, useState, type ChangeEvent, type KeyboardEvent
 import * as Dialog from '@radix-ui/react-dialog';
 import type { TaskEditorFields, TaskEditorViewModel } from '@/features/portfolio/types';
 import { useAppStore } from '@/features/portfolio/state/store';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import type { TaskFocusField } from '@/features/portfolio/commands/taskCommands';
 import { buildTaskDraft } from '@/domain/taskDraft';
 import { removeTaskParticipant, setTaskResponsible } from '@/domain/taskAssignments';
@@ -33,7 +33,7 @@ const EFFORT_OPTIONS = [['', 'None'], ['XS', 'XS'], ['S', 'S'], ['M', 'M'], ['L'
 // The mutation action opens the editor with a view model; this component owns
 // the draft and hands a finished draft to the store-backed save action.
 export function TaskEditorDialog() {
-    const { closeTaskEditor } = usePortfolioActions();
+    const { closeTaskEditor } = portfolioActions;
     const open = useAppStore((s) => s.activeDialog === 'taskEditor');
     const vm = useAppStore((s) => (s.activeDialog === 'taskEditor' ? s.dialogProps as TaskEditorViewModel : null));
     const nameRef = useRef<HTMLInputElement>(null);
@@ -75,7 +75,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
     nameRef: RefObject<HTMLInputElement | null>;
     submitRef: SubmitRef;
 }) {
-    const { saveTask, confirmResponsibleParticipantRemoval } = usePortfolioActions();
+    const { saveTask, confirmResponsibleParticipantRemoval } = portfolioActions;
     const { t } = useI18n();
     const [busy, setBusy] = useState(false);
     const [form, setForm] = useState<TaskEditorFields>(() => ({ ...vm.initial }));

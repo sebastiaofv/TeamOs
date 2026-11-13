@@ -110,7 +110,7 @@ for (const screen of ['roadmap', 'table']) test(`new child details unwind Task â
     await page.keyboard.press('Escape');
     await expect(page.locator('#taskDetailModal')).toBeHidden();
     await expect(page.locator(`[data-view-mode="${screen}"]`)).toHaveAttribute('aria-pressed', 'true');
-    if (screen === 'table') await expect(page.locator('[data-table-view="epics"]')).toHaveAttribute('aria-pressed', 'true');
+    if (screen === 'table') await expect(page.locator('#tableViewBtn')).toContainText('Epic');
     const saved = await readSavedBoard(page, 'review');
     expect(saved.board.tasks).toHaveLength(8);
     expect(saved.board.tasks.find((task: { title: string }) => task.title === 'Edited Task').parentId).toBe(saved.board.tasks.find((task: { title: string }) => task.title === 'New Story').id);

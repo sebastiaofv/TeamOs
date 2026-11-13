@@ -49,7 +49,7 @@ describe('workitem relations', () => {
       if (legacy) Reflect.deleteProperty(input.extensions, 'taskRelations');
       const record = await BoardRepository.createRecordFromFile({ file: { name: 'fixture.board.json', size: 0, lastModified: 0, text: async () => JSON.stringify(input) } });
       const saved = BoardRepository.serialize(record.data);
-      BoardRepository.validate(saved);
+      validateBoardData(saved);
       expect(saved.board.tasks.map((task) => task.id)).toEqual([41, 72]);
       expect(saved.board.tasks[0]).toMatchObject({ assignees: ['Ana'], archived: true, description: 'Preserve original data', phaseId: 'phase', milestoneId: 'milestone', checklist: [{ text: 'Original step', done: false }] });
       expect(saved.board.tasks[1]).toMatchObject({ blocked: true, blockerReason: 'Awaiting decision' });

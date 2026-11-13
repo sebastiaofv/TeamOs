@@ -36,9 +36,6 @@
     align-items: flex-start;
     gap: 8px;
 }
-.table-tools > details > summary { list-style: none; cursor: pointer; }
-.table-tools > details > summary::-webkit-details-marker { display: none; }
-.table-tools > details[open] > summary { border-color: var(--accent); color: var(--accent); }
 .table-column-panel {
     position: absolute;
     top: calc(100% + 6px);
@@ -138,7 +135,7 @@
 .table-column-panel > .btn { align-self: flex-start; flex: none; }
 .workitems-table [data-column="id"] { width: 1%; max-width: none; white-space: nowrap; overflow-wrap: normal; }
 .workitems-table [data-column="id"] .table-item-link { display: inline-block; white-space: nowrap; max-height: none; overflow: visible; }
-.table-heading .table-tools > .icon-btn, .table-heading .table-columns > summary.icon-btn { border: 1px solid var(--border); background: var(--bg-card); }
+.table-heading .table-tools > .icon-btn, .table-heading .table-columns > button.icon-btn { border: 1px solid var(--border); background: var(--bg-card); }
 @media (max-width: 520px) {
     .table-column-options { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 8px; }
     .table-column-option { flex-wrap: wrap; }

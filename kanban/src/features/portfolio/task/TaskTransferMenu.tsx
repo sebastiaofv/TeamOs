@@ -1,34 +1,18 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import { useEffect, useRef } from 'react';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { useI18n } from '@/shared/i18n';
+import { ActionMenu } from '@/shared/ui/ActionMenu';
 
 export function TaskTransferMenu({ boardId, taskId, historical = false, allowDelete = false }: { boardId: string; taskId: number; historical?: boolean; allowDelete?: boolean }) {
-    const { transferPortfolioTask, deletePortfolioTask } = usePortfolioActions();
+    const { transferPortfolioTask, deletePortfolioTask } = portfolioActions;
     const { t } = useI18n();
-    const menu = useRef<HTMLDetailsElement>(null);
-    useEffect(() => {
-        const closeOutside = (event: PointerEvent) => { if (menu.current?.open && !menu.current.contains(event.target as Node)) menu.current.open = false; };
-        // Radix observes Escape in document capture, before React's menu handler.
-        const keepDialogOpen = (event: KeyboardEvent) => {
-            if (event.key === 'Escape' && menu.current?.open && menu.current.contains(event.target as Node)) event.preventDefault();
-        };
-        document.addEventListener('pointerdown', closeOutside);
-        window.addEventListener('keydown', keepDialogOpen, true);
-        return () => { document.removeEventListener('pointerdown', closeOutside); window.removeEventListener('keydown', keepDialogOpen, true); };
-    }, []);
-    return <details ref={menu} className="task-transfer-menu" onClick={(event) => event.stopPropagation()}
-        onKeyDown={(event) => { if (['Enter', ' ', 'Escape'].includes(event.key)) event.stopPropagation(); if (event.key === 'Escape' && menu.current?.open) { event.preventDefault(); event.stopPropagation(); menu.current.open = false; menu.current.querySelector('summary')?.focus(); } }}>
-        <summary className="task-action-btn" aria-label={t('transfer.actions')} title={t('transfer.actions')}>
-            <WorkspaceIcon name="more" />
-        </summary>
-        <div className="task-transfer-options">
-            {(['copy', 'move'] as const).map((mode) => <button key={mode} type="button" disabled={historical} title={historical ? t('task.readOnlyHistorical') : undefined}
-                onClick={() => { if (menu.current) menu.current.open = false; void transferPortfolioTask(boardId, taskId, mode); }}>
-                <WorkspaceIcon name={mode} />
-                {t(`transfer.${mode}`)}
-            </button>)}
-            {allowDelete && <button type="button" disabled={historical} onClick={() => { if (menu.current) menu.current.open = false; void deletePortfolioTask(boardId, taskId); }}>{t('common.delete')}</button>}
-        </div>
-    </details>;
+    return <ActionMenu trigger={<button type="button" className="task-action-btn" aria-label={t('transfer.actions')} title={t('transfer.actions')}>
+        <WorkspaceIcon name="more" />
+    </button>} actions={[
+        ...(['copy', 'move'] as const).map(mode => ({ label: t(`transfer.${mode}`), disabled: historical,
+            title: historical ? t('task.readOnlyHistorical') : undefined,
+            icon: <WorkspaceIcon name={mode} />,
+            run: () => transferPortfolioTask(boardId, taskId, mode) })),
+        ...(allowDelete ? [{ label: t('common.delete'), disabled: historical, run: () => deletePortfolioTask(boardId, taskId) }] : [])
+    ]} />;
 }

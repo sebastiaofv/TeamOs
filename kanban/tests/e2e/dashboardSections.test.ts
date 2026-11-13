@@ -25,7 +25,7 @@ test('one Overview section has the requested default order, opt-in lists and all
     expect(await page.locator('[data-dashboard-section]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-dashboard-section')))).toEqual(keys);
     await expect(page.locator('.dashboard-overview-sections h2')).toHaveText('Project overview');
     await expect(page.locator('.dashboard-activity-heading')).toHaveCount(0);
-    const summary = page.locator('.dashboard-visible-sections summary');
+    const summary = page.locator('.dashboard-visible-sections > button');
     const start = page.locator('.dashboard-range-field');
     expect((await summary.boundingBox())!.x).toBeLessThan((await start.boundingBox())!.x);
     await summary.click();
@@ -336,7 +336,7 @@ test('activity visibility/order are saved in the project and reset without chang
     await seed(page);
     const original = await readSavedBoard(page, 'sections');
     const filter = page.locator('.dashboard-visible-sections');
-    await filter.locator('summary').click();
+    await filter.locator(':scope > button').click();
     await filter.getByRole('button', { name: 'Hide '+'Started Workitems', exact: true }).click();
     await expect(section(page, 'started')).toHaveCount(0);
     await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
@@ -349,7 +349,7 @@ test('activity visibility/order are saved in the project and reset without chang
     await page.locator('[data-view-mode="dashboard"]').click();
     await expect(section(page, 'started')).toHaveCount(0);
     expect(await page.locator('[data-dashboard-section]').filter({ has: page.locator('.dashboard-activity-list, .dashboard-activity-totals, .dashboard-activity-empty') }).evaluateAll((rows) => rows.map((row) => row.getAttribute('data-dashboard-section')))).toEqual(['activitySummary', 'completedInPeriod', 'activityDetails', 'currentlyInProgress', 'testing']);
-    await filter.locator('summary').click();
+    await filter.locator(':scope > button').click();
     await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
     await expect(section(page, 'started')).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'sections')).extensions.dashboardActivity.hidden).toEqual(['started', 'completedInPeriod', 'currentlyInProgress', 'testing']);
@@ -359,13 +359,13 @@ test('activity visibility/order are saved in the project and reset without chang
 test('read-only activity changes stay local; zero activity and partial history have distinct messages', async ({ page }) => {
     await seed(page, false);
     const filter = page.locator('.dashboard-visible-sections');
-    await filter.locator('summary').click();
+    await filter.locator(':scope > button').click();
     await filter.getByRole('button', { name: 'Hide '+'Activity Summary', exact: true }).click();
     await filter.getByRole('button', { name: 'Move Completed Workitems up', exact: true }).click();
     await expect(section(page, 'activitySummary')).toHaveCount(0);
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
     await filter.getByRole('button', { name: 'Reset to Default', exact: true }).click();
-    await filter.locator('summary').click();
+    await filter.locator(':scope > button').click();
     await setDashboardDate(page, 'Start date', '15/10/2026');
     await setDashboardDate(page, 'End date', '15/10/2026');
     await expect(section(page, 'activityDetails')).toContainText('Select an Activity Summary');
@@ -381,7 +381,7 @@ for (const width of [1280, 390]) test(`navigation, range field and compact menus
     await seed(page);
     await expect(page.locator('#portfolioViewModeToggle button').last()).toHaveAttribute('data-view-mode', 'dashboard');
     const tabs = page.locator('.dashboard-tabs');
-    const sections = page.locator('.dashboard-visible-sections summary');
+    const sections = page.locator('.dashboard-visible-sections > button');
     const range = page.locator('.dashboard-range-field');
     if (width > 700) expect(Math.abs((await tabs.boundingBox())!.y - (await range.boundingBox())!.y)).toBeLessThan(4);
     expect((await sections.boundingBox())!.x).toBeLessThan((await range.boundingBox())!.x);
@@ -447,7 +447,7 @@ for (const width of [1840, 390]) test(`toolbar stays below main navigation durin
     await expect.poll(async () => Math.round((await toolbar.boundingBox())!.y)).toBe(Math.round((await page.locator('#portfolioBoardWrap').boundingBox())!.y));
     await expect(page.getByRole('button', { name: 'Overview', exact: true })).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Sprint Analytics', exact: true })).toBeInViewport();
-    await expect(page.locator('.dashboard-visible-sections summary')).toBeInViewport();
+    await expect(page.locator('.dashboard-visible-sections > button')).toBeInViewport();
     const range = page.locator('.dashboard-range-field');
     await expect(range).toBeInViewport();
     await range.click();
@@ -594,9 +594,9 @@ for (const width of [390, 1840]) test(`Testing uses transition dates, keeps curr
     await setDashboardDate(page, 'Start date', '26/10/2026');
     await setDashboardDate(page, 'End date', '26/10/2026');
     const filterMenu = page.locator('.dashboard-visible-sections');
-    await filterMenu.locator('summary').click();
+    await filterMenu.locator(':scope > button').click();
     for (const name of ['Testing Workitems', 'In Progress Workitems']) await filterMenu.getByRole('button', { name: `Show ${name}`, exact: true }).click();
-    await filterMenu.locator('summary').click();
+    await filterMenu.locator(':scope > button').click();
     const widget = section(page, 'testing');
     await expect(widget.locator('[data-dashboard-workitem]')).toHaveCount(1);
     await expect(widget.locator('.dashboard-activity-status')).toHaveText('Validated');
@@ -610,7 +610,7 @@ for (const width of [390, 1840]) test(`Testing uses transition dates, keeps curr
     await expect(widget).toContainText('No workitems match');
     await expect(section(page, 'activitySummary').locator('.dashboard-activity-testing strong')).toHaveText('0');
     const filter = page.locator('.dashboard-visible-sections');
-    await filter.locator('summary').click();
+    await filter.locator(':scope > button').click();
     await filter.getByRole('button', { name: 'Hide '+'Testing Workitems', exact: true }).click();
     await expect(widget).toHaveCount(0);
     await expect.poll(async () => (await readSavedBoard(page, 'testing')).extensions.dashboardActivity.hidden).toEqual(['started', 'completedInPeriod', 'testing']);
@@ -747,7 +747,7 @@ test('widget chooser reorders all visible widgets with pointer and keyboard and 
     await page.setViewportSize({ width: 1840, height: 980 });
     await seed(page, true, false);
     const chooser = page.locator('.dashboard-visible-sections');
-    await chooser.locator('summary').click();
+    await chooser.locator(':scope > button').click();
     const visible = chooser.getByRole('region', { name: 'Visible', exact: true });
     const hidden = chooser.getByRole('region', { name: 'Hidden', exact: true });
     const keys = () => page.locator('[data-dashboard-section]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-dashboard-section')));

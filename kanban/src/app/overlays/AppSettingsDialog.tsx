@@ -1,10 +1,9 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
-import * as Dialog from '@radix-ui/react-dialog';
+import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { useRef } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useI18n } from '@/shared/i18n';
 import { setThemeStylePreference, toggleThemePreference } from '@/shared/hooks/useTheme';
-import { useAnchoredPanel } from '@/shared/hooks/useAnchoredPanel';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { escapeAnswersAppMessage } from '@/shared/ui/dialogs/escapeAnswersAppMessage';
 import { closeDialog } from './dialogs';
@@ -16,18 +15,19 @@ export function AppSettingsDialog({ showTimeline, onShowTimelineChange }: {
     const open = useAppStore((state) => state.activeDialog === 'appSettings');
     const style = useAppStore((state) => state.activeThemeStyle);
     const theme = useAppStore((state) => state.activeTheme);
-    const panel = useRef<HTMLDivElement>(null);
-    const place = useAnchoredPanel(open, 'appSettingsBtn', panel);
+    const anchor = useRef<HTMLElement | null>(null);
+    anchor.current = document.getElementById('appSettingsBtn');
     const returnFocus = useReturnFocus();
     const { language, setLanguage, t } = useI18n();
 
-    return <Dialog.Root modal={false} open={open} onOpenChange={(next) => { if (!next) closeDialog('appSettings'); }}>
-        <Dialog.Portal>
-            <Dialog.Content ref={panel} className="app-settings-panel" id="appSettingsModal" aria-describedby={undefined}
-                onEscapeKeyDown={escapeAnswersAppMessage} {...returnFocus} onOpenAutoFocus={(event) => { place(); returnFocus.onOpenAutoFocus(event); }}>
+    return <Popover.Root modal={false} open={open} onOpenChange={(next) => { if (!next) closeDialog('appSettings'); }}>
+        <Popover.Anchor virtualRef={anchor} />
+        <Popover.Portal>
+            <FloatingPanel align="start" className="app-settings-panel" id="appSettingsModal" aria-label={t('appSettings.title')}
+                onEscapeKeyDown={escapeAnswersAppMessage} {...returnFocus}>
                 <div className="app-settings-heading">
-                    <Dialog.Title>{t('appSettings.title')}</Dialog.Title>
-                    <Dialog.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
+                    <h2>{t('appSettings.title')}</h2>
+                    <Popover.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Popover.Close>
                 </div>
                 <fieldset className="app-settings-row"><legend>{t('appSettings.mode')}</legend>
                     <div className="settings-choices">
@@ -47,7 +47,7 @@ export function AppSettingsDialog({ showTimeline, onShowTimelineChange }: {
                 <label className="app-settings-row app-settings-toggle"><span>{t('appSettings.showTimeline')}</span>
                     <input type="checkbox" checked={showTimeline} onChange={(event) => onShowTimelineChange(event.target.checked)} />
                 </label>
-            </Dialog.Content>
-        </Dialog.Portal>
-    </Dialog.Root>;
+            </FloatingPanel>
+        </Popover.Portal>
+    </Popover.Root>;
 }

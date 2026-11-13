@@ -1,4 +1,6 @@
 import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
+import { useReducedMotion } from '@/shared/hooks/useReducedMotion';
+import { pointerOrKeyboardCollision } from '@/shared/ui/dragCollision';
 import { PortfolioCalendar } from '@/features/portfolio/calendar/PortfolioCalendar';
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
@@ -8,7 +10,6 @@ import {
     KeyboardSensor,
     MouseSensor,
     TouchSensor,
-    pointerWithin,
     useSensor,
     useSensors,
     type Active,
@@ -41,7 +42,7 @@ import {
     shiftPortfolioPlannerDate,
     showPortfolioPlannerToday
 } from '@/features/portfolio/commands/portfolioControls';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
 import { formatPlannerDateLabel, useI18n } from '@/shared/i18n';
 import { PLANNER_SLOT_PX } from './plannerGeometry';
 import { PlannerBlock, type PlannerBlockHandlers } from './PlannerBlock';
@@ -164,7 +165,6 @@ function ConnectedPlanner() {
         portfolioPlannerMode: s.portfolioPlannerMode,
         activeLanguage: s.activeLanguage
     })));
-    const actions = usePortfolioActions();
     const calendar = useAppStore((state) => state.selectedPortfolioViewMode === 'calendar');
     const setCalendar = (value: boolean) => setPortfolioViewMode(value ? 'calendar' : 'planner');
     const [trayStatuses, setTrayStatuses] = useState<TaskStatus[]>(DEFAULT_TRAY_STATUSES);
@@ -175,12 +175,13 @@ function ConnectedPlanner() {
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     const model = buildPortfolioPlannerViewModel(state, { today: todayLocalIsoDate(), trayStatuses });
 
+    const reducedMotion = useReducedMotion();
     const sensors = useSensors(
         // A short move before dragging keeps clicks on the card working.
         useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
         // Touch waits for a brief press, so swiping still scrolls the tray.
         useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
-        useSensor(KeyboardSensor)
+        useSensor(KeyboardSensor, { scrollBehavior: reducedMotion ? 'auto' : 'smooth' })
     );
     const pointer = usePointerY();
     const gesture = usePlannerBlockGesture((next) => {
@@ -209,6 +210,12 @@ function ConnectedPlanner() {
     };
 
     const onBlockKeyDown = (event: KeyboardEvent<HTMLDivElement>, block: PlannerBlockView) => {
+        if (event.key === ' ') {
+            event.preventDefault();
+            event.stopPropagation();
+            setSelectedBlockId(block.id);
+            return;
+        }
         if (event.key === 'Enter') {
             event.preventDefault();
             event.stopPropagation();
@@ -239,7 +246,7 @@ function ConnectedPlanner() {
     return (
         <DndContext
             sensors={sensors}
-            collisionDetection={pointerWithin}
+            collisionDetection={pointerOrKeyboardCollision}
             onDragStart={({ active }) => {
                 pointer.track();
                 setActiveItem(findTrayItem(active.id));

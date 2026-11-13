@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 
-import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline, setTimelineSlider, portfolioCard, closeDialogBy, portfolioProjectChipButtons, openTaskEditor, answerAppMessage, dragWithMouse, openProjectSettingsFromPicker } from '../support/portfolio';
+import { gotoApp, seedPortfolioBoards, readSavedBoard, waitForBoardWrites, showTimeline, setTimelineSlider, portfolioCard, closeDialogBy, expectProjectCount, openTaskEditor, answerAppMessage, dragWithMouse, openProjectSettingsFromPicker } from '../support/portfolio';
 
 test.describe('task editor', () => {
   test.beforeEach(async ({ page }) => {
@@ -692,7 +692,7 @@ test.describe('task editor', () => {
     const result = await page.evaluate(() => ({
       importCalls: window.__shortcutImportCalls || 0
     }));
-    await expect(portfolioProjectChipButtons(page)).toHaveCount(1);
+    await expectProjectCount(page, 1);
     expect(result.importCalls).toBe(0);
   });
 

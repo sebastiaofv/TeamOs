@@ -61,7 +61,7 @@ test.describe('board', () => {
 
     await expect(page.locator('.portfolio-column .add-task-card')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Create workitem', exact: true })).toHaveCount(0);
-    await expect(page.locator('.portfolio-chip.active')).toContainText('Read Only (Read-only)');
+    await expect(page.locator('.header-project-picker')).toContainText('Read Only');
     await expect(portfolioCard(page, 'RO Task').locator('select')).toBeDisabled();
   });
 
@@ -80,7 +80,7 @@ test.describe('board', () => {
 
     await card.click();
     await page.locator('#taskDetailModal').getByLabel('Task actions', { exact: true }).click();
-    await page.locator('#taskDetailModal').getByRole('button', { name: 'Delete' }).click();
+    await page.locator('#taskDetailModal').getByRole('menuitem', { name: 'Delete' }).click();
     await answerAppMessage(page, { button: 'Delete', expectText: 'Delete "Delete me" permanently?' });
 
     await expect(portfolioCard(page, 'Delete me')).toHaveCount(0);
@@ -106,7 +106,7 @@ test.describe('board', () => {
     await card.hover();
     await card.click();
     await page.locator('#taskDetailModal').getByLabel('Task actions', { exact: true }).click();
-    await page.locator('#taskDetailModal').getByRole('button', { name: 'Delete' }).click();
+    await page.locator('#taskDetailModal').getByRole('menuitem', { name: 'Delete' }).click();
     await answerAppMessage(page, { button: 'Cancel' });
 
     await expect(portfolioCard(page, 'Keep me')).toBeVisible();

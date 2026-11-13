@@ -61,7 +61,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-filters { align-items: flex-end; gap: 18px; margin-bottom: 16px; }
 .dashboard-filters > label { flex: 1 1 160px; max-width: 240px; }
 .dashboard-visible-sections { position: relative; flex: 0 1 270px; font-size: 12px; }
-.dashboard-visible-sections summary { border: 1px solid var(--border); background: var(--bg-card); color: var(--accent); border-radius: 4px; min-height: 34px; padding: 9px 12px; cursor: pointer; }
+.dashboard-visible-sections > button { border: 1px solid var(--border); background: var(--bg-card); color: var(--accent); border-radius: 4px; min-height: 34px; padding: 9px 12px; cursor: pointer; }
 .dashboard-section-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 16px; }
 .dashboard-section-grid > .dashboard-panel { margin: 0; }
 .dashboard-third { grid-column: span 2; }
@@ -102,7 +102,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-legend small { color: var(--text-secondary); }
 .dashboard-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
 .dashboard-third .dashboard-table td, .dashboard-third .dashboard-table th { padding: 9px 6px; }
-.dashboard-visible-sections summary:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.dashboard-visible-sections > button:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
 @media (max-width: 1300px) {
     .dashboard-third { grid-column: span 3; }
 }
@@ -158,7 +158,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-toolbar .dashboard-tabs { margin: 0; }
 .dashboard-toolbar .dashboard-filters { flex: 0 1 auto; align-items: center; gap: 12px; margin: 0; width: auto; }
 .dashboard-toolbar .dashboard-visible-sections { flex: 0 0 auto; }
-.dashboard-toolbar .dashboard-visible-sections summary { min-height: 30px; width: 30px; padding: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
+.dashboard-toolbar .dashboard-visible-sections > button { min-height: 30px; width: 30px; padding: 6px; display: flex; align-items: center; justify-content: center; color: var(--text-secondary); }
 .dashboard-toolbar summary { list-style: none; }
 .dashboard-toolbar summary::-webkit-details-marker { display: none; }
 .dashboard-toolbar [data-table-panel] { z-index: 10; max-height: var(--table-panel-height, 70vh); overflow: auto; margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); box-shadow: 0 8px 24px #0002; }
@@ -207,7 +207,8 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-phase-sequence .dashboard-missed-date { color: var(--priority-high); font-weight: 600; }
 .dashboard-badge { border: 0; border-radius: 12px; padding: 4px 7px; white-space: nowrap; background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .dashboard-situation-overdue, .dashboard-situation-late { background: color-mix(in srgb, var(--priority-high) 10%, transparent); }
-.dashboard-situation-completed { color: #15996b; background: color-mix(in srgb, #15996b 12%, transparent); }
+.dashboard-situation-completed { color: #076b49; background: color-mix(in srgb, #15996b 12%, transparent); }
+:root[data-theme="dark"] .dashboard-situation-completed { color: #55d6a4; }
 .dashboard-overview-grid > .dashboard-active-sprint { height: 280px; }
 .dashboard-active-sprint > .dashboard-widget-list { display: flex; flex-direction: column; flex: 1; }
 .dashboard-sprint-summary { display: flex; flex-direction: column; justify-content: center; flex: 0 0 96px; min-width: 0; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-light); }
@@ -283,7 +284,7 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .dashboard-epic-list { flex: 1; }
 .dashboard-epic-list > li { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 40%); align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 13px; }
 .dashboard-epic-identity { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
-.dashboard-epic-identity .dashboard-epic-id { color: var(--text-secondary); font-size: 11px; }
+.dashboard-epic-identity .dashboard-epic-id { color: var(--text-secondary); font-size: 11px; min-height: 24px; display: inline-flex; align-items: center; }
 .dashboard-epic-points { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 11px; }
 .dashboard-milestone-list .dashboard-inline-progress { grid-column: auto; }
 .dashboard-epic-list .dashboard-progress, .dashboard-milestone-list .dashboard-progress { height: 16px; border-radius: 6px; }
@@ -311,10 +312,10 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
     .dashboard-milestone-list .dashboard-inline-progress { gap: 4px; font-size: 11px; }
 }
 
-.dashboard-widget-panel { --table-panel-width: 720; }
+.dashboard-widget-panel { --table-panel-width: 720px; }
 .dashboard-widget-panel .table-column-options { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .dashboard-widget-panel .table-column-list { max-height: min(48vh, 440px); }
-.dashboard-toolbar .dashboard-visible-sections > summary { border: 1px solid var(--border); }
+.dashboard-toolbar .dashboard-visible-sections > button { border: 1px solid var(--border); }
 .dashboard-visibility-actions { display: flex; gap: 8px; margin-top: 10px; }
 .dashboard-control-list { list-style: none; padding: 0; margin: 0; flex: 1; }
 .dashboard-control-list > li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border-light); font-size: 11px; }
@@ -370,3 +371,6 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
     .sprint-summary-value strong { font-size: 28px; }
     .sprint-trend { padding: 14px; }
 }
+
+.dashboard-widget-panel.table-column-panel.floating-panel { width: min(720px, calc(100vw - 24px)); }
+.dashboard-toolbar .floating-panel { max-height: min(70vh, var(--radix-popper-available-height)); }

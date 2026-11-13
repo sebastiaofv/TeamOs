@@ -2,7 +2,7 @@ import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { AttachmentImage, AttachmentDownload } from './AttachmentMedia';
 import { useRef, useState } from 'react';
 import { calculateBoardAttachmentBytes, getTaskAttachments } from '@/domain/attachments';
-import { usePortfolioActions } from '@/app/providers/PortfolioActionsProvider';
+import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { showConfirm } from '@/app/overlays/appMessages';
 import { AttachmentOpenLink } from './AttachmentOpenLink';
 import { AttachmentsEditor } from './editor/AttachmentsEditor';
@@ -13,7 +13,7 @@ import { useI18n } from '@/shared/i18n';
 export function TaskAttachments({ vm }: { vm: TaskDetailViewModel }) {
     const { attachments } = vm;
     const { t, language } = useI18n();
-    const { setPortfolioTaskAttachments, preparePortfolioTaskAttachmentWrite } = usePortfolioActions();
+    const { setPortfolioTaskAttachments, preparePortfolioTaskAttachmentWrite } = portfolioActions;
     const [busy, setBusy] = useState(false);
     const [picking, setPicking] = useState(false);
     const busyRef = useRef(false);

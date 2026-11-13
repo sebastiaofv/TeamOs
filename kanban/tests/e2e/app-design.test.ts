@@ -54,7 +54,7 @@ for (const style of ['classic', 'modern']) for (const mode of ['light', 'dark'])
         await expect(page.locator('.header #portfolioSearchBtn input, .header .palette-search-text')).toHaveCount(0);
         await expect(page.locator('#projectPickerBtn')).toContainText(fixture.board.settings.title);
         await expect(page.locator('#portfolioToolbar input, #portfolioToolbar select, #portfolioToolbar #portfolioFiltersBtn')).toHaveCount(0);
-        await expect(page.locator('#portfolioBoardsChips')).toHaveAttribute('aria-label', 'Project selection');
+        await expect(page.locator('#projectPickerBtn')).toHaveAccessibleName(/^Project selection:/);
         await page.locator('#portfolioSearchBtn').click();
         await expect(page.locator('#commandPaletteInput')).toBeFocused();
         await page.keyboard.press('Escape');
