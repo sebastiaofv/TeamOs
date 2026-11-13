@@ -14,6 +14,7 @@ import {
     setPortfolioViewMode
 } from '@/features/portfolio/commands/portfolioControls';
 import { getRoadmapExtension } from '@/domain/roadmap';
+import { projectSaveBadge } from '@/infrastructure/persistence/projectSaveLifecycle';
 import { normalizePortfolioViewMode } from '@/domain/board';
 import { getPortfolioBulkTaskIds, isBoardInHistoricalPreview } from '@/features/portfolio/queries';
 import { useI18n } from '@/shared/i18n';
@@ -34,49 +35,24 @@ type ChipSaveUi = { status: string; text: string; title: string; canRetry: boole
 type Translate = ReturnType<typeof useI18n>['t'];
 
 function getChipSaveUiState(saveState: ProjectSaveState | undefined, t: Translate): ChipSaveUi {
-    if (!saveState) return { status: 'idle', text: '', title: '', canRetry: false };
-    if (saveState.watchStatus === 'conflict') {
-        return {
-            status: 'conflict',
-            text: t('toolbar.conflict'),
-            title: saveState.watchMessage || t('toolbar.externalChanges'),
-            canRetry: false
-        };
-    }
-    if (saveState.status === 'error') {
-        return {
-            status: 'error',
-            text: t('toolbar.saveFailed'),
-            title: saveState.lastErrorMessage || t('toolbar.saveFailedPeriod'),
-            canRetry: true
-        };
-    }
-    if (saveState.status === 'saving') {
-        return { status: 'saving', text: t('toolbar.saving'), title: t('toolbar.savingChanges'), canRetry: false };
-    }
-    if (saveState.revision > saveState.savedRevision) {
-        return { status: 'dirty', text: t('toolbar.unsaved'), title: t('toolbar.unsavedChanges'), canRetry: false };
-    }
-    if (saveState.watchStatus === 'watch-error') {
-        return {
-            status: 'warning',
-            text: t('toolbar.watchError'),
-            title: saveState.watchMessage || t('toolbar.watchErrorDescription'),
-            canRetry: false
-        };
-    }
-    if (saveState.watchStatus === 'external') {
-        if (saveState.watchStatusUntil && Date.now() > saveState.watchStatusUntil) {
+    const badge = projectSaveBadge(saveState);
+    switch (badge.kind) {
+        case 'conflict':
+            return { status: 'conflict', text: t('toolbar.conflict'), title: t('toolbar.externalChanges'), canRetry: false };
+        case 'failed':
+            return { status: 'error', text: t('toolbar.saveFailed'), title: badge.error || t('toolbar.saveFailedPeriod'), canRetry: true };
+        case 'saving':
+            return { status: 'saving', text: t('toolbar.saving'), title: t('toolbar.savingChanges'), canRetry: false };
+        case 'unsaved':
+            return { status: 'dirty', text: t('toolbar.unsaved'), title: t('toolbar.unsavedChanges'), canRetry: false };
+        case 'unreachable':
+            return { status: 'warning', text: t('toolbar.watchError'), title: badge.error || t('toolbar.watchErrorDescription'), canRetry: false };
+        case 'reloaded':
+        case 'merged':
+            return { status: 'external', text: t('toolbar.externalUpdate'), title: t('toolbar.projectReloaded'), canRetry: false };
+        case 'none':
             return { status: 'idle', text: '', title: '', canRetry: false };
-        }
-        return {
-            status: 'external',
-            text: t('toolbar.externalUpdate'),
-            title: saveState.watchMessage || t('toolbar.projectReloaded'),
-            canRetry: false
-        };
     }
-    return { status: 'idle', text: '', title: '', canRetry: false };
 }
 
 function getBulkViewModel(state: BulkState) {

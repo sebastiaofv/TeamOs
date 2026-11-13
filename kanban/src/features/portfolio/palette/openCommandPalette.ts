@@ -8,7 +8,6 @@ import { useAppStore } from '@/features/portfolio/state/store';
 export function openCommandPalette(initialQuery = ''): void {
     const state = useAppStore.getState();
     const detail = state.activeDialog === 'taskDetail' ? state.portfolioDetailContext : null;
-    if (detail) useAppStore.setState({ portfolioDetailContext: null });
     const ref = detail || state.hoveredPortfolioCardRef || state.selectedPortfolioCardRef;
     openDialog('commandPalette', { contextTask: ref ? { boardId: ref.boardId, taskId: Number(ref.taskId) } : null, initialQuery });
 }

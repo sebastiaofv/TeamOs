@@ -48,7 +48,7 @@ describe('appearance preferences', () => {
         expect(after.portfolioBoards).toBe(before.portfolioBoards);
         expect(after.selectedPortfolioViewMode).toBe(before.selectedPortfolioViewMode);
         expect(after.portfolioFilters).toBe(before.portfolioFilters);
-        expect(after.portfolioEditContext).toBe(before.portfolioEditContext);
+        expect(after.taskEditorContext).toBe(before.taskEditorContext);
         expect(after.projectSaveStateById).toBe(before.projectSaveStateById);
         expect(readThemePreferences()).toEqual({ theme: 'dark', style: 'modern' });
         expect(attributes.get('data-theme')).toBe('dark');

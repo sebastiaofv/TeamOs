@@ -1,5 +1,5 @@
 import { parseConversations } from '@/domain/comments';
-import { attachDirectoryHistory, getDirectoryProject, writeDirectoryProject, refreshDirectoryHistory } from './projectDirectory';
+import { attachDirectoryHistory, getDirectoryProject, isDirectoryHistoryLoaded, writeDirectoryProject, refreshDirectoryHistory } from './projectDirectory';
 // Board file repository: reading, validating, serializing and writing
 // *.board.json files. The only component that turns a FileSystemFileHandle
 // into a validated board, or a board back into bytes on disk.
@@ -74,7 +74,7 @@ export const BoardRepository = {
         const snapshot = await this.readFileSnapshot(file);
         if (getDirectoryProject(handle)) await refreshDirectoryHistory(handle, snapshot.fileMeta.textHash, snapshot.parsed);
         if (getDirectoryProject(handle)) attachDirectoryHistory(handle, snapshot.parsed);
-        if (getDirectoryProject(handle)?.loaded) {
+        if (isDirectoryHistoryLoaded(handle)) {
             this.validate(snapshot.parsed);
             parseConversations(snapshot.parsed.extensions.conversations, snapshot.parsed.extensions.timeline?.events);
         }

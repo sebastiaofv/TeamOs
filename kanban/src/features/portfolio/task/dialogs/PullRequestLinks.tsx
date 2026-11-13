@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
+import { useSubmission } from '@/shared/hooks/useSubmission';
 import { parsePullRequestLinks, PullRequestLinkError, safePullRequestHref, validatePullRequestUrl, type PullRequestErrorCode } from '@/domain/pullRequests';
 import { areSerializableValuesEqual } from '@/domain/serializable';
 import { showConfirm } from '@/app/overlays/appMessages';
@@ -10,11 +11,12 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
 }) {
     const { t } = useI18n();
     const id = useId();
-    const [editing, setEditing] = useState<number | null>(null);
-    const [input, setInput] = useState('');
-    const [error, setError] = useState<PullRequestErrorCode | null>(null);
-    const [busy, setBusy] = useState(false);
-    const busyRef = useRef(false);
+    // Not editing, or editing one link: a new one or the one at an index.
+    const [form, setForm] = useState<{ target: 'new' | number; input: string; error: PullRequestErrorCode | null } | null>(null);
+    const { busy, run, isRunning } = useSubmission();
+    const editing = form === null ? null : form.target === 'new' ? -1 : form.target;
+    const input = form?.input ?? '';
+    const error = form?.error ?? null;
     const inputRef = useRef<HTMLInputElement>(null);
     const addButtonRef = useRef<HTMLButtonElement>(null);
     const editButtonRefs = useRef(new Map<number, HTMLButtonElement>());
@@ -28,28 +30,25 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
         returnFocusIndex.current = null;
         (index < 0 ? addButtonRef.current : editButtonRefs.current.get(index))?.focus();
     }, [editing, busy]);
-    const clear = () => { setEditing(null); setInput(''); setError(null); };
-    const start = (index: number) => { returnFocusIndex.current = index; setInput(index < 0 ? '' : value[index]); setEditing(index); setError(null); };
+    const clear = () => setForm(null);
+    const start = (index: number) => { returnFocusIndex.current = index; setForm({ target: index < 0 ? 'new' : index, input: index < 0 ? '' : value[index], error: null }); };
     async function confirm() {
-        if (editing === null || readOnly || busyRef.current) return;
+        if (!form || editing === null || readOnly || isRunning()) return;
         let next: string[];
         try {
             const url = validatePullRequestUrl(input);
             next = editing < 0 ? [...value, url] : value.map((link, index) => index === editing ? url : link);
             next = parsePullRequestLinks(next);
-        } catch (cause) { setError(cause instanceof PullRequestLinkError ? cause.code : 'invalid'); return; }
+        } catch (cause) { setForm({ ...form, error: cause instanceof PullRequestLinkError ? cause.code : 'invalid' }); return; }
         if (areSerializableValuesEqual(value, next)) { clear(); return; }
-        busyRef.current = true; setBusy(true);
-        try { if (await onChange(next) !== false) clear(); }
-        finally { busyRef.current = false; setBusy(false); }
+        if (await run(async () => await onChange(next) !== false)) clear();
     }
     async function remove(index: number) {
-        if (readOnly || busyRef.current) return;
-        busyRef.current = true; setBusy(true);
-        try {
+        if (readOnly) return;
+        await run(async () => {
             if (!(await showConfirm(t('pullRequests.removeQuestion', { url: value[index] }), { title: t('pullRequests.title'), confirmLabel: t('common.remove'), danger: true }))) return;
             await onChange(value.filter((_, current) => current !== index));
-        } finally { busyRef.current = false; setBusy(false); }
+        });
     }
     return <section className="pull-request-links" aria-label={t('pullRequests.title')}>
         <p className="pull-request-note">{t('pullRequests.localOnly')}</p>
@@ -67,7 +66,7 @@ export function PullRequestLinks({ value, onChange, readOnly = false, draft = fa
         {!readOnly && <>
             {editing === null ? <button type="button" className="btn" ref={addButtonRef} disabled={busy} onClick={() => start(-1)}>{t('pullRequests.add')}</button> : <div className="pull-request-form" role="group" aria-label={t('pullRequests.editing')}>
                 <label htmlFor={`${id}-url`}>{t('pullRequests.url')}</label>
-                <input ref={inputRef} id={`${id}-url`} type="text" inputMode="url" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={input} disabled={busy} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={(event) => { setInput(event.target.value); setError(null); }} onKeyDown={(event) => {
+                <input ref={inputRef} id={`${id}-url`} type="text" inputMode="url" autoComplete="off" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={input} disabled={busy} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} onChange={(event) => { const next = event.target.value; setForm((current) => current && { ...current, input: next, error: null }); }} onKeyDown={(event) => {
                     if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); event.stopPropagation(); void confirm(); }
                 }} />
                 {error && <p className="pull-request-error" role="alert" id={`${id}-error`}>{t(`pullRequests.error.${error}`)}</p>}

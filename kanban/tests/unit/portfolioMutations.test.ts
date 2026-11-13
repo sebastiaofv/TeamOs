@@ -42,8 +42,7 @@ function createActions(overrides = {}) {
     portfolioTimelineSelection: { boardId: '', eventIndex: null },
     portfolioTimelineExpandedByBoardId: {},
     portfolioDetailContext: null,
-    portfolioEditContext: null,
-    portfolioCreateContext: null,
+    taskEditorContext: null,
     roadmapEntityContext: null,
     selectedPortfolioBoardId: 'p1',
     selectedPortfolioViewMode: 'board',
@@ -358,7 +357,7 @@ describe('portfolio mutation actions', () => {
     actions.togglePortfolioTaskBulkSelection('p1', 1, true);
     expect(getPortfolioBulkTaskIds(store.getState(), 'p1')).toEqual([1]);
 
-    store.setState({ portfolioCreateContext: { boardId: 'p1', status: 'backlog' } });
+    store.setState({ taskEditorContext: { mode: 'create', boardId: 'p1', status: 'backlog' } });
     await actions.saveTask({
       title: 'Created task',
       description: '',
