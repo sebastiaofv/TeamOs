@@ -6,6 +6,7 @@ import { getDependencyBlockedTaskIds } from './taskRelations';
 import { getSprintCalendarStatus } from './roadmap';
 import { getSprintCatalog } from './sprintCatalog';
 import { iterateBoardTimeline, reconstructBoardStateFromTimeline } from './timeline';
+import { createBoardAnalysisCache, createBoardAnalysisSnapshot } from './serialize';
 
 /** Dashboard scopes are independent of Board/Table presentation filters and include archives. */
 export function dashboardTasks(data: BoardData, phaseId = ''): Task[] {
@@ -100,6 +101,20 @@ export function dashboardHistory(data: BoardData, phaseId: string, from: string,
 // These edits cannot change leaf membership, workflow category or phase scope.
 const NON_METRIC_TASK_FIELDS = new Set(['title', 'description', 'assignees', 'responsible', 'tags', 'blocked', 'blockerReason', 'checklist', 'attachments', 'archived', 'dueDate', 'priority', 'effort', 'storyPoints', 'pullRequests', 'objective', 'scope', 'businessValue', 'acceptanceCriteria', 'stepsToReproduce', 'expectedResult', 'actualResult', 'severity', 'environment', 'acceptance']);
 
+/** `dashboardMetrics` completed, open and progress, without the lists nothing here reads. */
+function historyCounts(data: BoardData, phaseId: string) {
+    const tasks = dashboardTasks(data, phaseId);
+    const parents = new Set(data.board.tasks.map((task) => task.parentId));
+    let completed = 0, open = 0;
+    for (const task of tasks) {
+        if (parents.has(task.id)) continue;
+        const category = statusCategory(task.status, data, task);
+        if (category === 'completed') completed++;
+        else if (category !== 'cancelled') open++;
+    }
+    return { completed, open, percent: planningProgress(tasks, data).percent };
+}
+
 /** The visible history table needs counts, not E copies of all N workitems.
  * Canonical positions remain available for full historical navigation. */
 export function dashboardHistorySummary(data: BoardData, phaseId: string, from: string, to: string) {
@@ -107,15 +122,16 @@ export function dashboardHistorySummary(data: BoardData, phaseId: string, from: 
         const rows: { index: number; at: string; completed: number; open: number; percent: number | null }[] = [];
         let counts: Pick<typeof rows[number], 'completed' | 'open' | 'percent'> | undefined;
         let dirty = true;
+        // Counts read only statuses, hierarchy and phase scope: analysis boards share
+        // unchanged workitems, so a status change costs far less than a full snapshot.
+        const analysis = createBoardAnalysisCache();
         for (const point of iterateBoardTimeline(data)) {
             const event = point.event;
             if (!(event.kind === 'task.updated' && !event.snapshot && !event.checkpoint && event.changes && Object.keys(event.changes).every((field) => NON_METRIC_TASK_FIELDS.has(field)))) dirty = true;
             const date = event.at.slice(0, 10);
             if ((from && date < from) || (to && date > to)) continue;
             if (!counts || dirty) {
-                const snapshot = point.snapshot;
-                const metrics = dashboardMetrics(snapshot, dashboardTasks(snapshot, phaseId), date);
-                counts = { completed: metrics.completed.length, open: metrics.open.length, percent: metrics.progress.percent };
+                counts = historyCounts(createBoardAnalysisSnapshot(point.state, analysis), phaseId);
                 dirty = false;
             }
             rows.push({ index: point.index, at: event.at, ...counts });
@@ -124,26 +140,38 @@ export function dashboardHistorySummary(data: BoardData, phaseId: string, from: 
     });
 }
 
-/** Changes are evidenced by consecutive saved states during the planned Sprint dates. */
+/** Changes are evidenced by consecutive saved states during the planned Sprint dates.
+ * Membership is compared on analysis boards; full snapshots are built only for the
+ * states whose rows are reported, since loaded histories hold thousands of events. */
 export function dashboardSprintScopeChanges(data: BoardData, sprintId: string, phaseId = '') {
     return withWorkflowReadCache(() => {
         const sprint = data.extensions.roadmap?.sprints.find((item) => item.id === sprintId);
         const changes: { at: string; kind: 'added' | 'removed'; tasks: Task[]; data: BoardData }[] = [];
         if (!sprint?.startDate || !sprint.endDate) return changes;
-        let before: BoardData | undefined;
-        for (const { event, index, snapshot: after } of iterateBoardTimeline(data)) {
-            if (!before) { before = after; continue; }
-            const previousBoard = before;
-            if (event.at.slice(0, 10) >= sprint.startDate && event.at.slice(0, 10) <= sprint.endDate) {
-                const previous = dashboardTasks(before, phaseId).filter((task) => task.sprintId === sprintId);
-                const next = dashboardTasks(after, phaseId).filter((task) => task.sprintId === sprintId);
+        const analysis = createBoardAnalysisCache();
+        // Same rows, in board order, as filtering phase scope first and then the Sprint.
+        const members = (board: BoardData) => {
+            const phases = phaseId ? phaseDescendants(board.extensions.roadmap?.phases || [], phaseId) : null;
+            return board.board.tasks.filter((task) => task.sprintId === sprintId && (!phases || phases.has(effectivePlanning(board, task, 'phaseId'))));
+        };
+        const sprintIds = (board: BoardData) => new Set(board.board.tasks.filter((task) => task.sprintId === sprintId).map((task) => task.id));
+        let previousPoint: { snapshot: BoardData; state: unknown } | undefined;
+        let previousBoard: BoardData | undefined;
+        for (const point of iterateBoardTimeline(data)) {
+            const { event, index } = point;
+            let afterBoard: BoardData | undefined;
+            if (previousPoint && event.at.slice(0, 10) >= sprint.startDate && event.at.slice(0, 10) <= sprint.endDate) {
+                const before = previousBoard ??= createBoardAnalysisSnapshot(previousPoint.state, analysis);
+                const after = afterBoard = createBoardAnalysisSnapshot(point.state, analysis);
                 // Phase-only changes do not count as Sprint scope changes.
-                const added = next.filter((task) => !previousBoard.board.tasks.some((old) => old.id === task.id && old.sprintId === sprintId));
-                const removed = previous.filter((task) => !after.board.tasks.some((current) => current.id === task.id && current.sprintId === sprintId));
-                if (added.length) changes.push({ at: event.at, kind: 'added', tasks: added, get data() { return reconstructBoardStateFromTimeline(data, index); } });
-                if (removed.length) changes.push({ at: event.at, kind: 'removed', tasks: removed, get data() { return reconstructBoardStateFromTimeline(data, index - 1); } });
+                const beforeIds = sprintIds(before), afterIds = sprintIds(after);
+                const added = new Set(members(after).filter((task) => !beforeIds.has(task.id)).map((task) => task.id));
+                const removed = new Set(members(before).filter((task) => !afterIds.has(task.id)).map((task) => task.id));
+                if (added.size) changes.push({ at: event.at, kind: 'added', tasks: members(point.snapshot).filter((task) => added.has(task.id)), get data() { return reconstructBoardStateFromTimeline(data, index); } });
+                if (removed.size) changes.push({ at: event.at, kind: 'removed', tasks: members(previousPoint.snapshot).filter((task) => removed.has(task.id)), get data() { return reconstructBoardStateFromTimeline(data, index - 1); } });
             }
-            before = after;
+            previousPoint = point;
+            previousBoard = afterBoard;
         }
         return changes;
     });

@@ -3,9 +3,10 @@ import { dashboardPlanning, dashboardTasks } from './dashboard';
 import { controlPending, controlRecords, gateControlProgress } from './projectControl';
 import { phaseDescendants, planningProgress } from './phaseTree';
 import { applyTimelineEventToState, getBoardTimelineData, reconstructBoardStateFromTimeline } from './timeline';
-import { createBoardStateSnapshot } from './serialize';
+import { createBoardAnalysisCache, createBoardAnalysisSnapshot, createBoardStateSnapshot } from './serialize';
+import { areSerializableValuesEqual } from './serializable';
 import { statusCategory, withWorkflowReadCache } from './workflow';
-import { isPlanningUnit, workitemType } from './workitems';
+import { effectivePlanning, isPlanningUnit, workitemType } from './workitems';
 
 export const DASHBOARD_SECTIONS = ['projectOverview', 'activeSprint', 'projectStatistics', 'started', 'completedInPeriod', 'currentlyInProgress', 'openRisks', 'deliverables', 'decisions'] as const;
 export type DashboardSection = typeof DASHBOARD_SECTIONS[number];
@@ -39,8 +40,47 @@ export function dashboardStatistics(data: BoardData, phaseId: string) {
     });
 }
 
+const PERIOD_TRANSITION_KINDS = new Set(['task.status.changed', 'task.updated', 'task.created', 'board.workitems.updated']);
+const taskKey = (task: Task) => `${task.id}\u0000${task.createdAt}`;
+/** First row per identity, matching `Array.find` on the same list. */
+function tasksByKey(tasks: Task[]) {
+    const rows = new Map<string, Task>();
+    for (const task of tasks) if (!rows.has(taskKey(task))) rows.set(taskKey(task), task);
+    return rows;
+}
+
+type ReplayBoard = NonNullable<ReturnType<typeof applyTimelineEventToState>>;
+type RawTask = { id?: unknown; createdAt?: unknown; status?: unknown; type?: unknown };
+const STATUS_INPUTS = ['workflow', 'functionalWorkflow', 'workflowTypes'] as const;
+const rawTasks = (state: ReplayBoard) => (Array.isArray(state.board?.tasks) ? state.board.tasks : []) as RawTask[];
+const rawKey = (task: RawTask) => `${String(task?.id)}\u0000${String(task?.createdAt)}`;
+
+/** Conservative: false only when every workitem keeps its identity, status and type and
+ * nothing that maps a saved status to a normalized one changed, so normalizing both
+ * boards cannot reveal a transition. Replay shares unchanged containers, so this is
+ * usually a few reference checks. */
+function mayChangeStatuses(before: ReplayBoard, after: ReplayBoard): boolean {
+    if (before === after) return false;
+    if ((before.meta as { schemaVersion?: unknown } | undefined)?.schemaVersion !== (after.meta as { schemaVersion?: unknown } | undefined)?.schemaVersion) return true;
+    for (const key of STATUS_INPUTS) {
+        const a = before.extensions?.[key], b = after.extensions?.[key];
+        if (a !== b && !areSerializableValuesEqual(a, b)) return true;
+    }
+    const previous = rawTasks(before), next = rawTasks(after);
+    if (previous === next) return false;
+    const rows = new Map<string, RawTask>();
+    for (const task of previous) if (!rows.has(rawKey(task))) rows.set(rawKey(task), task);
+    return next.some((task) => {
+        const old = rows.get(rawKey(task));
+        return old !== task && (!old || old.status !== task?.status || old.type !== task?.type);
+    });
+}
+
 /** Count actual status changes, not baseline contents, workflow edits, or restores.
- * Rows use their state at the end date; deleted items retain their last recorded detail. */
+ * Rows use their state at the end date; deleted items retain their last recorded detail.
+ * Once loaded, histories hold thousands of events: the raw replay walks all of them, but
+ * only events that can change a status in the period are compared, on analysis boards,
+ * and each reported row's final state is normalized once. */
 export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, phaseId: string, start: string, end: string) {
     return withWorkflowReadCache(() => {
         const timeline = getBoardTimelineData(source);
@@ -51,39 +91,74 @@ export function dashboardPeriodWorkitems(source: BoardData, endData: BoardData, 
         // Keep raw replay separate: normalizing a legacy baseline derives a people
         // catalog that must not be fed into later events introducing new members.
         let replay: Parameters<typeof applyTimelineEventToState>[0] = timeline.events[0].snapshot;
-        let previous = reconstructBoardStateFromTimeline(source, 0);
+        // The state before each event, normalized only on demand. Transitions compare
+        // analysis boards, which share unchanged workitems between consecutive states.
+        const analysis = createBoardAnalysisCache();
+        let previousState = replay;
+        let previous: { data: BoardData; rows?: Map<string, Task> } | undefined;
+        let previousIsBaseline = true;
+        const inScope = (data: BoardData) => {
+            if (!phaseId) return () => true;
+            const phases = phaseDescendants(data.extensions.roadmap?.phases || [], phaseId);
+            return (task: Task) => phases.has(effectivePlanning(data, task, 'phaseId'));
+        };
+        // Raw state holding each tracked workitem's latest detail up to the end date.
+        const detail = new Map<number, NonNullable<typeof replay>>();
         for (let index = 1; index < timeline.events.length; index++) {
             const event = timeline.events[index];
             const date = event.at.slice(0, 10);
             replay = applyTimelineEventToState(replay, event) || replay;
-            const next = createBoardStateSnapshot(replay);
-            if (date >= start && date <= end && ['task.status.changed', 'task.updated', 'task.created', 'board.workitems.updated'].includes(event.kind)) {
-                const scoped = dashboardTasks(next, phaseId);
-                for (const task of scoped.filter((task) => dashboardReportable(next, task))) {
-                    const before = previous.board.tasks.find((old) => old.id === task.id && old.createdAt === task.createdAt);
-                    if ((!before && event.kind !== 'task.created') || before?.status === task.status) continue;
-                    const beforeCategory = before ? statusCategory(before.status, previous, before) : null;
-                    const afterCategory = statusCategory(task.status, next, task);
+            const transition = date >= start && date <= end && PERIOD_TRANSITION_KINDS.has(event.kind)
+                && (event.kind === 'task.created' || previousIsBaseline || !previousState || !replay || mayChangeStatuses(previousState, replay));
+            let next: BoardData | undefined;
+            if (transition) {
+                previous ??= { data: previousIsBaseline ? reconstructBoardStateFromTimeline(source, 0) : createBoardAnalysisSnapshot(previousState, analysis) };
+                const before = previous.data;
+                const beforeRows = previous.rows ??= tasksByKey(before.board.tasks);
+                const after = next = createBoardAnalysisSnapshot(replay, analysis);
+                const scoped = inScope(after);
+                // Same conditions as filtering scope and reportability first, cheapest first.
+                for (const task of after.board.tasks) {
+                    const old = beforeRows.get(taskKey(task));
+                    if ((!old && event.kind !== 'task.created') || old?.status === task.status) continue;
+                    if (!scoped(task) || !dashboardReportable(after, task)) continue;
+                    const beforeCategory = old ? statusCategory(old.status, before, old) : null;
+                    const afterCategory = statusCategory(task.status, after, task);
                     if (beforeCategory === afterCategory) continue;
                     if (afterCategory === 'in-progress') started.set(task.id, task);
                     if (afterCategory === 'completed') completed.set(task.id, task);
                 }
             }
-            for (const task of next.board.tasks) {
-                if (date <= end && (started.has(task.id) || completed.has(task.id))) {
-                    if (started.has(task.id)) started.set(task.id, task);
-                    if (completed.has(task.id)) completed.set(task.id, task);
-                    result.contexts.set(task.id, next);
+            // Tracked rows follow their latest recorded detail up to the end date. Only the
+            // raw state is noted here; each distinct final state is normalized once below.
+            if (date <= end && (started.size > 0 || completed.size > 0) && replay) {
+                for (const task of replay.board?.tasks || []) {
+                    if (started.has(task.id as number) || completed.has(task.id as number)) detail.set(task.id as number, replay);
                 }
             }
-            previous = next;
+            previousState = replay;
+            previous = next && { data: next };
+            previousIsBaseline = false;
         }
-        const endRows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
-            const atEnd = endData.board.tasks.find((row) => row.id === task.id && row.createdAt === task.createdAt);
-            if (atEnd && !dashboardTasks(endData, phaseId).some((row) => row.id === atEnd.id)) return [];
+        const latest = new Map<object, BoardData>();
+        for (const [id, state] of detail) {
+            let snapshot = latest.get(state);
+            if (!snapshot) latest.set(state, snapshot = createBoardStateSnapshot(state));
+            for (const task of snapshot.board.tasks) {
+                if (task.id !== id) continue;
+                if (started.has(id)) started.set(id, task);
+                if (completed.has(id)) completed.set(id, task);
+            }
+            result.contexts.set(id, snapshot);
+        }
+        const endRows = tasksByKey(endData.board.tasks);
+        const endScope = new Set(dashboardTasks(endData, phaseId).map((row) => row.id));
+        const rows = (members: Map<number, Task>) => [...members.values()].flatMap((task) => {
+            const atEnd = endRows.get(taskKey(task));
+            if (atEnd && !endScope.has(atEnd.id)) return [];
             return [atEnd || task];
         });
-        result.started = endRows(started); result.completed = endRows(completed);
+        result.started = rows(started); result.completed = rows(completed);
         return result;
     });
 }

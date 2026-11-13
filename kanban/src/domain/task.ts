@@ -15,7 +15,7 @@ import type { BlockedFilter } from '@/features/portfolio/types';
 import { defaultColumns, isEffort } from './constants';
 import { nowIso, normalizeTimestamp, todayLocalIsoDate } from './util';
 import { normalizeDueDate } from './calendar';
-import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef } from './roadmap';
+import { clearInvalidRoadmapTaskRefs, normalizeRoadmapRef, type RoadmapTaskRefIds } from './roadmap';
 import { normalizeTaskAttachments } from './attachments';
 import { normalizeAssignee, normalizeAssignees, setTaskResponsible } from './taskAssignments';
 import { parsePullRequestLinks } from './pullRequests';
@@ -216,6 +216,8 @@ export type NormalizeTaskOptions = {
     fallbackAttachments?: unknown;
     includeStatusChangedAt?: boolean;
     roadmap?: unknown;
+    /** Precomputed `roadmapTaskRefIds(roadmap)`, shared across a board's workitems. */
+    roadmapRefs?: RoadmapTaskRefIds;
 };
 
 export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {}): Task {
@@ -264,5 +266,5 @@ export function normalizeTask(task: TaskInput, options: NormalizeTaskOptions = {
             normalizedTask.statusChangedAt = statusChangedAt;
         }
     }
-    return clearInvalidRoadmapTaskRefs(setTaskResponsible(normalizedTask, task.responsible), options.roadmap);
+    return clearInvalidRoadmapTaskRefs(setTaskResponsible(normalizedTask, task.responsible), options.roadmap, options.roadmapRefs);
 }
