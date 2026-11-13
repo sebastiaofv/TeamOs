@@ -1,25 +1,40 @@
 import type { BoardData, SprintClosure, Task } from './types';
 import { iterateBoardTimeline } from './timeline';
+import { createBoardAnalysisCache, createBoardAnalysisSnapshot } from './serialize';
 import { getSprintStatus } from './roadmap';
 import { isPlanningUnit } from './workitems';
 
 export type SprintInitialPlan = { plannedPoints: number; completedPlannedPoints: number };
 
 /** A baseline already in progress is not evidence of the initial commitment. */
-export function sprintStartWorkitems(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()) {
+export function* sprintStartWorkitemSteps(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()) {
     const scopes = new Map<string, { tasks: Task[]; context: BoardData }>();
+    const analysis = createBoardAnalysisCache();
     let previous = new Map<string, string>();
     // Native history replays every patch, but only Sprint-changing observations need normalization.
-    for (const { snapshot, index, event } of iterateBoardTimeline(data, (entry, index) => index === 0 || Boolean(entry.snapshot?.board || entry.checkpoint) || entry.kind === 'roadmap.updated' || Boolean(entry.patch?.some(operation => operation.at === 'roadmap.sprints')), ['project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'roadmap'])) {
+    for (const observation of iterateBoardTimeline(data, (entry, index) => index === 0 || Boolean(entry.snapshot?.board || entry.checkpoint) || entry.kind === 'roadmap.updated' || Boolean(entry.patch?.some(operation => operation.at === 'roadmap.sprints')), ['project', 'workflow', 'functionalWorkflow', 'workflowTypes', 'roadmap'])) {
+        const { index, event } = observation;
+        yield index;
+        const snapshot = createBoardAnalysisSnapshot(observation.state, analysis);
         const sprints = snapshot.extensions.roadmap?.sprints || [];
         for (const sprint of sprints) {
             if (closedAt.has(sprint.id) && event.at > closedAt.get(sprint.id)!) continue;
             if (getSprintStatus(sprint) !== 'active' || previous.get(sprint.id) === 'active' || scopes.has(sprint.id)) continue;
-            if (index > 0) scopes.set(sprint.id, { context: snapshot, tasks: snapshot.board.tasks.filter(task => task.sprintId === sprint.id && isPlanningUnit(snapshot, task)) });
+            if (index > 0) {
+                const context = observation.snapshot;
+                scopes.set(sprint.id, { context, tasks: context.board.tasks.filter(task => task.sprintId === sprint.id && isPlanningUnit(context, task)) });
+            }
         }
         previous = new Map(sprints.map(sprint => [sprint.id, getSprintStatus(sprint)]));
     }
     return scopes;
+}
+
+export function sprintStartWorkitems(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()) {
+    const steps = sprintStartWorkitemSteps(data, closedAt);
+    let step = steps.next();
+    while (!step.done) step = steps.next();
+    return step.value;
 }
 
 export function sprintStartScopes(data: BoardData, closedAt: ReadonlyMap<string, string> = new Map()): Map<string, Map<number, number>> {
@@ -45,9 +60,9 @@ const average = (values: (number | null)[]) => {
 };
 
 /** Closure records own historical results, even if the Sprint or workitems are later edited/deleted. */
-export function allSprintAnalytics(data: BoardData) {
+export function allSprintAnalytics(data: BoardData, initialScopes?: ReturnType<typeof sprintStartWorkitems>) {
     const closures = data.extensions.sprintResults?.closures || [];
-    const scopes = closures.some(closure => !closure.initialPlan) ? sprintStartScopes(data, new Map(closures.map(closure => [closure.sprintId, closure.closedAt]))) : new Map<string, Map<number, number>>();
+    const scopes = initialScopes ? new Map([...initialScopes].map(([id, scope]) => [id, new Map(scope.tasks.map(task => [task.id, task.storyPoints ?? 0]))])) : closures.some(closure => !closure.initialPlan) ? sprintStartScopes(data, new Map(closures.map(closure => [closure.sprintId, closure.closedAt]))) : new Map<string, Map<number, number>>();
     const rows: SprintAnalyticsRow[] = closures.map((closure: SprintClosure) => {
         const initial = closure.initialPlan || sprintInitialPlan(scopes.get(closure.sprintId), closure.completedIds);
         const planned = initial?.plannedPoints ?? null;

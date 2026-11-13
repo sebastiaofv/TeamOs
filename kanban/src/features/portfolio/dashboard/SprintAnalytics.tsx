@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { sprintExecution } from '@/domain/sprintExecution';
+import { useEffect, useRef, useState } from 'react';
+import { useSprintPreparation } from './useSprintPreparation';
+import { SprintAnalyticsLoading } from './SprintAnalyticsLoading';
+import { useLocalToday } from '@/shared/hooks/useLocalToday';
 import { CycleChart, formatSprintMetric, type AnalyticsLabel } from './SprintExecutionCharts';
 import { SprintDetail } from './SprintDetail';
 import type { BoardData } from '@/domain/types';
-import { allSprintAnalytics, type SprintAnalyticsRow } from '@/domain/sprintAnalytics';
+import { type SprintAnalyticsRow } from '@/domain/sprintAnalytics';
 import { WorkspaceIcon, type WorkspaceIconName } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 
@@ -69,11 +71,14 @@ function Trend({ kind, rows, velocity }: { kind: ChartKind; rows: PerformanceRow
 
 export function SprintAnalytics({ data, selected, boardId }: { data: BoardData; selected: string; boardId: string }) {
     const { t } = useI18n();
-    const analytics = useMemo(() => allSprintAnalytics(data), [data]);
-    const execution = useMemo(() => sprintExecution(data), [data]);
+    const today = useLocalToday();
+    const { state, retry } = useSprintPreparation(data, selected, today);
+    if (state?.status === 'error') return <div role="alert"><p>{state.message}</p><button type="button" className="btn" onClick={retry}>{t('projects.loadHistory')}</button></div>;
+    if (state?.status !== 'ready') return <SprintAnalyticsLoading progress={state?.progress ?? 0} message={t(`dashboard.analytics.loading.${selected ? 'sprint' : 'all'}.${state?.stage || 'data'}`)} />;
+    const { analytics, execution, scopes, burndown } = state.result;
     const summary = { ...analytics.summary, rework: execution.medianRework };
     const rows = analytics.rows.map(row => ({ ...row, rework: execution.sprints.get(row.id)?.rework?.length ?? null, reworkPercent: execution.sprints.get(row.id)?.reworkPercent ?? null }));
-    if (selected) return <SprintDetail data={data} selected={selected} boardId={boardId} analytics={analytics} execution={execution} />;
+    if (selected) return <SprintDetail key={selected} scopes={scopes} burndown={burndown} data={data} selected={selected} boardId={boardId} analytics={analytics} execution={execution} />;
     const metrics: { key: keyof typeof summary; title: AnalyticsLabel; icon: WorkspaceIconName; percent?: boolean }[] = [
         { key: 'velocity', title: 'averageVelocity', icon: 'gauge' }, { key: 'predictability', title: 'sprintPredictability', icon: 'progress', percent: true },
         { key: 'utilization', title: 'capacityUtilization', icon: 'user', percent: true }, { key: 'carryover', title: 'carryover', icon: 'move' },

@@ -387,3 +387,23 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .sprint-chart-scroll [role="button"] { cursor: pointer; }
 .sprint-chart-scroll [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (max-width: 1100px) { .sprint-individual-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.sprint-ideal-line { fill: none; stroke: var(--text-secondary); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.sprint-chart-legend .sprint-ideal-key { height: 0; width: 16px; border-top: 2px dashed var(--text-secondary); }
+.sprint-outcomes { display: grid; gap: 16px; margin: 8px 0 20px; }
+.sprint-outcome-row > div:first-child { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-secondary); font-size: 12px; }
+.sprint-outcome-row .dashboard-stacked-bar { height: 24px; gap: 0; }
+.sprint-outcome-row button { border: 0; padding: 0; color: #101828; font: inherit; cursor: pointer; min-width: 0; }
+.sprint-outcome-row button:hover { filter: brightness(1.1); }
+.sprint-outcome-row button:focus-visible { outline: 2px solid var(--text-primary); outline-offset: -2px; }
+.sprint-outcome-legend { margin-top: auto; min-height: auto; }
+.sprint-detail-counts small { color: var(--text-secondary); }
+.sprint-analytics-loading { min-height: min(480px, 60vh); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; color: var(--text-secondary); }
+.sprint-loading-circle { width: 108px; height: 108px; position: relative; display: grid; place-items: center; }
+.sprint-loading-circle svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke-width: 4; }
+.sprint-loading-circle circle:first-child { stroke: var(--border-light); }
+.sprint-loading-circle circle:last-child { stroke: var(--accent); stroke-linecap: round; transform-origin: center; animation: sprint-loading-spin 1.2s linear infinite; }
+.sprint-loading-circle strong { font-size: 22px; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.sprint-analytics-loading p { margin: 0; font-size: 14px; }
+@keyframes sprint-loading-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .sprint-loading-circle circle:last-child { animation: none; } }

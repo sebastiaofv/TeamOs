@@ -170,6 +170,8 @@ test('Dashboard opens promptly after a workitem History tab loads the full histo
     await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('sprint-4');
     const scope = page.locator('[data-sprint-widget="scopeChanges"]');
     await expect(scope).toBeVisible({ timeout: 10_000 });
-    await scope.getByRole('button', { name: /^Initial scope/ }).click();
+    await scope.getByRole('button', { name: /^Added/ }).click();
+    await expect(page.locator('[data-sprint-widget="details"] h3')).toContainText('Added');
+    await page.locator('[data-sprint-widget="outcomes"] button').first().click();
     await expect(page.locator('[data-sprint-widget="details"] [data-dashboard-workitem]').first()).toBeVisible({ timeout: 10_000 });
 });

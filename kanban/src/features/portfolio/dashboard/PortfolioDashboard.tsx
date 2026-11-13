@@ -8,6 +8,8 @@ import { DateInput } from '@/shared/ui/DateInput';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import type { RoadmapItem } from '@/domain/types';
+import { SprintAnalyticsLoading } from './SprintAnalyticsLoading';
+import { isProjectHistoryLoaded } from '@/infrastructure/persistence/projectFiles';
 import { SprintAnalytics } from './SprintAnalytics';
 import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
 import { getSprintCatalog } from '@/domain/sprintCatalog';
@@ -98,7 +100,7 @@ function Dashboard({ boardId, hidden }: { boardId: string; hidden: boolean }) {
                 </Popover.Root>
             </div></> : <label className="dashboard-sprint-picker"><span className="sr-only">{t('roadmap.sprint')}</span><WorkspaceIcon name="runner" /><select aria-label={t('roadmap.sprint')} value={selectedSprintId} onChange={event => setSelectedSprint(event.target.value)}><option value="">{t('dashboard.allSprints')}</option>{sprintOptions.map(sprint => <option key={sprint.id} value={sprint.id}>{sprint.title}</option>)}</select></label>}
         </div></div>
-        {tab === 'sprintAnalytics' ? historyLoad.loading ? <p role="status">{t('history.loading')}</p> : historyLoad.error ? <div role="alert"><p>{historyLoad.error}</p><button type="button" className="btn" onClick={historyLoad.retry}>{t('projects.loadHistory')}</button></div> : <SprintAnalytics key={selectedSprintId} boardId={boardId} data={data} selected={selectedSprintId} /> : invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
+        {tab === 'sprintAnalytics' ? historyLoad.loading && !isProjectHistoryLoaded(boardId) ? <SprintAnalyticsLoading message={t('dashboard.analytics.loading.project')} /> : historyLoad.error ? <div role="alert"><p>{historyLoad.error}</p><button type="button" className="btn" onClick={historyLoad.retry}>{t('projects.loadHistory')}</button></div> : <SprintAnalytics boardId={boardId} data={data} selected={selectedSprintId} /> : invalidPeriod ? <p role="alert">{t('dashboard.invalidPeriod')}</p> : !displayData ? <p role="status">{t('dashboard.noHistoryBaseline')}</p> : <>
             <details className="dashboard-reporting-info"><summary aria-label={t('dashboard.reportingInfo')} title={t('dashboard.reportingInfo')}><WorkspaceIcon name="info" /></summary><p className="dashboard-note">{t('dashboard.periodNote', { date: end })}</p></details>
             <DashboardOverview historyEventIndex={snapshot?.index ?? undefined} dependencyBlockedIds={dependencyBlockedIds} boardId={boardId} data={displayData} source={data} start={from} end={end} visible={shown} selection={drill} onSelect={setDrill} inspect={inspect} openRoadmap={openRoadmap} />
         </>}

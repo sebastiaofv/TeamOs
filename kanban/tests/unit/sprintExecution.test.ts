@@ -46,6 +46,16 @@ describe('Sprint execution history', () => {
         expect(result.cycles[0]).toMatchObject({ days: 1, points: 3 });
         expect(result.sprints.get('s2')?.medianCycleTime).toBe(1);
     });
+    it('uses Done as the first endpoint when Testing was skipped, sharing the metric and plot observations', () => {
+        const { data, status, close } = fixture();
+        status('doing', '2026-01-02T12:00:00Z');
+        status('done', '2026-01-05T12:00:00Z');
+        status('testing', '2026-01-07T12:00:00Z');
+        close('s1', '2026-01-08T12:00:00Z');
+        const result = sprintExecution(data);
+        expect(result.cycles[0]).toMatchObject({ days: 1, testingAt: '2026-01-05T12:00:00Z' });
+        expect(result.sprints.get('s1')?.medianCycleTime).toBe(1);
+    });
     it('does not fabricate a start from a baseline already in progress or infer a missing estimate as zero', () => {
         const { data, status, close } = fixture();
         data.extensions.timeline!.events[0].snapshot!.board!.tasks[0].status = 'doing';

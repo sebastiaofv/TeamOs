@@ -70,3 +70,17 @@ export function sprintExecutionFixture() {
     state(1, 'doing', '2026-01-19T10:00:00Z');
     return data;
 }
+
+export function sprintRemovedWorkFixture() {
+    const data = sprintExecutionFixture();
+    const sprint = { id: 'removed', title: 'Removed scope Sprint', status: 'planned' as 'planned' | 'active' | 'done', startDate: '2026-02-02', endDate: '2026-02-06' };
+    data.extensions.roadmap!.sprints.push(sprint);
+    const observe = (date: string) => appendTimelineEvent(data, { kind: 'board.workitems.updated', entityType: 'board', entityId: 'board', summary: 'Scope', at: `${date}T12:00:00Z`, snapshot: createBoardStateSnapshot(data) });
+    observe('2026-02-01');
+    sprint.status = 'active'; observe('2026-02-02');
+    data.board.tasks.push(normalizeTask({ id: 90, title: 'Temporary work', type: 'bug', status: 'doing', sprintId: sprint.id, storyPoints: 5, createdAt: '2026-02-03T09:00:00Z' })); observe('2026-02-03');
+    data.board.tasks = data.board.tasks.filter(task => task.id !== 90); observe('2026-02-04');
+    closeSprint(data, sprint.id); data.extensions.sprintResults!.closures.at(-1)!.closedAt = '2026-02-06T12:00:00Z';
+    sprint.status = 'done'; observe('2026-02-06');
+    return data;
+}

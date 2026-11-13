@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, toggleTheme, readSavedBoard } from '../support/portfolio';
 import { setDashboardDate } from '../support/dashboard';
-import { sprintAnalyticsFixture, sprintExecutionFixture } from '../support/sprintAnalytics';
+import { sprintAnalyticsFixture, sprintExecutionFixture, sprintRemovedWorkFixture } from '../support/sprintAnalytics';
 
 async function seed(page: Page, count = 2) {
     await page.clock.setFixedTime(new Date('2026-11-12T12:00:00Z'));
@@ -38,6 +38,10 @@ test('All Sprints uses frozen results independently of Overview dates, with a ne
     await expect(point).toBeFocused();
     await selector.selectOption('active');
     await expect(page.locator('[data-sprint-summary]')).toHaveCount(8);
+    await expect(metric(page, 'duration')).toHaveText('10');
+    await expect(metric(page, 'rework')).toHaveText('—');
+    await expect(metric(page, 'planned')).toHaveText('N/A');
+    await expect(metric(page, 'capacity')).toHaveText('N/A');
     await expect(page.locator('[data-sprint-widget="details"]')).toBeVisible();
     await selector.selectOption('');
     await expect(metric(page, 'velocity')).toHaveText('12.5');
@@ -139,7 +143,7 @@ test('execution plots share first-transition weekdays and rework drilldown clear
     await page.keyboard.press('Enter');
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.locator('#taskDetailModalCloseBtn').click();
-    await page.locator('[data-sprint-widget="rework"] button').click();
+    await page.locator('[data-sprint-summary="rework"] button').click();
     const details = page.locator('[data-sprint-widget="details"]');
     await expect(details.getByRole('heading')).toHaveText('Post-Sprint Rework');
     await expect(details.locator('[data-dashboard-workitem]')).toHaveCount(1);
@@ -151,4 +155,86 @@ test('execution plots share first-transition weekdays and rework drilldown clear
     await expect(details.getByRole('heading')).toContainText('Scope Changes');
     await page.locator('[data-sprint-widget="outcomes"] button').nth(1).click();
     await expect(details.getByRole('heading')).toContainText('Sprint Outcomes');
+});
+
+test('loading reports completed stages, hides unfinished metrics and supports retry after processing failure', async ({ page }) => {
+    await seed(page);
+    await page.evaluate(() => {
+        const values: number[] = [];
+        Object.assign(window, { sprintLoadingProgress: values });
+        new MutationObserver(() => {
+            const progress = document.querySelector('.sprint-loading-circle')?.getAttribute('aria-valuenow');
+            if (progress !== null && progress !== undefined && values.at(-1) !== Number(progress)) values.push(Number(progress));
+        }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['aria-valuenow'] });
+    });
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await expect(metric(page, 'velocity')).toHaveText('12.5');
+    const progress: number[] = await page.evaluate(() => Reflect.get(window, 'sprintLoadingProgress'));
+    expect(progress[0]).toBe(0);
+    expect(progress.at(-1)).toBe(100);
+    expect(progress.length).toBeGreaterThan(2);
+    expect(progress.every((value, index) => value >= 0 && value <= 100 && (!index || value > progress[index - 1]))).toBe(true);
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('closed-1');
+    await expect(metric(page, 'planned')).toHaveText('10');
+    await expect(page.locator('.sprint-loading-circle')).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Sprint Analytics', exact: true })).toBeInViewport();
+    await page.evaluate(() => {
+        const original = window.requestAnimationFrame;
+        window.requestAnimationFrame = () => {
+            window.requestAnimationFrame = original;
+            throw new Error('Sprint preparation failed');
+        };
+    });
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('closed-2');
+    await expect(page.getByRole('alert')).toContainText('Sprint preparation failed');
+    await expect(page.locator('[data-sprint-summary]')).toHaveCount(0);
+    await expect(page.locator('.sprint-loading-circle')).toHaveCount(0);
+    await page.getByRole('alert').getByRole('button').click();
+    await expect(metric(page, 'planned')).toHaveText('20');
+});
+
+test('individual Sprint summary, burndown and outcome segments use the single Workitems Detail', async ({ page }) => {
+    await gotoApp(page);
+    const data = sprintExecutionFixture();
+    await seedPortfolioBoards(page, [{ id: 'execution', title: 'Execution', hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'execution' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('s1');
+    await expect(page.locator('[data-sprint-summary] h3')).toHaveText(['Sprint Duration', 'Planned SP', 'Completed SP', 'Capacity SP', 'Completion', 'Completed Workitems', 'Median Cycle Time to Testing', 'Post-Sprint Rework']);
+    await expect(metric(page, 'duration')).toHaveText('5');
+    await expect(metric(page, 'planned')).toHaveText('11');
+    await expect(metric(page, 'capacity')).toHaveText('20');
+    const first = page.locator('[data-burndown-date="2026-01-05"]');
+    await first.focus();
+    await expect(page.locator('[data-sprint-widget="burndown"] .sprint-chart-tooltip')).toHaveText('05/01 · Ideal: 11 SP · Actual: 11 SP');
+    const last = page.locator('[data-burndown-date="2026-01-09"]');
+    await last.focus();
+    await expect(page.locator('[data-sprint-widget="burndown"] .sprint-chart-tooltip')).toContainText('Ideal: 0 SP · Actual: 0 SP');
+    const details = page.locator('[data-sprint-widget="details"]');
+    await page.locator('[data-sprint-widget="outcomes"]').getByRole('group', { name: 'User Stories', exact: true }).getByRole('button').click();
+    await expect(details.getByRole('heading')).toContainText('Sprint Outcomes');
+    await expect(details.locator('[data-dashboard-workitem]')).toHaveCount(1);
+    await expect(details).toContainText('First execution');
+    await page.locator('[data-sprint-widget="scopeChanges"]').getByRole('button', { name: /Added/ }).click();
+    await expect(details.getByRole('heading')).toContainText('Added');
+    await expect(details.locator('[data-dashboard-workitem]')).toHaveCount(0);
+    await expect(page.locator('.sprint-chart-scroll').evaluateAll(elements => elements.every(element => element.scrollWidth <= element.clientWidth + 1))).resolves.toBe(true);
+});
+
+test('scope details open historical work added and deleted during the Sprint', async ({ page }) => {
+    await gotoApp(page);
+    const data = sprintRemovedWorkFixture();
+    await seedPortfolioBoards(page, [{ id: 'removed', title: 'Removed work', hasHandle: true, tasks: data.board.tasks, extensions: data.extensions }], { selectedBoardId: 'removed' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('removed');
+    const scope = page.locator('[data-sprint-widget="scopeChanges"]');
+    await expect(scope.getByRole('button', { name: /Removed/ })).toContainText('1');
+    await expect(scope.getByRole('button', { name: /Removed/ })).toContainText('5 SP');
+    await scope.getByRole('button', { name: /Removed/ }).click();
+    const item = page.locator('[data-sprint-widget="details"] [data-dashboard-workitem="90"]');
+    await expect(item).toContainText('Temporary work');
+    await item.getByRole('button').click();
+    await expect(page.locator('#taskDetailModal')).toBeVisible();
+    await expect(page.locator('#taskDetailModal')).toContainText('Temporary work');
 });
