@@ -31,7 +31,9 @@ export function parseTaskRelations(value: unknown, taskIds?: ReadonlySet<number>
             || (taskIds && (!taskIds.has(entry.sourceId) || !taskIds.has(entry.targetId)))) {
             throw new Error('Invalid extensions.taskRelations: invalid workitem reference or relation.');
         }
-        const { sourceId, targetId, kind } = entry;
+        // Related pairs are undirected: store them once, in ascending order.
+        const { kind } = entry;
+        const [sourceId, targetId] = kind === 'related' ? [Math.min(entry.sourceId, entry.targetId), Math.max(entry.sourceId, entry.targetId)] : [entry.sourceId, entry.targetId];
         const pair = `${Math.min(sourceId, targetId)}:${Math.max(sourceId, targetId)}`;
         if (pairs.has(pair)) throw new Error('Invalid extensions.taskRelations: duplicate pair.');
         pairs.add(pair);

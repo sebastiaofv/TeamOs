@@ -1,6 +1,8 @@
 import { projectIntegrityConflict } from './projectMergeIntegrity';
 import type { BoardData } from './types';
 import { validateBoardData } from './board';
+import { renumberConcurrentWorkitems } from './projectMergeIdentity';
+import { workitemTransitionViolations, WorkitemError } from './workitems';
 import { cloneSerializable, areSerializableValuesEqual as equal } from './serializable';
 
 export type MergeChoice = 'local' | 'external';
@@ -27,16 +29,40 @@ function identity(value: unknown, path: string): string | undefined {
     if (value.sprintId !== undefined && object(value.task)) return `${value.sprintId}:${value.task.permanentId || value.task.id}:${value.at}`;
     if (value.sprintId !== undefined) return `${value.sprintId}:${value.at || ''}`;
     if (object(value.source) && object(value.target)) return `${value.source.permanentId}:${value.target.permanentId}:${value.kind}`;
-    if (value.sourceId !== undefined && value.targetId !== undefined) return `${value.sourceId}:${value.targetId}:${value.kind}`;
+    if (value.sourceId !== undefined && value.targetId !== undefined) {
+        const ids = [value.sourceId, value.targetId];
+        if (value.kind === 'related') ids.sort((a, b) => Number(a) - Number(b));
+        return `${ids[0]}:${ids[1]}:${value.kind}`;
+    }
     if (value.status !== undefined && path === 'board.columns') return String(value.status);
     return undefined;
+}
+
+/** Related pairs are undirected; compare them in ascending order. */
+function canonicalRelations(data: BoardData): BoardData {
+    const relations = data.extensions.taskRelations?.relations;
+    if (!relations?.some((relation) => relation.kind === 'related' && relation.sourceId > relation.targetId)) return data;
+    return { ...data, extensions: { ...data.extensions, taskRelations: { version: 1, relations: relations.map((relation) => relation.kind === 'related' && relation.sourceId > relation.targetId
+        ? { ...relation, sourceId: relation.targetId, targetId: relation.sourceId } : relation) } } };
 }
 
 /** All inputs are normalized versions of the same project, retaining permanent IDs.
  * Decisions are keyed by the three values as well as the entity/field: a decision
  * survives a new disk version only while the conflicting values still match.
  */
-export function mergeProject(base: BoardData, local: BoardData, external: BoardData, options: { decisions?: MergeDecisions; regression?: boolean } = {}): ProjectMerge {
+export function mergeProject(baseInput: BoardData, localInput: BoardData, externalInput: BoardData, options: { decisions?: MergeDecisions; regression?: boolean } = {}): ProjectMerge {
+    const base = canonicalRelations(baseInput);
+    const local = canonicalRelations(localInput);
+    const external = renumberConcurrentWorkitems(base, local, canonicalRelations(externalInput));
+    // A merge may keep what either side already did, but must not create a new violation.
+    // Identity changes are never kept: no writer may change a workitem's type or number.
+    const inherited = new Set([...workitemTransitionViolations(local, base), ...workitemTransitionViolations(external, base)]
+        .filter((violation) => !violation.startsWith('immutable:')));
+    const check = (data: BoardData) => {
+        validateBoardData(data);
+        const created = workitemTransitionViolations(data, base).find((violation) => !inherited.has(violation));
+        if (created) throw new WorkitemError(created.split(':')[0] as WorkitemError['code']);
+    };
     const conflicts: ProjectConflict[] = [];
     let conflictCount = 0;
     const changes: string[] = [];
@@ -108,14 +134,14 @@ export function mergeProject(base: BoardData, local: BoardData, external: BoardD
         conflict('meta.revision', base.meta.revision || 0, local.meta.revision || 0, external.meta.revision || 0, 'regression');
     }
     try {
-        validateBoardData(merged);
+        check(merged);
     } catch (error) {
-        const group = projectIntegrityConflict(merged, base, local, external);
+        const group = projectIntegrityConflict(merged, base, local, external, check);
         const key = JSON.stringify([group.path, group.base, group.local, group.external, 'integrity']);
         const choice = options.decisions?.[key];
         if (choice) {
             const repaired = group.apply(choice);
-            try { validateBoardData(repaired); merged = repaired; }
+            try { check(repaired); merged = repaired; }
             catch { conflicts.push({ key, path: group.path, base: group.base, local: group.local, external: group.external,
                 reason: 'integrity', message: error instanceof Error ? error.message : String(error) }); }
         } else conflicts.push({ key, path: group.path, base: group.base, local: group.local, external: group.external,

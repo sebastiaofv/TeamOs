@@ -6,7 +6,8 @@ import { validateBoardData } from './board';
 import { cloneSerializable, areSerializableValuesEqual as equal } from './serializable';
 
 type Unit = { path: string; read: (data: BoardData) => unknown; write: (data: BoardData, value: unknown) => void };
-const valid = (data: BoardData) => { try { validateBoardData(data); return true; } catch { return false; } };
+type Check = (data: BoardData) => void;
+const validWith = (check: Check) => (data: BoardData) => { try { check(data); return true; } catch { return false; } };
 
 function units(data: BoardData, sides: BoardData[]): Unit[] {
     const result: Unit[] = [];
@@ -58,7 +59,8 @@ function units(data: BoardData, sides: BoardData[]): Unit[] {
     return result;
 }
 
-export function projectIntegrityConflict(merged: BoardData, base: BoardData, local: BoardData, external: BoardData) {
+export function projectIntegrityConflict(merged: BoardData, base: BoardData, local: BoardData, external: BoardData, check: Check = validateBoardData) {
+    const valid = validWith(check);
     const candidates = units(merged, [base, local, external]);
     const required = new Set<Unit>();
     for (const side of [local, external]) {
