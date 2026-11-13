@@ -88,6 +88,11 @@ export function FilterMenu({ fields, activeCount, onClear, panelClassName = '', 
             </Popover.Trigger>
                 <FloatingPanel align="start" ref={panelRef} className={`portfolio-filters-panel${panelClassName ? ` ${panelClassName}` : ''}`} id={scopedId('portfolioFiltersPanel')} role="dialog" aria-labelledby={titleId}
                     onFocusOutside={event => { if (!dismissOnBlur) event.preventDefault(); }}
+                    onCloseAutoFocus={event => {
+                        // A shortcut may move focus before Radix finishes unmounting the panel.
+                        const active = document.activeElement;
+                        if (active && active !== document.body && !panelRef.current?.contains(active)) event.preventDefault();
+                    }}
                     onOpenAutoFocus={event => {
                         if (!focusSort.current) return;
                         event.preventDefault();
