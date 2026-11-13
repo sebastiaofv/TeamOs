@@ -3,12 +3,12 @@ import { unconvertedTimeline } from './legacySequences';
 import { parseHierarchyAutomations } from './hierarchyAutomations';
 import { parseSprintResults } from './sprintResults';
 import { parseProjectControl } from './projectControl';
-import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData, TimelineExtension } from './types';
+import type { BoardData, BoardExtensions, BoardMeta, LooseBoardData, Task, TimelineExtension } from './types';
 import { BOARD_APP_ID, BOARD_SCHEMA_VERSION, DAY_PLANNER_EXTENSION_KEY, DEFAULT_BOARD_TITLE, ROADMAP_EXTENSION_KEY, TIMELINE_EXTENSION_KEY, defaultColumns } from './constants';
 import { getLegacyTaskAttachmentsFromExtensions, stripLegacyTaskAttachmentsFromExtensions } from './attachments';
 import { normalizeColumns } from './board';
 import { normalizeDayPlannerExtension } from './dayPlanner';
-import { normalizeRoadmapExtension } from './roadmap';
+import { normalizeRoadmapExtension, roadmapTaskRefIds } from './roadmap';
 import { normalizeTask } from './task';
 import { migrateBoardData, migrateWorkflowTypes } from './boardMigrations';
 import { isNormalizedTimeline, rememberNormalizedTimeline, normalizeTimelineExtension } from './timelineSchema';
@@ -133,13 +133,15 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
         const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
         const now = nowIso();
         const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
+        const roadmapRefs = roadmapTaskRefIds(roadmap);
         const normalizedColumns = input.extensions?.workflow ? getWorkflow(input).states.map((s) => ({ status: s.id, title: s.name })) : normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
         const normalizedTasks = Array.isArray(board.tasks)
             ? board.tasks.map((task) => normalizeTask(migratedWorkitemStatus(input, task), {
                 fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
                 includeStatusChangedAt: false,
                 workflow: getWorkflow(input, task),
-                roadmap
+                roadmap,
+                roadmapRefs
             }))
             : [];
         const title = typeof settings.title === 'string' && settings.title.trim()
@@ -172,6 +174,52 @@ export function createBoardStateSnapshot(boardData: unknown): BoardData {
     });
 }
 
+/** Reused between consecutive `createBoardAnalysisSnapshot` calls over one replay. */
+export type BoardAnalysisCache = { context?: unknown[]; roadmap?: ReturnType<typeof normalizeRoadmapExtension>; refs?: ReturnType<typeof roadmapTaskRefIds>; tasks: WeakMap<object, Task>; extensions?: { context: unknown[]; value: BoardExtensions } };
+export const createBoardAnalysisCache = (): BoardAnalysisCache => ({ tasks: new WeakMap() });
+// What workflow resolution, hierarchy and phase scope read. Everything else is left out.
+const ANALYSIS_EXTENSIONS = ['workflow', 'functionalWorkflow', 'workflowTypes', ROADMAP_EXTENSION_KEY] as const;
+
+/** A read-only board with the same workitem statuses, types, hierarchy, planning
+ * references, workflows and roadmap as `createBoardStateSnapshot`, for scanning many
+ * replayed states. Workitems whose saved object is unchanged since the previous call
+ * (replay shares unchanged objects) are not normalized again and are shared between
+ * results. Identity and assignment reconciliation, attachments and the remaining
+ * extensions are omitted: present rows and contexts with `createBoardStateSnapshot`. */
+export function createBoardAnalysisSnapshot(boardData: unknown, cache: BoardAnalysisCache): BoardData {
+    return withWorkflowReadCache(() => {
+        const input = migrateWorkflowTypes(migrateProjectData(migrateBoardData((boardData && typeof boardData === 'object' ? boardData : {}) as LooseBoardData)));
+        const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
+        const extensions = (input.extensions && typeof input.extensions === 'object' ? input.extensions : {}) as Record<string, unknown>;
+        const context = [input.meta?.schemaVersion, board.columns, ...ANALYSIS_EXTENSIONS.map((key) => extensions[key])];
+        if (!cache.context || context.some((value, index) => value !== cache.context![index])) {
+            cache.context = context;
+            cache.roadmap = normalizeRoadmapExtension(extensions[ROADMAP_EXTENSION_KEY]);
+            cache.refs = roadmapTaskRefIds(cache.roadmap);
+            cache.tasks = new WeakMap();
+        }
+        const tasks = (Array.isArray(board.tasks) ? board.tasks : []).map((task) => {
+            const cached = task && typeof task === 'object' ? cache.tasks.get(task) : undefined;
+            if (cached) return cached;
+            const normalized = normalizeTask(migratedWorkitemStatus(input, task), { includeStatusChangedAt: false, workflow: getWorkflow(input, task), roadmap: cache.roadmap, roadmapRefs: cache.refs });
+            if (task && typeof task === 'object') cache.tasks.set(task, normalized);
+            return normalized;
+        });
+        const taskIds = tasks.map((task) => task.id);
+        const extensionsContext = [...context.slice(2), ...taskIds];
+        if (!cache.extensions || extensionsContext.length !== cache.extensions.context.length || extensionsContext.some((value, index) => value !== cache.extensions!.context[index])) {
+            const picked = Object.fromEntries(ANALYSIS_EXTENSIONS.filter((key) => key in extensions).map((key) => [key, extensions[key]]));
+            cache.extensions = { context: extensionsContext, value: normalizeBoardExtensionsValue(picked, { includeTimeline: false, taskIds: new Set(taskIds.map(Number)) }) };
+        }
+        const columns = input.extensions?.workflow ? getWorkflow(input).states.map((s) => ({ status: s.id, title: s.name })) : normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
+        return {
+            meta: { schemaVersion: BOARD_SCHEMA_VERSION, appId: BOARD_APP_ID, createdAt: '', updatedAt: '' },
+            board: { columns: columns.map((col) => ({ status: col.status, title: col.title })), tasks, settings: { title: DEFAULT_BOARD_TITLE } },
+            extensions: cache.extensions.value
+        };
+    });
+}
+
 export function serializeBoardDataFromObject(boardData: unknown, options: { reuseTimeline?: boolean } = {}): BoardData {
     return withWorkflowReadCache(() => {
         const now = nowIso();
@@ -182,6 +230,7 @@ export function serializeBoardDataFromObject(boardData: unknown, options: { reus
         const board = (input.board && typeof input.board === 'object' ? input.board : {}) as LooseBoard;
         const settings = (board.settings && typeof board.settings === 'object' ? board.settings : {}) as { title?: unknown };
         const roadmap = normalizeRoadmapExtension(input.extensions?.[ROADMAP_EXTENSION_KEY]);
+        const roadmapRefs = roadmapTaskRefIds(roadmap);
 
         const normalizedColumns = input.extensions?.workflow ? getWorkflow(input).states.map((s) => ({ status: s.id, title: s.name })) : normalizeColumns(Array.isArray(board.columns) ? board.columns : defaultColumns);
         const normalizedTasks = Array.isArray(board.tasks)
@@ -189,7 +238,8 @@ export function serializeBoardDataFromObject(boardData: unknown, options: { reus
                 fallbackAttachments: getLegacyTaskAttachmentsFromExtensions(input, task?.id),
                 includeStatusChangedAt: true,
                 workflow: getWorkflow(input, task),
-                roadmap
+                roadmap,
+                roadmapRefs
             }))
             : [];
         const title = typeof settings.title === 'string' && settings.title.trim()

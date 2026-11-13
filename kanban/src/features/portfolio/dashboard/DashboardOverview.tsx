@@ -20,13 +20,15 @@ function Progress({ value, label }: { value: number | null; label: string }) {
 
 export function DashboardOverview({ historyEventIndex, dependencyBlockedIds, boardId, data, source, start, end, visible, selection, onSelect, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
-    const { metrics, planning, milestones, statistics, epics } = useMemo(() => {
+    const planning = useMemo(() => dashboardOverviewPlanning(data, '', end), [data, end]);
+    const { metrics, statistics, epics } = useMemo(() => {
         const tasks = dashboardTasks(data);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
-        const planning = dashboardOverviewPlanning(data, '', end);
         const statistics = dashboardStatistics(data, '');
-        return { metrics, planning, milestones: dashboardMilestones(data, end, planning.milestones), statistics, epics: dashboardEpics(data) };
+        return { metrics, statistics, epics: dashboardEpics(data) };
     }, [data, end, dependencyBlockedIds]);
+    // History replay depends on the project and report date, independently of dependency blocks.
+    const milestones = useMemo(() => dashboardMilestones(data, end, planning.milestones), [data, end, planning.milestones]);
     const sprints = useMemo(() => dashboardActiveSprints(data, end, start), [data, end, start]);
     const controls = useMemo(() => dashboardControl(data, '', start, end), [data, start, end]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(value)}%`;

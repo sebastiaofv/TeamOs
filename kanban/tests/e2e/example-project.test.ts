@@ -103,9 +103,9 @@ test('imports the historical example, explores native views, saves and reopens i
     await page.screenshot({ path: 'test-results/example-project-reopened.png', fullPage: true });
 });
 
-// Keep the expensive historical Dashboard check separate from the save/reopen journey.
+// Keep the historical Dashboard check separate from the save/reopen journey.
 test('the historical example changes Dashboard counts between June and October', async ({ page }) => {
-    test.setTimeout(600_000);
+    test.setTimeout(120_000);
     await page.clock.setFixedTime(new Date('2026-11-12T10:45:00Z'));
     await gotoApp(page);
     const tree = fixtureTree(root);
@@ -131,4 +131,45 @@ test('the historical example changes Dashboard counts between June and October',
     await expect(page.locator('[data-dashboard-section="activityDetails"]')).toContainText('US-');
     await page.screenshot({ path: 'test-results/example-project-october-dashboard.png', fullPage: true });
     console.info('Example: different October Dashboard verified');
+});
+
+// Issue 104: loading the history from a workitem's History tab froze Dashboard Overview.
+test('Dashboard opens promptly after a workitem History tab loads the full history', async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.clock.setFixedTime(new Date('2026-11-12T10:45:00Z'));
+    await gotoApp(page);
+    const tree = fixtureTree(root);
+    for (const path of Object.keys(tree.files)) if (path.endsWith('.md') || path === 'summary.json') delete tree.files[path];
+    await mockFolderPicker(page, tree);
+    await page.locator('#importProjectsBtn').click();
+    await expectProjectCount(page, 1);
+    await identifyOpenProjects(page);
+    await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
+    const story = project.workitems.find((item: { type: string; title: string }) => item.type === 'story' && item.title.includes('Separar os anexos'));
+    await page.keyboard.press('ControlOrMeta+k');
+    await page.locator('#commandPaletteInput').fill(story.displayId);
+    await page.locator('#commandPalette .palette-item').filter({ hasText: story.title }).first().click();
+    await page.getByRole('tab', { name: 'History', exact: true }).click();
+    await expect(page.locator('.history-entry').first()).toBeVisible({ timeout: 15_000 });
+    await page.locator('#taskDetailModalCloseBtn').click();
+    const opened = Date.now();
+    await page.locator('[data-view-mode="dashboard"]').click();
+    const summary = page.locator('[data-dashboard-section="activitySummary"]');
+    await expect(summary).toBeVisible({ timeout: 10_000 });
+    await summary.getByRole('button', { name: /^Completed/ }).click();
+    await expect(page.locator('[data-dashboard-section="activityDetails"]')).toContainText('US-', { timeout: 10_000 });
+    console.info(`Example: Overview rendered ${Date.now() - opened} ms after opening the Dashboard`);
+    // The page stays responsive: changing the period recalculates.
+    const started = summary.getByRole('button', { name: /^Started/ });
+    const lastWeek = await started.innerText();
+    await setDashboardDate(page, 'Start date', '01/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
+    await expect(started).not.toHaveText(lastWeek, { timeout: 10_000 });
+    // Sprint scope changes replay the same history (Sprint 4 ran within the October period).
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('sprint-4');
+    const scope = page.locator('[data-sprint-widget="scopeChanges"]');
+    await expect(scope).toBeVisible({ timeout: 10_000 });
+    await scope.getByRole('button', { name: /^Initial scope/ }).click();
+    await expect(page.locator('[data-sprint-widget="details"] [data-dashboard-workitem]').first()).toBeVisible({ timeout: 10_000 });
 });

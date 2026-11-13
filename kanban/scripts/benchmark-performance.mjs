@@ -54,6 +54,23 @@ try {
             }
             results.push({ scenario: 'dashboard history', tasks: 20, events, medianMs: samples.sort((a, b) => a - b)[1] });
         }
+        // Overview period activity over a loaded history (issue 104): every event moves one workitem.
+        for (const events of [500, 2000]) {
+            const data = fixture(400, 0);
+            const statuses = ['to-do', 'doing', 'done'];
+            ensureBoardTimelineBaseline(data).events.push(...Array.from({ length: events }, (_, index) => {
+                const id = index % 400 + 1, step = Math.floor(index / 400);
+                return { id: `s-${index}`, at: `2026-11-${String(1 + Math.floor(index * 12 / events)).padStart(2, '0')}T10:00:00.000Z`, kind: 'task.status.changed', entityType: 'task', entityId: String(id), summary: 'Status changed', changes: { status: { before: statuses[step % 3], after: statuses[(step + 1) % 3] } } };
+            }));
+            const { dashboardPeriodWorkitems } = await import('/src/domain/dashboardOverview.ts');
+            const samples = [];
+            for (let index = 0; index < 3; index++) {
+                const start = performance.now();
+                dashboardPeriodWorkitems(data, data, '', '2026-11-05', '2026-11-12');
+                samples.push(performance.now() - start);
+            }
+            results.push({ scenario: 'dashboard period activity', tasks: 400, events, medianMs: samples.sort((a, b) => a - b)[1] });
+        }
         return results;
     });
     console.table(results.map((result) => ({ ...result, medianMs: Number(result.medianMs.toFixed(2)) })));

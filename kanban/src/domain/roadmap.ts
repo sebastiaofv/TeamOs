@@ -416,14 +416,26 @@ export function normalizeRoadmapExtension(value: unknown): RoadmapExtension | nu
     };
 }
 
-export function clearInvalidRoadmapTaskRefs<T extends Partial<Record<RoadmapTaskField, string>>>(normalizedTask: T, roadmap: unknown): T {
-    if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
-    const normalizedRoadmap = normalizeRoadmapExtension(roadmap);
-    if (!normalizedRoadmap) return normalizedTask;
+/** The planning ids a workitem may reference; null when the board has no roadmap. */
+export type RoadmapTaskRefIds = { phaseIds: ReadonlySet<string>; milestoneIds: ReadonlySet<string>; sprintIds: ReadonlySet<string> } | null;
 
-    const phaseIds = new Set(normalizedRoadmap.phases.map((phase) => phase.id));
-    const milestoneIds = new Set(normalizedRoadmap.milestones.map((milestone) => milestone.id));
-    const sprintIds = new Set(normalizedRoadmap.sprints.map((sprint) => sprint.id));
+export function roadmapTaskRefIds(roadmap: unknown): RoadmapTaskRefIds {
+    const normalizedRoadmap = normalizeRoadmapExtension(roadmap);
+    if (!normalizedRoadmap) return null;
+    return {
+        phaseIds: new Set(normalizedRoadmap.phases.map((phase) => phase.id)),
+        milestoneIds: new Set(normalizedRoadmap.milestones.map((milestone) => milestone.id)),
+        sprintIds: new Set(normalizedRoadmap.sprints.map((sprint) => sprint.id))
+    };
+}
+
+/** Pass `refs` when normalizing many workitems against one roadmap: normalizing the
+ * roadmap is far more expensive than the workitem itself. */
+export function clearInvalidRoadmapTaskRefs<T extends Partial<Record<RoadmapTaskField, string>>>(normalizedTask: T, roadmap: unknown, refs?: RoadmapTaskRefIds): T {
+    if (!normalizedTask || typeof normalizedTask !== 'object' || Array.isArray(normalizedTask)) return normalizedTask;
+    const ids = refs === undefined ? roadmapTaskRefIds(roadmap) : refs;
+    if (!ids) return normalizedTask;
+    const { phaseIds, milestoneIds, sprintIds } = ids;
 
     if (normalizedTask.phaseId && !phaseIds.has(normalizedTask.phaseId)) {
         normalizedTask.phaseId = '';

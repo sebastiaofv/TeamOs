@@ -6,6 +6,7 @@ import { loadDirectoryHistory, openProjectDirectory } from '../../src/infrastruc
 import { MemoryDirectory, MemoryFile } from '../support/projectDirectory';
 import { reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 import { dashboardPeriodWorkitems, dashboardSnapshot, dashboardMilestones } from '../../src/domain/dashboardOverview';
+import { dashboardHistorySummary, dashboardSprintScopeChanges } from '../../src/domain/dashboard';
 import { validateBoardData } from '../../src/domain/board';
 import { visibleComments } from '../../src/domain/comments';
 import { allSprintAnalytics } from '../../src/domain/sprintAnalytics';
@@ -88,4 +89,30 @@ describe('the TeamOS historical example', () => {
         expect(elapsed).toBeLessThan(120_000);
     }, 150_000);
 
+    // Issue 104: with the full history loaded, these took 3-75 s each and froze the
+    // Dashboard. Counts preserve this branch's Bug, Testing and creation activity rules.
+    it('reports period activity, history counts and Sprint scope changes over the loaded history without freezing', async () => {
+        const data = await openExample();
+        const phases = (data.extensions.roadmap?.phases || []).map((phase) => phase.id);
+        const elapsed: number[] = [];
+        const measure = <T,>(run: () => T) => { const start = performance.now(); const value = run(); elapsed.push(performance.now() - start); return value; };
+        const counts = ([start, end, phase]: [string, string, string]) => {
+            const report = measure(() => dashboardPeriodWorkitems(data, dashboardSnapshot(data, end, '2026-11-12')!.data, phase, start, end));
+            expect([...report.contexts.keys()].sort()).toEqual([...new Set([...report.created, ...report.started, ...report.completed, ...report.testing].map((task) => task.id))].sort());
+            return [report.started.length, report.completed.length, report.testing.length, report.created.length];
+        };
+        expect(counts(['2026-11-05', '2026-11-12', ''])).toEqual([15, 12, 11, 9]);
+        expect(counts(['', '2026-11-12', ''])).toEqual([54, 46, 40, 49]);
+        expect(counts(['', '2026-11-12', phases[8]])).toEqual([4, 4, 2, 2]);
+        expect(counts(['2026-10-01', '2026-10-31', ''])).toEqual([22, 16, 14, 23]);
+        expect(counts(['2026-10-01', '2026-10-31', phases[15]])).toEqual([1, 0, 0, 1]);
+        expect(measure(() => dashboardSprintScopeChanges(data, 'sprint-6')).length).toBe(39);
+        expect(measure(() => dashboardSprintScopeChanges(data, 'sprint-1')).length).toBe(20);
+        const history = measure(() => dashboardHistorySummary(data, '', '2026-11-05', '2026-11-12'));
+        expect(history).toHaveLength(581);
+        expect(history.at(-1)).toMatchObject({ index: 2027, completed: 285, open: 47 });
+        expect(measure(() => dashboardHistorySummary(data, phases[15], '2026-10-01', '2026-10-31')).at(-1)).toMatchObject({ index: 1250, completed: 0, open: 10, percent: 0 });
+        // Generous for slow CI machines; each one now takes well under a second.
+        expect(Math.max(...elapsed)).toBeLessThan(5_000);
+    }, 60_000);
 });
