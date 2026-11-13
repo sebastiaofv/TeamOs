@@ -34,17 +34,19 @@ function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: Bo
 export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, phaseId, start, end, visible, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
     const [control, setControl] = useState<ControlRecord | null>(null);
-    const { metrics, planning, statistics, period, current, controls, sprints } = useMemo(() => {
+    // The period replays the project history: keep it apart so unrelated inputs, such as
+    // dependency blocks recomputed on every portfolio change, never trigger a replay.
+    const period = useMemo(() => dashboardPeriodWorkitems(source, data, phaseId, start, end), [source, data, phaseId, start, end]);
+    const { metrics, planning, statistics, current, controls, sprints } = useMemo(() => {
         const tasks = dashboardTasks(data, phaseId);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
         const planning = dashboardOverviewPlanning(data, phaseId, end);
         const statistics = dashboardStatistics(data, phaseId);
-        const period = dashboardPeriodWorkitems(source, data, phaseId, start, end);
         const current = tasks.filter((task) => dashboardReportable(data, task) && statusCategory(task.status, data, task) === 'in-progress');
         const controls = dashboardControl(data, phaseId, start, end);
         const sprints = dashboardSprints(data, phaseId, end).filter((sprint) => sprint.status === 'active' && (!phaseId || sprint.tasks.length || sprint.item.parentId === phaseId));
-        return { metrics, planning, statistics, period, current, controls, sprints };
-    }, [data, source, phaseId, start, end, dependencyBlockedIds]);
+        return { metrics, planning, statistics, current, controls, sprints };
+    }, [data, phaseId, start, end, dependencyBlockedIds]);
     const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value)}%`;
     const warning = <span className="dashboard-warning">⚠ {t('dashboard.overdue')}</span>;
     const categoryLabel = (category: string) => t(category === 'in-progress' ? 'dashboard.inProgress' : category === 'pending' ? 'dashboard.pending' : category === 'cancelled' ? 'dashboard.cancelled' : 'dashboard.completed');

@@ -300,7 +300,8 @@ export function getBoardTimelineData(boardData: LooseBoardData | null | undefine
 }
 
 /** One forward replay for reports. Snapshots omit conversation/history payloads;
- * opening an observation still uses the complete standalone projection below. */
+ * opening an observation still uses the complete standalone projection below.
+ * `state` is the raw replayed state, for scans that normalize less than `snapshot`. */
 export function* iterateBoardTimeline(boardData: BoardData, include: (event: TimelineEvent, index: number) => boolean = () => true) {
     const timeline = getBoardTimelineData(boardData);
     if (!timeline?.events[0]?.snapshot?.board) return;
@@ -311,7 +312,7 @@ export function* iterateBoardTimeline(boardData: BoardData, include: (event: Tim
         if (!include(event, index)) continue;
         const replay = state;
         let snapshot: BoardData | undefined;
-        yield { index, event, get snapshot() {
+        yield { index, event, state: replay, get snapshot() {
             if (!snapshot) {
                 snapshot = createBoardStateSnapshot(replay);
                 if (snapshot.extensions.project && boardData.extensions.project) snapshot.extensions.project.id = boardData.extensions.project.id;
