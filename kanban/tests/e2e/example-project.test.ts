@@ -81,7 +81,11 @@ test('imports the historical example, explores native views, saves and reopens i
     await page.locator('#taskDetailEditBtn').click();
     await page.locator('#taskName').fill('Checklist de lançamento — reabertura verificada');
     await page.locator('#taskModal .btn-primary').click();
-    await expect.poll(async () => (await readFolderJson(page, 'project.json')).workitems.find((item: { id: number }) => item.id === candidate.id).title).toBe('Checklist de lançamento — reabertura verificada');
+    // The native example writes its full project and attachment metadata; slower CI runners
+    // can still be saving when the default five-second assertion budget expires.
+    const saveStarted = Date.now();
+    await expect.poll(async () => (await readFolderJson(page, 'project.json')).workitems.find((item: { id: number }) => item.id === candidate.id).title, { timeout: 30_000 }).toBe('Checklist de lançamento — reabertura verificada');
+    console.info(`Example: native project save completed in ${Date.now() - saveStarted} ms`);
     const saved = await readFolderJson(page, 'project.json');
     expect(saved.comments).toHaveLength(project.comments.length);
     if (await page.locator('#taskDetailModalCloseBtn').isVisible()) await page.locator('#taskDetailModalCloseBtn').click();
