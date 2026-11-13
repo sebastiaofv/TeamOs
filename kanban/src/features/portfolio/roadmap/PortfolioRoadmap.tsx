@@ -212,9 +212,9 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
         <div ref={controls.ref} className="roadmap-view-controls">
             <label>{t('roadmap.labelWidth')}<input aria-label={t('roadmap.labelWidth')} type="range" min="280" max="720" step="10" value={labelWidth ?? view.labelWidth} onChange={(event) => setLabelWidth(Number(event.target.value))} /></label>
             <label>{t('roadmap.zoom')}<select aria-label={t('roadmap.zoom')} value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3].map((value) => <option value={value} key={value}>{value * 100}%</option>)}</select></label>
+            <div className="roadmap-completion-controls"><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(true, view.projects ? undefined : view.boardId)}>{t('roadmap.expandAll')}</button><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(false, view.projects ? undefined : view.boardId)}>{t('roadmap.collapseAll')}</button></div>
             {!view.projects && <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.milestone') })} onClick={() => actions.openRoadmapEntityModal('milestones')}><WorkspaceIcon name="plus" />{t('roadmap.milestone')}</button>}
             {!view.projects && <button className="btn btn-primary roadmap-create-btn" type="button" disabled={!canEdit} aria-label={t('roadmap.addAria', { label: t('roadmap.phase') })} onClick={() => actions.openRoadmapEntityModal('phases')}><WorkspaceIcon name="plus" />{t('roadmap.phase')}</button>}
-            {view.projects && <div className="roadmap-completion-controls"><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(true)}>{t('roadmap.expandAll')}</button><button className="btn" type="button" onClick={() => setAllRoadmapProjectsExpanded(false)}>{t('roadmap.collapseAll')}</button></div>}
         </div>
         <div className="portfolio-roadmap-timeline surface-page surface-border" style={style}>
             <div className="roadmap-temporal-overlay" aria-hidden="true">
@@ -229,7 +229,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
                 <div ref={axis.ref} className="roadmap-axis" data-roadmap-axis="shared">
                     {marker && <span className="roadmap-today-axis-line" style={{ left: `${marker.position}%` }} aria-hidden="true" />}
                     <div className="roadmap-axis-line">
-                        <div className="roadmap-axis-years">{yearTicks.map((tick) => <span className="roadmap-axis-year" key={tick.label} style={{ left: `${tick.position}%`, ...(tick.position > 95 ? { transform: 'translateX(-100%)' } : {}) }}>{tick.label}</span>)}</div>
+                        <div className="roadmap-axis-years">{yearTicks.map((tick) => <span className="roadmap-axis-year" key={tick.label} style={{ left: `${tick.position}%`, ...(tick.position > 95 || (100 - tick.position) * axis.width / 100 < 32 ? { transform: 'translateX(-100%)' } : {}) }}>{tick.label}</span>)}</div>
                         {marker && <span className="roadmap-today-marker-label" style={{ left: `${marker.position}%` }} aria-label={t('roadmap.todayAria', { date: marker.iso })}>T</span>}
                         <div className="roadmap-axis-ticks">{axisTicks.map((tick) => <span className={`roadmap-axis-tick${tick.position === 0 ? ' roadmap-tick-first' : tick.position === 100 ? ' roadmap-tick-last' : ''}`} key={tick.position} style={{ left: `${tick.position}%` }}><span className="roadmap-axis-date-label">{tick.label}</span></span>)}</div>
                     </div>
@@ -241,7 +241,7 @@ function PortfolioRoadmapView({ view }: { view: PortfolioRoadmapViewModel }) {
             </div>
             {view.projects ? <div className="roadmap-list">{view.projects.length
                 ? view.projects.map((project) => <ProjectGroup key={project.view.boardId} project={project} view={view} />)
-                : <p className="roadmap-empty">{t('roadmap.noActiveProjects')}</p>}</div> : (['phases', 'sprints'] as const).map((kind) => {
+                : <p className="roadmap-empty">{t('roadmap.noVisibleProjects')}</p>}</div> : (['phases', 'sprints'] as const).map((kind) => {
                 const rows = kind === 'phases' ? view.phaseRows : view.sprintRows;
                 const label = t(kind === 'phases' ? 'roadmap.phase' : 'roadmap.sprint');
                 return <section className="roadmap-section" data-roadmap-kind={kind} key={kind} aria-label={t(kind === 'phases' ? 'roadmap.phases' : 'roadmap.sprints')}>

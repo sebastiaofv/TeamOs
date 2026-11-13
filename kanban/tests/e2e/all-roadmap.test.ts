@@ -41,6 +41,8 @@ test('ALL Roadmap groups active projects, drills into completed work and preserv
 
     const earlier = projects.first(); const later = projects.last();
     await earlier.getByRole('button', { name: 'Expand/collapse project Earlier' }).click();
+    await expect(earlier.locator('[data-roadmap-kind="phase"]')).toHaveCount(1);
+    await earlier.getByRole('button', { name: 'Expand/collapse subphases of Delivery' }).click();
     await expect(earlier.locator('[data-roadmap-kind="phase"]')).toHaveCount(3);
     await expect(later.locator('[data-roadmap-kind="phase"]')).toHaveCount(0);
     await earlier.locator('[data-roadmap-id="done"] .roadmap-disclosure-btn').click();
@@ -90,11 +92,11 @@ test('ALL Roadmap explains empty active projects and an empty portfolio scope', 
     await expect(page.locator('#portfolioRoadmapView')).toContainText('No phases in this project yet.');
 });
 
-test('ALL Roadmap explains when no loaded project is Active', async ({ page }) => {
+test('ALL Roadmap explains when every loaded project is excluded', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [project('Inactive', 'paused')]);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
-    await expect(page.locator('#portfolioRoadmapView')).toContainText('No active projects.');
+    await expect(page.locator('#portfolioRoadmapView')).toContainText('No projects to display.');
 });
 
 

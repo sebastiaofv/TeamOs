@@ -11,6 +11,7 @@ import { getSelectedPortfolioTimelineView } from './portfolioTimelineViews';
 import { buildPortfolioRowsFromBoardData, getBoardRecord, type SelectorState } from './portfolioRowViews';
 import {
     createEmptyRoadmapExtension,
+    isRoadmapProjectVisible,
     getRoadmapAxisTicks,
     getRoadmapExtension,
     getVisibleRoadmapDateRange,
@@ -74,10 +75,10 @@ export function buildPortfolioRoadmapView(state: SelectorState): PortfolioRoadma
         return [...groups].map(([id, members]) => ({ ...scope(`${kind}:${id || 'none'}`, roadmap[kind].find((item) => item.id === id) || null, members), referenceId: id }))
             .sort((a, b) => a.item && b.item ? compareRoadmapItemsByDate(a.item, b.item) : a.item ? -1 : b.item ? 1 : 0);
     }
-    const tree = phaseTreeRows(roadmap.phases, new Set(roadmap.phases.filter((phase) => expanded[`tree:${phase.id}`]).map((phase) => phase.id)));
+    const tree = phaseTreeRows(roadmap.phases, new Set(roadmap.phases.filter((phase) => expanded[`tree:${phase.id}`] !== false).map((phase) => phase.id)));
     const phaseRows: RoadmapPlanningRow[] = tree.map(({ item, depth, hasChildren }) => {
         const tasks = getRoadmapTaskFieldTasks(boardData, 'phaseId', item.id);
-        return { ...scope(`phase:${item.id}`, item, tasks), kind: 'phases', depth, hasChildren, treeCollapsed: Boolean(expanded[`tree:${item.id}`]), expanded: Boolean(expanded[`phase:${item.id}`]),
+        return { ...scope(`phase:${item.id}`, item, tasks), kind: 'phases', depth, hasChildren, treeCollapsed: expanded[`tree:${item.id}`] !== false, expanded: Boolean(expanded[`phase:${item.id}`]),
             sprintGroups: [...grouped(tasks, 'sprints'), ...roadmap.sprints.filter((sprint) => sprint.parentId === item.id && !tasks.some((task) => task.sprintId === sprint.id)).map((sprint) => scope(`sprint:${sprint.id}`, sprint, getRoadmapTaskFieldTasks(boardData, 'sprintId', sprint.id)))], milestoneGroups: grouped(tasks, 'milestones') };
     });
     // Every Sprint gets its own row, including those nested in a Phase, so its
@@ -110,15 +111,16 @@ export function getRoadmapExtensionOrEmpty(boardData: BoardData | null | undefin
 /** Project master rows are projections only: never add synthetic phases to project data. */
 function buildAllProjectsRoadmapView(state: SelectorState): PortfolioRoadmapViewModel {
     const projects: RoadmapProjectGroup[] = (state?.portfolioBoards || [])
-        .filter((board) => board.data.extensions.project?.status === 'active')
-        .map((board) => {
+        .map((board, loadIndex) => ({ board, loadIndex }))
+        .filter(({ board }) => isRoadmapProjectVisible(board.data.extensions.project?.status))
+        .map(({ board, loadIndex }) => {
             // ALL always consults live projects, independently of a project's historical preview.
             const view = buildPortfolioRoadmapView({ ...state, selectedPortfolioBoardId: board.id, portfolioTimelineSelection: { boardId: '', eventIndex: null } })!;
             const starts = view.roadmap.phases.map((phase) => phase.startDate!).sort();
             const ends = view.roadmap.phases.map((phase) => phase.endDate!).sort();
             return {
                 view,
-                item: { id: board.id, title: view.boardTitle, startDate: starts[0], endDate: ends.at(-1) },
+                item: { id: board.id, title: view.boardTitle, startDate: starts[0], endDate: ends.at(-1), color: `hsl(${loadIndex * 137.508 % 360} 65% 45%)` },
                 progress: planningProgress(board.data.board.tasks, board.data),
                 expanded: Boolean(state?.portfolioRoadmapExpandedRowsByBoardId?.[board.id]?.project)
             };

@@ -139,7 +139,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
     const sprintTrigger = useRef<HTMLButtonElement>(null);
     const pendingSprintAction = useRef<(() => void) | null>(null);
     const preferenceScope = `${boardData.extensions.project?.id || boardId}.${preferenceContext || scope || 'all'}`;
-    const filters = useAppStore(state => state.tableFiltersByScope[preferenceScope] || DEFAULT_TABLE_FILTER_STATE);
+    const filters = useAppStore(state => bare ? DEFAULT_TABLE_FILTER_STATE : state.tableFiltersByScope[preferenceScope] || DEFAULT_TABLE_FILTER_STATE);
     useEffect(() => { if (!hidden && !bare) useAppStore.setState({ activeTableFilterScope: preferenceScope }); }, [hidden, bare, preferenceScope]);
     const [selectedColumns, setColumns] = useState<TableColumnId[]>(() => normalizeTableColumns(readTableColumnPreferences(preferenceScope) ?? readTableColumnPreferences() ?? (compact ? TABLE_COLUMNS.filter((column) => ['id', 'title', 'type', 'status', 'responsible'].includes(column)) : undefined)));
     const columns = fixedColumns ? [...fixedColumns] : selectedColumns.filter((column) => column !== 'archived' && (!bare || column !== 'story'));
@@ -198,7 +198,10 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
         if (column === 'status') return row.columnTitle || row.task.status;
         if (column === 'priority' && row.task.priority) return t(PRIORITY_LABELS[row.task.priority]);
         if (column === 'blocked' || column === 'dependencyBlocked' || column === 'archived') return t(value === 'true' ? 'common.yes' : 'common.no');
-        if (column === 'createdAt' || column === 'updatedAt') return formatTableTimestamp(value) || t('table.notDefined');
+        if (column === 'createdAt' || column === 'updatedAt') {
+            const timestamp = formatTableTimestamp(value);
+            return (bare ? timestamp.split(' ')[0] : timestamp) || t('table.notDefined');
+        }
         return value;
     }
     async function exportCsv() {
@@ -215,8 +218,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
 
     return (
         <QueryFilterContext.Provider value={{ filters, setFilter: (key, value) => setTableFilter(key, value, preferenceScope), clearPanel: () => clearTablePanelFilters(preferenceScope) }}>
-        <div className={`table-panel${compact ? ' table-panel-compact' : ''}`} data-table-filter-scope={preferenceScope} onFocusCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })} onPointerDownCapture={() => useAppStore.setState({ activeTableFilterScope: preferenceScope })}>
-            {bare && <div className="table-heading"><PortfolioQueryControls active={!hidden} scope={scope} iconOnlyFilters /></div>}
+        <div className={`table-panel${compact ? ' table-panel-compact' : ''}`} data-table-filter-scope={preferenceScope} onFocusCapture={() => { if (!bare) useAppStore.setState({ activeTableFilterScope: preferenceScope }); }} onPointerDownCapture={() => { if (!bare) useAppStore.setState({ activeTableFilterScope: preferenceScope }); }}>
             {!bare && <details className={compact ? 'table-compact-tools' : 'table-tools-expanded'} open={compact ? undefined : true}>
                 <summary className="btn" hidden={!compact}>{t('roadmap.tableOptions')}</summary>
                 <div className="table-heading">

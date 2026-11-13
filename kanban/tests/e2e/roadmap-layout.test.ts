@@ -12,6 +12,7 @@ test.beforeEach(async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'layout', title: fixture.board.settings.title, hasHandle: true, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'layout' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
 });
 
 test('long timelines keep year labels separate at every viewport and zoom', async ({ page }) => {

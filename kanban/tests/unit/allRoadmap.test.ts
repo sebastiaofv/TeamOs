@@ -4,9 +4,10 @@ import { createEmptyProjectData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
 import type { ProjectStatus } from '@/domain/types';
 import type { BoardRecord } from '@/features/portfolio/types';
-import { createAppStore } from '@/features/portfolio/state/store';
+import { createAppStore, useAppStore } from '@/features/portfolio/state/store';
 import { buildPortfolioRoadmapView } from '@/features/portfolio/queries/portfolioRoadmapViews';
 import { createPortfolioControlActions } from '@/features/portfolio/commands/portfolioControls';
+import { setAllRoadmapProjectsExpanded, navigateToRoadmapItem } from '@/features/portfolio/commands/roadmapNavigation';
 import { updatePortfolioUrlState } from '@/features/portfolio/commands/portfolioNavigation';
 
 function project(id: string, status: ProjectStatus | null = 'active', start = '2026-02-01') {
@@ -26,12 +27,20 @@ function project(id: string, status: ProjectStatus | null = 'active', start = '2
 }
 
 describe('ALL Roadmap', () => {
-    it('includes only explicitly active projects, sorted by phase start, initially collapsed', () => {
+    it('excludes only paused, completed and archived projects, sorted by phase start, initially collapsed', () => {
         const boards = [project('later'), project('paused', 'paused'), project('early', 'active', '2026-01-01'), project('completed', 'completed'), project('planned', 'planned'), project('archived', 'archived'), project('legacy', null)];
         const before = structuredClone(boards);
         const view = buildPortfolioRoadmapView({ portfolioBoards: boards })!;
-        expect(view.projects!.map(({ view }) => view.boardId)).toEqual(['early', 'later']);
+        expect(view.projects!.map(({ view }) => view.boardId)).toEqual(['early', 'later', 'legacy', 'planned']);
         expect(view.projects!.every(({ expanded }) => !expanded)).toBe(true);
+        expect(view.projects!.every(({ view }) => view.phaseRows.length === 1 && view.phaseRows[0].treeCollapsed)).toBe(true);
+        expect(new Set(view.projects!.map(({ item }) => item.color)).size).toBe(4);
+        const earlyColour = view.projects![0].item.color;
+        const shifted = structuredClone(boards);
+        for (const phase of shifted[2].data.extensions.roadmap!.phases) { phase.startDate = '2026-05-01'; phase.endDate = '2026-06-01'; }
+        const reordered = buildPortfolioRoadmapView({ portfolioBoards: shifted })!;
+        expect(reordered.projects!.at(-1)!.view.boardId).toBe('early');
+        expect(reordered.projects!.at(-1)!.item.color).toBe(earlyColour);
         expect(view.range.start.toISOString().slice(0, 10)).toBe('2026-01-01');
         expect(view.range.end.toISOString().slice(0, 10)).toBe('2026-06-01');
         expect(view.projects![0].item).toMatchObject({ startDate: '2026-01-01', endDate: '2026-06-01' });
@@ -43,7 +52,7 @@ describe('ALL Roadmap', () => {
     it('keeps project, subphase and workitem expansion independent with project-specific workitem context', () => {
         const boards = [project('alpha'), project('beta')];
         const view = buildPortfolioRoadmapView({ portfolioBoards: boards, portfolioRoadmapExpandedRowsByBoardId: {
-            alpha: { project: true, 'phase:done': true }, beta: { 'tree:parent': true }
+            alpha: { project: true, 'tree:parent': false, 'phase:done': true }, beta: { 'tree:parent': true }
         } })!;
         const [alpha, beta] = view.projects!;
         expect(alpha.expanded).toBe(true); expect(beta.expanded).toBe(false);
@@ -62,6 +71,30 @@ describe('ALL Roadmap', () => {
         expect(view.projects).toHaveLength(1); expect(view.projects![0].progress.percent).toBeNull();
         expect(view.projects![0].item.startDate).toBeUndefined(); expect(view.projects![0].view.phaseRows).toEqual([]);
         expect(buildPortfolioRoadmapView({ portfolioBoards: [project('paused', 'paused')] })!.projects).toEqual([]);
+    });
+
+    it('expands and collapses the selected project independently and applies ALL controls to planned projects', () => {
+        const previous = useAppStore.getState();
+        const boards = [project('planned', 'planned'), project('paused', 'paused')];
+        try {
+            useAppStore.setState({ portfolioBoards: boards, portfolioRoadmapExpandedRowsByBoardId: {} });
+            setAllRoadmapProjectsExpanded(true);
+            expect(useAppStore.getState().portfolioRoadmapExpandedRowsByBoardId).toEqual({ planned: {
+                project: true, 'tree:parent': false, 'tree:done': false, 'tree:future': false
+            } });
+            setAllRoadmapProjectsExpanded(true, 'paused');
+            expect(buildPortfolioRoadmapView({ ...useAppStore.getState(), selectedPortfolioBoardId: 'paused' })!.phaseRows).toHaveLength(3);
+            navigateToRoadmapItem('paused', 'phases', 'done', boards[1].data);
+            setAllRoadmapProjectsExpanded(false, 'paused');
+            const rows = useAppStore.getState().portfolioRoadmapExpandedRowsByBoardId;
+            expect(rows.planned.project).toBe(true);
+            expect(rows.planned['tree:parent']).toBe(false);
+            expect(rows.paused['tree:parent']).toBe(true);
+            expect(rows.paused['phase:done']).toBe(false);
+            navigateToRoadmapItem('paused', 'phases', 'done', boards[1].data);
+            const selected = buildPortfolioRoadmapView({ ...useAppStore.getState(), selectedPortfolioBoardId: 'paused' })!;
+            expect(selected.phaseRows.find(row => row.item?.id === 'done')?.expanded).toBe(true);
+        } finally { useAppStore.setState(previous, true); }
     });
 
     it('keeps Roadmap selected in ALL and persists it in the URL', () => {

@@ -53,7 +53,7 @@ describe('Roadmap clarification view models', () => {
         store.setState({ portfolioRoadmapExpandedRowsByBoardId: { p: { 'tree:engineering': true, 'phase:api': true } } });
         expect(view().phaseRows.some((row) => row.item?.id === 'api')).toBe(false);
         expect(view().labelWidth).toBe(width);
-        store.setState({ portfolioRoadmapExpandedRowsByBoardId: { p: { 'tree:engineering': false, 'phase:api': true } } });
+        store.setState({ portfolioRoadmapExpandedRowsByBoardId: { p: { 'tree:delivery': false, 'tree:engineering': false, 'phase:api': true } } });
         expect(view().phaseRows.find((row) => row.item?.id === 'api')!.expanded).toBe(true);
     });
     it('saves a parent-only edit and preserves the workitem associations on the moved leaf', async () => {
@@ -63,6 +63,7 @@ describe('Roadmap clarification view models', () => {
         await actions.saveRoadmapEntity({ kind: 'phases', itemId: 'future', title: 'Future work', startDate: '2026-12-01', endDate: '2026-12-20', parentId: 'delivery' });
         const data = store.getState().portfolioBoards[0].data;
         expect(data.extensions.roadmap!.phases.find((phase) => phase.id === 'future')!.parentId).toBe('delivery');
+        expect(buildPortfolioRoadmapView(store.getState())!.phaseRows.some(row => row.item?.id === 'future')).toBe(true);
         expect(data.extensions.roadmap!.phases.find((phase) => phase.id === 'delivery')!.endDate).toBe('2026-12-20');
         expect(data.board.tasks.find((task) => task.id === 507)!.phaseId).toBe('future');
         expect(data.extensions.timeline!.events.some((event) => event.kind === 'roadmap.updated')).toBe(true);

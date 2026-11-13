@@ -102,17 +102,18 @@ test('creates functional Bugs with a child execution Task and removes severity',
     await expect(page.locator('.workitem-child-section li')).toHaveCount(2);
 });
 
-test('shows a filterable workitem table under leaf phases and integrates Task-only Calendar and heatmap', async ({ page }) => {
+test('shows a simplified workitem table under leaf phases and integrates Task-only Calendar and heatmap', async ({ page }) => {
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Planning', hasHandle: true, members: ['Ana'], extensions: { roadmap: planning }, tasks: [
         { id: 1, title: 'Task deadline', status: 'to-do', dueDate: '2026-11-15', phaseId: 'leaf' },
         { id: 2, title: 'Story deadline', type: 'story', status: 'to-do', dueDate: '2026-11-15', phaseId: 'leaf' }
     ] }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode="roadmap"]').click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     await page.getByRole('button', { name: 'Show tasks for Implementation' }).click();
     const area = page.locator('[data-roadmap-task-list="phase:leaf"]');
     await expect(area.locator('table')).toBeVisible();
     await expect(area.getByRole('columnheader', { name: 'User Story', exact: true })).toHaveCount(0);
-    await expect(area.locator('[data-portfolio-filter-trigger]')).toBeVisible();
+    await expect(area.locator('[data-portfolio-filter-trigger], input[type=search]')).toHaveCount(0);
     await expect(page.locator('[data-roadmap-task-list="phase:parent"]')).toHaveCount(0);
     await page.locator('[data-view-mode="planner"]').click();
     await expect(page.getByLabel('Include Stories and Epics')).toHaveCount(0);

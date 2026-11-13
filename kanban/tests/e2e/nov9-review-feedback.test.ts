@@ -34,7 +34,7 @@ for (const count of [1, 2, 3]) test(`milestone strip fits ${count} same-day diam
     expect(await page.getByRole('tooltip').evaluate(el => el.scrollHeight <= el.clientHeight && el.scrollWidth <= el.clientWidth)).toBe(true);
 });
 
-test('parent phase workitem table is independent of child expansion and has both blocking columns and filters', async ({ page }) => {
+test('parent phase workitem table is independent of child expansion and has both blocking columns without filters', async ({ page }) => {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: 'Tree', tasks: [{ id: 1, title: 'Descendant work', phaseId: 'leaf', phaseMode: 'explicit' }], extensions: { roadmap: { version: 4, phases, sprints: [], milestones: [] } } }], { selectedBoardId: 'p' });
     await page.locator('[data-view-mode=roadmap]').click();
@@ -44,12 +44,13 @@ test('parent phase workitem table is independent of child expansion and has both
     await expect(parent.locator('th[data-column=blocked]')).toContainText('Manually Blocked');
     await expect(parent.locator('th[data-column=dependencyBlocked]')).toContainText('Dependency Blocked');
     await expect(page.locator('#roadmap-row-phase-leaf .roadmap-tree-toggle')).toHaveCount(0);
+    await expect(page.locator('#roadmap-row-phase-leaf')).toHaveCount(0);
+    await parent.locator('.roadmap-tree-toggle').click();
+    await expect(page.locator('#roadmap-row-phase-leaf')).toBeVisible();
     await parent.locator('.roadmap-tree-toggle').click();
     await expect(page.locator('#roadmap-row-phase-leaf')).toHaveCount(0);
     await expect(parent.locator('.workitems-table')).toBeVisible();
-    await parent.locator('[data-portfolio-filter-trigger]').click();
-    await expect(parent.getByLabel('Manually Blocked', { exact: true })).toBeVisible();
-    await expect(parent.getByLabel('Dependency Blocked', { exact: true })).toBeVisible();
+    await expect(parent.locator('[data-portfolio-filter-trigger], input[type=search]')).toHaveCount(0);
 });
 
 test('Board and Table show only the filter counter with Clear all before Reset', async ({ page }) => {

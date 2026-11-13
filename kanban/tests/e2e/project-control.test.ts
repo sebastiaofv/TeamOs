@@ -377,6 +377,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
     saved = await readSavedBoard(page, 'control');
     expect(saved.extensions.projectControl.records.find((item: any) => item.id === 'ATL-RK-9').comments[0].text).toContain('Evidence');
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     await page.getByRole('button', { name: 'Build', exact: true }).click();
     const roadmap = page.locator('#roadmapEntityModal');
     await expect(roadmap.getByLabel('Objective', { exact: true })).toHaveValue('Complete and validate implementation');
@@ -408,6 +409,7 @@ test('risk CRUD, materialization, shared links, comments and history persist wit
 test('acceptance gates parent, subphase and milestone progress while unrelated progress stays unchanged', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     for (const id of ['launch', 'build', 'review']) await expect(page.locator(`[data-roadmap-kind="phase"][data-roadmap-id="${id}"] .roadmap-row-timeline-bar`)).toHaveAttribute('data-progress', '99');
     await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAccessibleName(/99%/);
     await expect(page.locator('[data-roadmap-id="independent"].milestone-annotation')).toHaveAccessibleName(/100%/);
@@ -419,6 +421,7 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
     await dialog(page).getByRole('button', { name: 'Close', exact: true }).last().click();
     await expect(dialog(page)).toHaveCount(0);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     for (const id of ['launch', 'build', 'review']) await expect(page.locator(`[data-roadmap-kind="phase"][data-roadmap-id="${id}"] .roadmap-row-timeline-bar`)).toHaveAttribute('data-progress', '100');
     await expect(page.locator('[data-roadmap-id="release"].milestone-annotation')).toHaveAccessibleName(/100%/);
 });
@@ -426,6 +429,7 @@ test('acceptance gates parent, subphase and milestone progress while unrelated p
 test('records can be created and associated during phase creation, without losing the phase draft', async ({ page }) => {
     await seed(page);
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
     await page.getByRole('button', { name: 'Add Phase', exact: true }).click();
     await page.locator('#roadmapEntityTitle').fill('New phase');
     await page.locator('#roadmapEntityStartDate').fill('01/11/2026');

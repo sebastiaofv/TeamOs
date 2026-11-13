@@ -90,7 +90,7 @@ test('each Sprint keeps its own search and filters after collapse, view changes 
 
 test('Roadmap associated tables use exactly the requested columns regardless of Table preferences', async ({ page }) => {
     await page.locator('[data-view-mode="roadmap"]').click();
-    const columns = ['id', 'title', 'type', 'status', 'responsible', 'priority', 'blocked', 'dependencyBlocked', 'updatedAt'];
+    const columns = ['id', 'title', 'type', 'status', 'responsible', 'blocked', 'dependencyBlocked', 'updatedAt'];
     for (const row of ['phase-p', 'sprint-a']) {
         await page.locator(`#roadmap-row-${row} .roadmap-disclosure-btn`).click();
         expect(await page.locator(`#roadmap-row-${row} th[data-column]`).evaluateAll(nodes => nodes.map(node => node.getAttribute('data-column')))).toEqual(columns);
