@@ -212,7 +212,15 @@ export type RoadmapPlanningRow = RoadmapWorkScope & {
     sprintGroups: RoadmapWorkScope[]; milestoneGroups: RoadmapWorkScope[];
 };
 export type RoadmapMilestoneMarker = RoadmapWorkScope & { position: number };
+export type RoadmapProjectGroup = {
+    view: PortfolioRoadmapViewModel;
+    item: RoadmapItem;
+    progress: PlanningProgress;
+    expanded: boolean;
+};
 export type PortfolioRoadmapViewModel = {
+    projects?: RoadmapProjectGroup[];
+    aggregate?: boolean;
     boardId: string;
     boardTitle: string;
     boardFileName: string;

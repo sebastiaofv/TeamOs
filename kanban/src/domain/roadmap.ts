@@ -1,6 +1,6 @@
 import { formatDate } from './dates';
 import { effectivePlanning, sprintMembers } from './workitems';
-import type { BoardData } from './types';
+import type { BoardData, ProjectStatus } from './types';
 import type {
     DateBounds,
     LooseBoardData,
@@ -23,6 +23,11 @@ type RoadmapItemLike = Partial<RoadmapItem> | null | undefined;
 type RangeLike = Partial<RoadmapRange> | null | undefined;
 export type RoadmapTaskField = 'milestoneId' | 'phaseId' | 'sprintId';
 export type SprintCalendarStatus = 'planned' | 'active' | 'done';
+
+/** ALL includes every loaded project except the explicitly excluded lifecycle states. */
+export function isRoadmapProjectVisible(status: ProjectStatus | null | undefined): boolean {
+    return status !== 'paused' && status !== 'completed' && status !== 'archived';
+}
 
 export function isValidRoadmapAssignment(roadmap: RoadmapExtension | null | undefined, field: 'phaseId' | 'milestoneId', value: string): boolean {
     return !value || Boolean(roadmap && (field === 'phaseId' ? isLeafPhase(roadmap.phases, value) : roadmap.milestones.some((item) => item.id === value)));
@@ -323,7 +328,7 @@ export function getRoadmapYearTicks(range: RangeLike, width = Infinity): Roadmap
     const visible = [ticks[0]];
     const last = ticks[ticks.length - 1];
     // End labels are right-aligned near the edge, so reserve room on their left too.
-    const finalGap = minimumGap * (last.position > 95 ? 1.5 : 1);
+    const finalGap = minimumGap * (last.position > 95 || (100 - last.position) * width / 100 < 32 ? 1.5 : 1);
     for (const tick of ticks.slice(1, -1)) {
         if (tick.position - visible[visible.length - 1].position >= minimumGap && last.position - tick.position >= finalGap) visible.push(tick);
     }

@@ -9,6 +9,7 @@ async function seed(page: Page, writable = true) {
     await gotoApp(page);
     await seedPortfolioBoards(page, [{ id: 'p', title: fixture.board.settings.title, hasHandle: writable, tasks: fixture.board.tasks, extensions: fixture.extensions }], { selectedBoardId: 'p' });
     await page.getByRole('button', { name: 'Roadmap', exact: true }).click();
+    await page.getByRole('button', { name: 'Expand all', exact: true }).click();
 }
 const area = (page: Page, key: string) => page.locator(`[data-roadmap-task-list="${key}"]`);
 const ids = async (scope: ReturnType<typeof area>) => scope.locator('tbody tr[data-task-id]').evaluateAll((rows) => rows.map((row) => Number(row.getAttribute('data-task-id'))).sort((a, b) => a - b));

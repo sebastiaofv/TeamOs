@@ -139,7 +139,7 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
     function togglePortfolioRoadmapRowExpanded(boardId: string, key: string) {
         if (!boardId || !key) return;
         const expandedRows = getState().portfolioRoadmapExpandedRowsByBoardId?.[boardId] || {};
-        const nextRows = { ...expandedRows, [key]: !expandedRows[key] };
+        const nextRows = { ...expandedRows, [key]: !(expandedRows[key] ?? key.startsWith('tree:')) };
         commitState({
             portfolioRoadmapExpandedRowsByBoardId: {
                 ...(getState().portfolioRoadmapExpandedRowsByBoardId || {}),
@@ -523,7 +523,22 @@ export function createRoadmapActions({ getState, commitState, getBoardRecord, ca
             });
             return true;
         }, { confirmSprintAllocation: !closingSprint });
-        if (changed) closeRoadmapEntity();
+        if (changed) {
+            // Reveal the edited branch when creating or moving a subphase under a collapsed parent.
+            if (context.kind === 'phases' && draft.parentId) {
+                const rows = { ...getState().portfolioRoadmapExpandedRowsByBoardId[context.boardId] };
+                const phases = getRoadmapExtension(getBoardRecord(context.boardId)?.data)?.phases || [];
+                let parentId = draft.parentId;
+                const visited = new Set<string>();
+                while (parentId && !visited.has(parentId)) {
+                    visited.add(parentId);
+                    rows[`tree:${parentId}`] = false;
+                    parentId = phases.find((phase) => phase.id === parentId)?.parentId || '';
+                }
+                commitState({ portfolioRoadmapExpandedRowsByBoardId: { ...getState().portfolioRoadmapExpandedRowsByBoardId, [context.boardId]: rows } });
+            }
+            closeRoadmapEntity();
+        }
     }
 
     async function deleteRoadmapEntity(kind: RoadmapKind, itemId: string, options: { onApplied?: () => void; boardId?: string } = {}) {

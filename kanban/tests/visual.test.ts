@@ -947,6 +947,7 @@ test.describe('US-13 hierarchy review', () => {
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
       await expect(page.locator('#portfolioTable')).toHaveScreenshot(`us13-all-hierarchy-${theme}-${width}.png`);
       await page.locator('[data-view-mode="roadmap"]').click();
+      await page.getByRole('button', { name: 'Expand all', exact: true }).click();
       await page.getByRole('button', { name: 'Show tasks for Exterior', exact: false }).click();
       const scope = page.locator('[data-roadmap-task-list="phase:exterior"]');
       await scope.getByRole('button', { name: 'Expand Entrega do produto', exact: true }).click();

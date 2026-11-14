@@ -40,7 +40,7 @@ export const DOCS_EN: DocSection[] = [
                         ['View controls', 'Board search and Filters & View sit beside Active Sprints only. Workitem tables have their own search, Filters, Columns and Export CSV controls. Dashboard has period and planning controls; Roadmap has width and zoom controls; Planner has Day, Week and Calendar tabs.'],
                         ['Timeline bar', 'Enable it in App settings to consult a selected project’s [history](files-history).']
                     ] },
-                    { kind: 'p', text: 'Board and Day Planner, including Calendar, support all loaded projects or one project. Dashboard, Table, Roadmap and Project Control appear when you select a single project.' },
+                    { kind: 'p', text: 'Board, Roadmap and Day Planner, including Calendar, support all loaded projects or one project. Dashboard, Table and Project Control appear when you select a single project.' },
                     { kind: 'callout', tone: 'tip', text: 'Press [[?]] to see keyboard shortcuts, and [[H]] to open or close this documentation. Single-letter shortcuts apply when you are not typing in a field.' }
                 ],
                 related: ['views-choose', 'prod-shortcuts']
@@ -568,6 +568,7 @@ export const DOCS_EN: DocSection[] = [
                 title: 'Roadmap, phases and milestones',
                 summary: 'Lay out the project over time with phases, milestones and sprints.',
                 blocks: [
+                    { kind: 'p', text: 'In **ALL**, Roadmap shows every loaded project except those marked **Paused**, **Completed** or **Archived** in Project settings, ordered by their earliest phase start. Projects and phase hierarchies start collapsed; each project has a distinct master-bar colour assigned in load order. Its highlighted master bar covers every phase, including completed phases, and shows overall workitem progress. Expand a project to consult its phase hierarchy and associated workitems, or use **Expand all** and **Collapse all**. ALL hides milestones, Sprints and creation buttons; selecting one project restores the full Roadmap.' },
                     { kind: 'terms', items: [
                         ['Phase', 'A dated period that can contain subphases. Parent dates are calculated from descendants; assign workitems to leaf phases.'],
                         ['Milestone', 'A dated checkpoint, such as a release or review.'],
@@ -579,9 +580,9 @@ export const DOCS_EN: DocSection[] = [
                         'Associate workitems in their editor or let children [inherit planning](plan-inheritance).',
                         'Use **Associated Workitems** for phase or Sprint tables; a parent phase includes descendants. The arrow expands the phase hierarchy. Click a milestone diamond to consult its workitems.'
                     ] },
-                    { kind: 'p', text: 'Width and zoom controls sit on the left. Zoom ranges from **100% to 300%**, in 25-point steps: 100% fits the complete project period, while higher values expand the horizontal date scale with scrolling. Text, icons and bar heights keep their size.' },
+                    { kind: 'p', text: 'Width, zoom, **Expand all** and **Collapse all** controls sit on the left in both Roadmap views. Navigation, timeline dates and milestones stay visible during vertical scrolling; identification labels stay fixed during horizontal scrolling. Zoom ranges from **100% to 300%**, in 25-point steps: 100% fits the complete project period, while higher values expand the horizontal date scale with scrolling. Text, icons and bar heights keep their size.' },
                     { kind: 'p', text: 'Milestone diamonds fill with completion and show a check at 100%. Empty milestones show N/A. Hover or focus a diamond for its name, date and percentage. Click phase or Sprint names to edit them; hover a timeline bar for dates. Sprint rows offer Play to start and a chequered flag to finish.' },
-                    { kind: 'p', text: 'Associated tables start with ID, Title, Type, Status, Responsible, Priority, Manually Blocked, Dependency Blocked and Updated. Their search, filters, configurable columns and CSV export follow the [Table](views-table).' },
+                    { kind: 'p', text: 'Associated tables show only ID, Title, Type, Status, Responsible, Manually Blocked, Dependency Blocked and Updated, in that order. Updated shows the date without the time. These tables have no search or filters; click a workitem to open its details.' },
                     { kind: 'callout', tone: 'rule', text: 'Cancelled work is excluded from progress. Deliverables awaiting acceptance can keep phase and milestone progress below 100%. Deleting an associated phase or milestone requires reallocation or explicitly clearing links; delete or move subphases before their parent.' }
                 ],
                 related: ['plan-sprints', 'plan-inheritance', 'views-control']
@@ -671,7 +672,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Board', 'Execute and follow day-to-day work', 'All projects or one'],
                         ['Dashboard', 'Report status, progress and activity in a period', 'One project'],
                         ['Table', 'Refine, plan sprints, review hierarchy, export CSV', 'One project'],
-                        ['Roadmap', 'Plan phases, milestones and sprints over time', 'One project'],
+                        ['Roadmap', 'Plan phases, milestones and sprints over time; ALL groups active projects by phase', 'All active projects or one project'],
                         ['Project Control', 'Manage risks, decisions and deliverables', 'One project'],
                         ['Calendar', 'Consult Task deadlines by month or year inside Day Planner', 'All projects or one'],
                         ['Day Planner', 'Schedule your own day or week', 'All projects or one']

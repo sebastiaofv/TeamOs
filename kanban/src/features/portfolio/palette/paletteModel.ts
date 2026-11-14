@@ -125,7 +125,7 @@ type CommandSpec = { id: PaletteCommandId; key: TranslationKey; hint?: string[];
 const COMMANDS: CommandSpec[] = [
     { id: 'view-board', key: 'palette.cmdBoard' },
     { id: 'view-table', key: 'palette.cmdTable', when: (ctx) => Boolean(ctx.selectedBoardId) },
-    { id: 'view-roadmap', key: 'palette.cmdRoadmap', when: (ctx) => Boolean(ctx.selectedBoardId) },
+    { id: 'view-roadmap', key: 'palette.cmdRoadmap', when: (ctx) => ctx.boards.length > 0 },
     { id: 'view-calendar', key: 'palette.cmdCalendar' },
     { id: 'view-planner', key: 'palette.cmdPlanner', hint: ['P'] },
     { id: 'open-filters', key: 'palette.cmdFilters' },
