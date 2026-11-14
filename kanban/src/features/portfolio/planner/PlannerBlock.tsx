@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
 import { PLANNER_SLOT_MINUTES, formatPlannerDuration, type PlannerGestureMode } from '@/domain/dayPlanner';
 import type { PlannerBlockView } from '@/features/portfolio/queries';
@@ -70,7 +71,7 @@ export function PlannerBlock({ block, selected, dragging, handlers }: {
                 aria-label={t('planner.removeBlock', { title: block.title })}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={(event) => { event.stopPropagation(); handlers.onRemove(block); }}
-            >×</button>
+            ><WorkspaceIcon name="close" /></button>
         )}
     </div>;
 }

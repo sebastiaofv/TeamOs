@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useProjectHistory } from '@/features/portfolio/hooks/useProjectHistory';
 import { DateInput } from '@/shared/ui/DateInput';
 import { SaveButton, SaveIndicator } from '@/features/portfolio/projects/ProjectSaveStatus';
@@ -111,7 +112,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     }
     const select = (key: 'status' | 'probability' | 'impact', values: readonly string[]) => {
         const input = <select id={`control-${key}`} aria-label={t(`control.${key}`)} disabled={readonly || busy} value={draft[key]} onChange={(event) => { const value = event.target.value; update({ ...draft, [key]: value, ...(key === 'status' && ['delivered', 'accepted'].includes(value) && !draft.deliveredDate ? { deliveredDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'accepted' && !draft.acceptedDate ? { acceptedDate: todayLocalIsoDate() } : {}), ...(key === 'status' && value === 'materialized' && !draft.materializedDate ? { materializedDate: todayLocalIsoDate() } : {}) }); }}>{values.map((value) => <option key={value} value={value}>{t(`control.${value}` as TranslationKey)}</option>)}</select>;
-        return <div className={`form-group${key === 'status' ? ' detail-status-editor' : ''}`} key={key}><label htmlFor={`control-${key}`}>{t(`control.${key}`)}</label>{key === 'status' ? <div className="detail-status-control"><ControlBadge value={draft.status} />{input}</div> : input}</div>;
+        return <div className={`form-group${key === 'status' ? ' detail-status-editor' : ''}`} key={key}><label htmlFor={`control-${key}`}>{t(`control.${key}`)}</label>{key === 'status' ? <div className="detail-status-control"><ControlBadge value={draft.status} />{input}<WorkspaceIcon name="chevronDown" className="detail-status-chevron" size={14} /></div> : input}</div>;
     };
     return <Dialog.Root open onOpenChange={(open) => { if (!open && !busy) onClose(); }}><Dialog.Portal><Dialog.Overlay className="modal active control-modal">
         <Dialog.Content className="modal-content workitem-modal" aria-describedby={undefined} onPointerDownOutside={keepOpenOnUndoToast} onEscapeKeyDown={(event) => { escapeAnswersAppMessage(event); if (event.defaultPrevented) return; event.preventDefault(); event.stopPropagation(); if (!busy) onClose(); }} {...focus}>
@@ -120,7 +121,7 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                     <div className="workitem-eyebrow"><ControlTypeBadge kind={activeKind} />{record && <span>{record.id}</span>}<span className="workitem-project">{data.board.settings.title}</span></div>
                     <Dialog.Title className="workitem-title">{record?.title || `${t('control.new')} · ${t(`control.type.${activeKind}`)}`}</Dialog.Title>
                 </div>
-                <div className="workitem-header-actions"><SaveIndicator boardId={boardId} />{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
+                <div className="workitem-header-actions"><SaveIndicator boardId={boardId} />{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}><WorkspaceIcon name="close" /></Dialog.Close></div>
             </div>
             <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
             <div className="modal-body">{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}

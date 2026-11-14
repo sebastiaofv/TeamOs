@@ -116,7 +116,8 @@
 .milestone-color-picker input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
 .milestone-color-picker label span { display: block; width: 100%; height: 100%; background: var(--milestone-color); border: 3px solid var(--bg-card); outline: 1px solid var(--border); }
 .milestone-color-picker input:checked + span { outline: 2px solid var(--text-primary); }
-.milestone-color-picker input:checked + span::after { content: '✓'; display: block; color: white; text-align: center; line-height: 22px; }
+.milestone-color-picker span > .workspace-icon { display: none; margin: 3px; color: white; }
+.milestone-color-picker input:checked + span > .workspace-icon { display: block; }
 .milestone-color-picker input:focus-visible + span { outline: 3px solid var(--focus-ring); outline-offset: 3px; }
 
 /* Keep Sprint names and dates readable alongside the manual lifecycle controls. */

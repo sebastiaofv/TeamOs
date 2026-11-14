@@ -129,7 +129,7 @@ function ControlRecordTable({ boardId, project, data, kind, readOnly }: { boardI
                     <div className="portfolio-query-controls">
                         <div className="section-search"><WorkspaceIcon name="search" />
                             <input id={`${scope}-search`} type="search" aria-label={t('control.search')} placeholder={t('control.search')} value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} />
-                            {search && <button className="section-search-clear" type="button" aria-label={t('palette.clearSearch')} title={t('palette.clearSearch')} onClick={() => { setSearch(''); setPage(0); }}>×</button>}
+                            {search && <button className="section-search-clear" type="button" aria-label={t('palette.clearSearch')} title={t('palette.clearSearch')} onClick={() => { setSearch(''); setPage(0); }}><WorkspaceIcon name="close" /></button>}
                         </div>
                         <FilterMenu scope={scope} fields={fields} activeCount={active.length} onClear={clearFilters} iconOnly dismissOnBlur />
                     </div>
@@ -152,7 +152,7 @@ function ControlRecordTable({ boardId, project, data, kind, readOnly }: { boardI
                     <thead><tr>
                         <th scope="col"><input type="checkbox" aria-label={t('table.selectPage')} checked={allPageSelected} onChange={event => toggleSelection(pageRows.map(record => record.id), event.target.checked)} /></th>
                         {columns.map(column => <th scope="col" key={column} data-column={column} aria-sort={sort.key === column ? sort.desc ? 'descending' : 'ascending' : 'none'}>
-                            <button type="button" onClick={() => { setSort({ key: column, desc: sort.key === column && !sort.desc }); setPage(0); }}>{label(column)}<span aria-hidden="true">{sort.key === column ? sort.desc ? ' ↓' : ' ↑' : ' ↕'}</span></button>
+                            <button type="button" onClick={() => { setSort({ key: column, desc: sort.key === column && !sort.desc }); setPage(0); }}>{label(column)}<span aria-hidden="true"><WorkspaceIcon name={sort.key === column ? sort.desc ? 'arrowDown' : 'arrowUp' : 'sort'} size={12} /><span className="sr-only">{sort.key === column ? sort.desc ? ' ↓' : ' ↑' : ' ↕'}</span></span></button>
                         </th>)}
                     </tr></thead>
                     <tbody>{pageRows.map(record => <tr key={record.id} data-control-id={record.id} onClick={event => { if (!(event.target as HTMLElement).closest('button,input,a,label')) open(record, event); }}>

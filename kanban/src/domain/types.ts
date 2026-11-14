@@ -100,7 +100,7 @@ export type RoadmapDateKey = 'dueDate' | 'startDate' | 'endDate';
 export type SprintStatus = 'planned' | 'active' | 'done';
 export type SprintFields = { status?: SprintStatus; goal?: string; capacity?: number | null; review?: string; retrospective?: string };
 export type SprintCredit = { taskKey: string; taskId: number; sprintId: string; storyPoints: number; at: string };
-export type SprintClosure = { sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; workflowTypes?: WorkflowTypes; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
+export type SprintClosure = { initialPlan?: { plannedPoints: number; completedPlannedPoints: number }; sprint: RoadmapItem; sprintId: string; closedAt: string; tasks: Task[]; workflow: Workflow; functionalWorkflow: Workflow; workflowTypes?: WorkflowTypes; plannedPoints: number; completedIds: number[]; carryOverIds: number[]; velocity: number };
 export type SprintResults = { version: 1; credits: SprintCredit[]; closures: SprintClosure[] };
 export type RoadmapItem = { id: string; title: string; parentId?: string; color?: string; objective?: string } & SprintFields & Partial<Record<RoadmapDateKey, string>>;
 export type RoadmapExtension = {
@@ -180,6 +180,7 @@ export type ProjectData = {
     tags: string[];
 };
 export type BoardExtensions = {
+    dashboardActivity?: import('./dashboardActivityLayout').DashboardActivityLayout;
     controlComments?: { recordId: string; comment: import('./projectControl').ControlComment }[];
     controlRecordHistory?: Record<string, import('./projectControl').ControlHistory[]>;
     projectControl?: import('./projectControl').ProjectControl;

@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { FloatingPanel, Popover } from '@/shared/ui/FloatingPanel';
 import { useRef } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -26,7 +27,7 @@ export function AppSettingsDialog({ showTimeline, onShowTimelineChange }: {
                 onEscapeKeyDown={escapeAnswersAppMessage} {...returnFocus}>
                 <div className="app-settings-heading">
                     <h2>{t('appSettings.title')}</h2>
-                    <Popover.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}>×</Popover.Close>
+                    <Popover.Close className="btn icon-btn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Popover.Close>
                 </div>
                 <fieldset className="app-settings-row"><legend>{t('appSettings.mode')}</legend>
                     <div className="settings-choices">

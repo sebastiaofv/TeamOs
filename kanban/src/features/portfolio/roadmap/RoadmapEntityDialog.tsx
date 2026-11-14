@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { DeleteMenu } from '@/shared/ui/DeleteMenu';
 import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { DateInput } from '@/shared/ui/DateInput';
@@ -126,7 +127,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     <span className="modal-title" id="roadmapEntityModalTitle">{vm.heading}</span>
                 </Dialog.Title>
                 {vm.itemId && (vm.kind !== 'sprints' || vm.initial.status === 'planned') && <DeleteMenu disabled={vm.readOnly || busy} onDelete={() => deleteRoadmapEntity(vm.kind, vm.itemId, { boardId: vm.boardId, onApplied: closeRoadmapEntity })} />}
-                <Dialog.Close className="modal-close" id="roadmapEntityModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
+                <Dialog.Close className="modal-close" id="roadmapEntityModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
             </div>
             <div className="modal-body">
                 <form id="roadmapEntityForm" onSubmit={(event) => event.preventDefault()}>
@@ -176,7 +177,7 @@ function RoadmapEntityForm({ vm, titleRef, sprintRef }: {
                     </div>
                     {vm.kind !== 'sprints' && <fieldset className="form-group milestone-color-picker"><legend>{t(vm.kind === 'phases' ? 'roadmap.phaseColor' : 'roadmap.milestoneColor')}</legend>
                         {MILESTONE_PALETTE.map((color) => <label key={color.id} style={{ '--milestone-color': color.value } as CSSProperties}>
-                            <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true" />
+                            <input type="radio" name="milestoneColor" value={color.value} checked={draft.color === color.value} aria-label={t(`roadmap.color.${color.id}`)} onChange={() => setDraft((current) => ({ ...current, color: color.value }))} /><span aria-hidden="true"><WorkspaceIcon name="check" /></span>
                         </label>)}
                     </fieldset>}
                     <div className={`roadmap-entity-date-row${isSprintEditor ? ' with-duration' : ''}${hideDateRange ? ' hidden' : ''}`} id="roadmapEntityRangeRow">

@@ -1,93 +1,120 @@
+import { DashboardActivity, type DashboardInspect, type DashboardSelection } from './DashboardActivity';
+import { isActivityWidget } from '@/domain/dashboardActivityLayout';
 import { formatDate } from '@/domain/dates';
-import { useMemo, useState, type CSSProperties } from 'react';
-import type { BoardData, RoadmapItem, Task } from '@/domain/types';
-import { dashboardMetrics, dashboardSprints, dashboardTasks } from '@/domain/dashboard';
-import { dashboardControl, dashboardOverviewPlanning, dashboardPeriodWorkitems, dashboardReportable, dashboardStatistics, type DashboardSection } from '@/domain/dashboardOverview';
-import { riskLevel, type ControlRecord } from '@/domain/projectControl';
-import { getWorkflow, statusCategory } from '@/domain/workflow';
+import { Fragment, useMemo } from 'react';
+import type { BoardData, RoadmapItem } from '@/domain/types';
+import { dashboardMetrics, dashboardTasks } from '@/domain/dashboard';
+import { dashboardActiveSprints, dashboardEpics, dashboardControl, dashboardOverviewPlanning, dashboardMilestones, dashboardStatistics, type DashboardSection } from '@/domain/dashboardOverview';
+import { riskLevel } from '@/domain/projectControl';
 import { workitemLabel } from '@/domain/taskIdentity';
-import { isPlanningUnit } from '@/domain/workitems';
 import { ControlBadge } from '@/features/portfolio/control/ControlBadge';
-import { ControlRecordDialog } from '@/features/portfolio/control/ControlRecordDialog';
-import { WorkflowStateBadge } from '@/features/portfolio/task/WorkflowStateBadge';
+import { openDialog } from '@/app/overlays/dialogs';
 import { portfolioActions as actions } from '@/features/portfolio/commands/portfolioCommands';
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useI18n } from '@/shared/i18n';
 
-type Props = { dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; phaseId: string; start: string; end: string; visible: DashboardSection[]; inspect: (name: string, tasks: Task[], data?: BoardData) => void; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
-const COLORS = { completed: '#22a56a', 'in-progress': '#3985ff', pending: '#949dab', cancelled: '#ba7899' };
-
-function Ring({ percent, label, children }: { percent: number | null; label: string; children: React.ReactNode }) {
-    return <div className="dashboard-ring" role="img" aria-label={label} style={{ '--ring-fill': `${percent || 0}%`, '--ring-color': 'var(--accent)' } as CSSProperties}><div>{children}</div></div>;
+type Props = { historyEventIndex?: number; dependencyBlockedIds: ReadonlySet<number>; boardId: string; data: BoardData; source: BoardData; start: string; end: string; visible: DashboardSection[]; selection: DashboardSelection; onSelect: (selection: DashboardSelection) => void; inspect: DashboardInspect; openRoadmap: (kind: 'phases' | 'milestones' | 'sprints', item: RoadmapItem) => void };
+function Progress({ value, label }: { value: number | null; label: string }) {
+    return <progress className={`dashboard-progress${value === 100 ? ' dashboard-progress-completed' : ''}`} max={100} value={value ?? 0} aria-label={label} />;
 }
 
-function Workitems({ tasks, data, boardId, contexts }: { tasks: Task[]; data: BoardData; boardId: string; contexts?: Map<number, BoardData> }) {
-    const { t } = useI18n();
-    return !tasks.length ? <p>{t('dashboard.noWorkitems')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('task.title')}</th><th>{t('task.status')}</th><th>{t('task.responsible')}</th></tr></thead><tbody>
-        {tasks.map((task) => {
-            const context = data.board.tasks.some((row) => row.id === task.id && row.createdAt === task.createdAt) ? data : contexts?.get(task.id) || data;
-            const open = () => actions.openPortfolioTaskDetails(boardId, task.id, { boardData: context, readOnly: true });
-            return <tr key={task.id}><td><button className="dashboard-link" onClick={open}>{workitemLabel(task)}</button></td><td><button className="dashboard-link" onClick={open}>{task.title}</button></td><td><WorkflowStateBadge state={getWorkflow(context, task).states.find((state) => state.id === task.status) || { id: task.status, name: task.status, category: 'to-do', color: '#949dab' }} /></td><td>{task.responsible || t('dashboard.na')}</td></tr>;
-        })}
-    </tbody></table></div>;
-}
-
-export function DashboardOverview({ dependencyBlockedIds, boardId, data, source, phaseId, start, end, visible, inspect, openRoadmap }: Props) {
+export function DashboardOverview({ historyEventIndex, dependencyBlockedIds, boardId, data, source, start, end, visible, selection, onSelect, inspect, openRoadmap }: Props) {
     const { t, language } = useI18n();
-    const [control, setControl] = useState<ControlRecord | null>(null);
-    // The period replays the project history: keep it apart so unrelated inputs, such as
-    // dependency blocks recomputed on every portfolio change, never trigger a replay.
-    const period = useMemo(() => dashboardPeriodWorkitems(source, data, phaseId, start, end), [source, data, phaseId, start, end]);
-    const { metrics, planning, statistics, current, controls, sprints } = useMemo(() => {
-        const tasks = dashboardTasks(data, phaseId);
+    const planning = useMemo(() => dashboardOverviewPlanning(data, '', end), [data, end]);
+    const { metrics, statistics, epics } = useMemo(() => {
+        const tasks = dashboardTasks(data);
         const metrics = dashboardMetrics(data, tasks, end, dependencyBlockedIds);
-        const planning = dashboardOverviewPlanning(data, phaseId, end);
-        const statistics = dashboardStatistics(data, phaseId);
-        const current = tasks.filter((task) => dashboardReportable(data, task) && statusCategory(task.status, data, task) === 'in-progress');
-        const controls = dashboardControl(data, phaseId, start, end);
-        const sprints = dashboardSprints(data, phaseId, end).filter((sprint) => sprint.status === 'active' && (!phaseId || sprint.tasks.length || sprint.item.parentId === phaseId));
-        return { metrics, planning, statistics, current, controls, sprints };
-    }, [data, phaseId, start, end, dependencyBlockedIds]);
-    const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 1 }).format(value)}%`;
-    const warning = <span className="dashboard-warning">⚠ {t('dashboard.overdue')}</span>;
-    const categoryLabel = (category: string) => t(category === 'in-progress' ? 'dashboard.inProgress' : category === 'pending' ? 'dashboard.pending' : category === 'cancelled' ? 'dashboard.cancelled' : 'dashboard.completed');
-    return <div className="dashboard-section-grid">
-        {visible.includes('projectOverview') && <section className="dashboard-panel dashboard-overview" data-dashboard-section="projectOverview"><h3>{t('dashboard.section.projectOverview')}</h3>
-            <div className="dashboard-overview-content"><div className="dashboard-progress-summary"><button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
-                <Ring percent={metrics.progress.percent} label={`${t('dashboard.progress')}: ${percent(metrics.progress.percent)}`}><strong>{percent(metrics.progress.percent)}</strong><small>{t('dashboard.projectProgress')}</small></Ring>
-                <small>{t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}</small>
-            </button><button type="button" className="dashboard-progress-button" data-dashboard-kpi="blocked" onClick={() => inspect(t('dashboard.blockedWorkitems'), metrics.blocked)}><strong>{metrics.blocked.length}</strong><small>{t('dashboard.blockedWorkitems')}</small></button></div><div className="dashboard-phase-summary"><h4>{t('dashboard.projectPhases')}</h4>
-                {!planning.phases.length ? <p>{t('dashboard.noOpenPhases')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>{t('task.phase')}</th><th>{t('dashboard.percentComplete')}</th><th>{t('dashboard.endDate')}</th></tr></thead><tbody>{planning.phases.map((group) => <tr key={group.item.id} data-dashboard-planning={group.item.id}><td>
-                    <button className="dashboard-link" type="button" onClick={() => openRoadmap('phases', group.item)}>{group.item.title}</button>{group.overdue ? warning : group.current && <span className="dashboard-badge">{t('dashboard.currentPhase')}</span>}
-                </td><td><button className="dashboard-link" type="button" onClick={() => inspect(group.item.title, group.tasks)}>{percent(group.progress.percent)}</button></td><td>{formatDate(group.item.endDate || '') || t('dashboard.na')}</td></tr>)}</tbody></table></div>}
-            </div><div className="dashboard-milestone-summary"><h4>{t('roadmap.milestones')}</h4>{!planning.milestones.length ? <p>{t('dashboard.noOpenMilestones')}</p> : planning.milestones.map((group) => <div className="dashboard-milestone" key={group.item.id} data-dashboard-planning={group.item.id}>
-                <button type="button" className="dashboard-link" onClick={() => openRoadmap('milestones', group.item)}>{group.item.title}</button>{group.overdue ? warning : <span className="dashboard-badge">{t('dashboard.nextMilestone')}</span>}<small>{formatDate(group.item.dueDate || '')}</small>
-            </div>)}</div></div>
+        const statistics = dashboardStatistics(data, '');
+        return { metrics, statistics, epics: dashboardEpics(data) };
+    }, [data, end, dependencyBlockedIds]);
+    // History replay depends on the project and report date, independently of dependency blocks.
+    const milestones = useMemo(() => dashboardMilestones(data, end, planning.milestones), [data, end, planning.milestones]);
+    const sprints = useMemo(() => dashboardActiveSprints(data, end, start), [data, end, start]);
+    const controls = useMemo(() => dashboardControl(data, '', start, end), [data, start, end]);
+    const percent = (value: number | null) => value === null ? t('dashboard.na') : `${new Intl.NumberFormat(language, { maximumFractionDigits: 0 }).format(value)}%`;
+    const situation = (value: 'overdue' | 'late' | 'onTarget' | 'completed') => <span className={`dashboard-badge dashboard-situation-${value}`}>{t(`dashboard.${value}`)}</span>;
+    const legend = [...new Map(statistics.flatMap((group) => group.states.map((state) => [state.id, state] as const))).values()];
+    const shortDate = (value: string | undefined) => value ? `${value.slice(8, 10)}/${value.slice(5, 7)}` : t('dashboard.na');
+    return <div className="dashboard-overview-sections">
+    {visible.length > 0 && <section className="dashboard-project-overview" aria-labelledby="dashboardOverviewTitle">
+    <h2 id="dashboardOverviewTitle" className="dashboard-section-heading"><WorkspaceIcon name="dashboard" />{t('dashboard.section.projectOverview')}</h2>
+    <div className="dashboard-section-grid dashboard-overview-grid">{visible.map(widget => <Fragment key={widget}>
+        {widget === 'projectProgress' && <section className="dashboard-panel dashboard-third dashboard-project-progress" data-dashboard-section="projectProgress"><h3><WorkspaceIcon name="progress" />{t('dashboard.projectProgress')}</h3>
+            <button type="button" className="dashboard-progress-button" data-dashboard-kpi="progress" onClick={() => inspect(t('dashboard.progress'), metrics.eligible)}>
+                <span className="dashboard-progress-summary"><span className="dashboard-progress-ring" role="progressbar" aria-label={t('dashboard.projectProgress')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={metrics.progress.percent ?? undefined} aria-valuetext={percent(metrics.progress.percent)}><svg viewBox="0 0 120 120" aria-hidden="true"><circle className="dashboard-ring-track" cx="60" cy="60" r="50" /><circle className="dashboard-ring-value" cx="60" cy="60" r="50" pathLength="100" opacity={(metrics.progress.percent ?? 0) > 0 ? 1 : 0} strokeDasharray={`${metrics.progress.percent ?? 0} 100`} /></svg><strong>{percent(metrics.progress.percent)}</strong></span><span className="dashboard-progress-count" title={t('dashboard.progressRule', { done: metrics.completed.length, total: metrics.eligible.length })}>{metrics.completed.length} / {metrics.eligible.length}<small>{t('dashboard.workitems')}</small></span></span>
+            </button>
         </section>}
-        {visible.includes('activeSprint') && <section className="dashboard-panel dashboard-active-sprint" data-dashboard-section="activeSprint"><h3>{t('dashboard.section.activeSprint')}</h3>
-            {!sprints.length ? <p>{t('dashboard.noActiveSprint')}</p> : sprints.map((sprint) => {
-                const units = sprint.tasks.filter((task) => isPlanningUnit(sprint.data, task) && statusCategory(task.status, sprint.data, task) !== 'cancelled');
-                const complete = units.filter((task) => statusCategory(task.status, sprint.data, task) === 'completed').length;
-                const progress = units.length ? complete / units.length * 100 : null;
-                return <div className="dashboard-sprint-summary" key={sprint.item.id} data-dashboard-active-sprint={sprint.item.id}><div><button type="button" className="dashboard-link" onClick={() => openRoadmap('sprints', sprint.item)}>{t('table.sprintIdentity', { number: sprint.number || t('dashboard.na'), name: sprint.item.title })}</button><p>{formatDate(sprint.item.startDate || '') || t('dashboard.na')} → {formatDate(sprint.item.endDate || '') || t('dashboard.na')}</p></div>
-                    <button type="button" className="dashboard-progress-button" onClick={() => inspect(sprint.item.title, units, sprint.data)}><strong>{percent(progress)}</strong><small>{t('dashboard.percentComplete')}</small><progress max={100} value={progress || 0} aria-label={t('dashboard.percentComplete')} /></button></div>;
-            })}
+        {widget === 'activePhases' && <section className="dashboard-panel dashboard-third dashboard-phases" data-dashboard-section="activePhases"><h3><WorkspaceIcon name="phases" />{t('dashboard.section.activePhases')}</h3>
+            {!planning.phases.length ? <p>{t('dashboard.noOpenPhases')}</p> : <div className="dashboard-phase-scroll"><ol className="dashboard-phase-sequence">{planning.phases.map((group) => {
+                const delayed = group.situation === 'overdue' || group.situation === 'late';
+                const state = delayed ? group.situation : group.progress.percent === 100 ? 'completed' : (group.progress.percent ?? 0) > 0 ? 'inProgress' : 'future';
+                return <li key={group.item.id} data-dashboard-planning={group.item.id} data-phase-state={state}>
+                    <button type="button" className={`dashboard-phase-circle dashboard-phase-${state}`} aria-label={`${group.item.title}: ${t(`dashboard.${delayed ? group.situation : state}`)}`} title={t(`dashboard.${delayed ? group.situation : state}`)} onClick={() => openRoadmap('phases', group.item)}>{delayed ? <WorkspaceIcon name="alert" /> : state === 'completed' ? <WorkspaceIcon name="check" /> : state === 'inProgress' ? <span /> : null}</button>
+                    <button className="dashboard-link dashboard-phase-name" type="button" title={group.item.title} onClick={() => openRoadmap('phases', group.item)}>{group.item.title}</button>
+                    <button className="dashboard-link" type="button" onClick={() => inspect(group.item.title, group.tasks)}>{percent(group.progress.percent)}</button>
+                    <small className={group.situation === 'late' ? 'dashboard-missed-date' : ''}>{formatDate(group.item.startDate || '') || t('dashboard.na')}</small>
+                    <small className={group.situation === 'overdue' ? 'dashboard-missed-date' : ''}>{formatDate(group.item.endDate || '') || t('dashboard.na')}</small>
+                </li>;
+            })}</ol></div>}
         </section>}
-        {visible.includes('projectStatistics') && <section className="dashboard-panel dashboard-statistics" data-dashboard-section="projectStatistics"><h3>{t('dashboard.section.projectStatistics')}</h3><div className="dashboard-statistics-grid">{statistics.map((group) => {
-            let offset = 0;
-            const gradient = group.categories.map((category) => { const start = offset; offset += category.tasks.length / Math.max(1, group.tasks.length) * 100; return `${COLORS[category.category]} ${start}% ${offset}%`; }).join(', ');
+        {widget === 'milestones' && <section className="dashboard-panel dashboard-third" data-dashboard-section="milestones"><h3><WorkspaceIcon name="finish" />{t('dashboard.section.milestones')}</h3>
+            <div className="dashboard-milestone-summary" aria-label={t('dashboard.milestoneSummary')}>
+                {([{ key: 'completed', icon: 'check', label: 'completed' }, { key: 'delayed', icon: 'alert', label: 'delayedMilestones' }, { key: 'remaining', icon: 'finish', label: 'remainingMilestones' }] as const).map(({ key, icon, label }) => <span key={key} className={`dashboard-milestone-total dashboard-milestone-${key}`} role="img" aria-label={`${t(`dashboard.${label}`)}: ${milestones.summary[key]}`} title={`${t(`dashboard.${label}`)}: ${milestones.summary[key]}`}><WorkspaceIcon name={icon} /><strong>{milestones.summary[key]}</strong></span>)}
+            </div>
+            {!milestones.visible.length ? <p className="dashboard-secondary">{t('dashboard.noRelevantMilestones')}</p> : <ul className="dashboard-milestone-list dashboard-widget-list">{milestones.visible.map((group) => <li key={group.item.id} data-dashboard-planning={group.item.id}>
+                <button type="button" className="dashboard-link dashboard-truncate dashboard-milestone-name" title={group.item.title} onClick={() => openRoadmap('milestones', group.item)}>{group.item.title}</button>
+                <span className="dashboard-milestone-date dashboard-secondary"><span className="dashboard-milestone-alert">{group.overdue && group.progress.percent !== 100 && <span role="img" aria-label={t('dashboard.overdue')} title={t('dashboard.overdue')}><WorkspaceIcon name="alert" /></span>}</span>{formatDate(group.item.dueDate || '') || t('dashboard.na')}</span>
+                <button type="button" className="dashboard-link dashboard-inline-progress" aria-label={`${group.item.title}: ${percent(group.progress.percent)}`} onClick={() => inspect(group.item.title, group.tasks)}><Progress value={group.progress.percent} label={`${group.item.title}: ${percent(group.progress.percent)}`} />{group.progress.percent !== 100 && <span>{percent(group.progress.percent)}</span>}</button>
+            </li>)}</ul>}
+        </section>}
+        {widget === 'activeSprint' && <section className="dashboard-panel dashboard-third dashboard-active-sprint" data-dashboard-section="activeSprint"><h3><WorkspaceIcon name="runner" />{t('dashboard.section.activeSprint')}</h3>
+            {!sprints.length ? <p>{t('dashboard.noActiveSprint')}</p> : <div className="dashboard-widget-list">{sprints.map((sprint) => <article className="dashboard-sprint-summary" key={sprint.item.id} data-dashboard-active-sprint={sprint.item.id}>
+                <div className="dashboard-sprint-header"><button type="button" className="dashboard-link dashboard-truncate" title={t('table.sprintIdentity', { number: sprint.number || t('dashboard.na'), name: sprint.item.title })} onClick={() => openRoadmap('sprints', sprint.item)}>{t('table.sprintIdentity', { number: sprint.number || t('dashboard.na'), name: sprint.item.title })}</button><span className="dashboard-sprint-dates">{shortDate(sprint.item.startDate)} – {shortDate(sprint.item.endDate)}</span></div>
+                <div className="dashboard-sprint-footer">{situation(sprint.closed ? 'completed' : sprint.overdue ? 'overdue' : 'onTarget')}
+                    <div className="dashboard-sprint-indicators">
+                        <button type="button" className="dashboard-link" onClick={() => inspect(sprint.item.title, sprint.units, sprint.data)}><strong>{sprint.units.length}</strong><small>{t('dashboard.workitems')}</small></button>
+                        <span><strong>{sprint.points.completed} / {sprint.points.planned}</strong><small>{t('dashboard.storyPoints')}</small></span>
+                        <span><strong>{percent(sprint.percent)}</strong><small>{t('dashboard.completion')}</small></span>
+                    </div>
+                </div>
+            </article>)}</div>}
+        </section>}
+        {widget === 'epics' && <section className="dashboard-panel dashboard-third" data-dashboard-section="epics"><h3><WorkspaceIcon name="folder" />{t('dashboard.section.epics')}</h3>
+            {!epics.length ? <p>{t('dashboard.noStartedEpics')}</p> : <ul className="dashboard-epic-list dashboard-widget-list" aria-label={t('dashboard.section.epics')}>{epics.map(({ task, progress, points }) => {
+                const open = () => actions.openPortfolioTaskDetails(boardId, task.id);
+                return <li key={task.id} data-dashboard-epic={task.id}>
+                    <div className="dashboard-epic-identity"><button type="button" className="dashboard-link dashboard-epic-id" onClick={open}>{workitemLabel(task)}</button><button type="button" className="dashboard-link dashboard-truncate" title={task.title} onClick={open}>{task.title}</button></div>
+                    <span className="dashboard-epic-points"><small>SP</small><span>{points.completed} / {points.total}</span></span>
+                    <span className="dashboard-inline-progress"><Progress value={progress.percent} label={`${task.title}: ${percent(progress.percent)}`} />{progress.percent !== 100 && <span>{percent(progress.percent)}</span>}</span>
+                </li>;
+            })}</ul>}
+        </section>}
+        {widget === 'workitemStatus' && <section className="dashboard-panel dashboard-third dashboard-statistics" data-dashboard-section="workitemStatus"><h3><WorkspaceIcon name="chart" />{t('dashboard.section.workitemStatus')}</h3><div className="dashboard-statistics-grid">{statistics.map((group) => {
             const title = t(group.type === 'task' ? 'dashboard.independentTasks' : group.type === 'story' ? 'dashboard.userStories' : 'dashboard.bugs');
-            return <article key={group.type} data-dashboard-statistics={group.type}><button type="button" className="dashboard-progress-button" onClick={() => inspect(title, group.tasks)}><div className="dashboard-ring" role="img" aria-label={`${title}: ${group.categories.map((category) => `${categoryLabel(category.category)} ${category.tasks.length}`).join(', ')}`} style={{ background: group.tasks.length ? `conic-gradient(${gradient})` : 'var(--border)' }}><div><strong>{group.tasks.length}</strong><small>{title}</small></div></div></button>
-                <div><h4>{title}</h4>{group.categories.filter((category) => category.category !== 'cancelled' || category.tasks.length).map((category) => <button className="dashboard-legend" type="button" key={category.category} onClick={() => inspect(`${title} · ${categoryLabel(category.category)}`, category.tasks)}><span className="dashboard-dot" style={{ background: COLORS[category.category] }} /><span>{categoryLabel(category.category)}</span><strong>{category.tasks.length}</strong><small>({group.tasks.length ? Math.round(category.tasks.length / group.tasks.length * 100) : 0}%)</small></button>)}</div>
+            return <article className="dashboard-status-row" key={group.type} data-dashboard-statistics={group.type}>
+                <h4>{title}</h4>
+                <div className="dashboard-stacked-bar" role="group" aria-label={`${title}: ${group.states.map((state) => `${t(`workflow.${state.category}`)} ${state.tasks.length} (${percent(group.tasks.length ? state.tasks.length / group.tasks.length * 100 : 0)})`).join(', ')}`}>
+                    {group.states.filter((state) => state.tasks.length).map((state) => {
+                        const value = state.tasks.length / group.tasks.length * 100;
+                        const label = `${t(`workflow.${state.category}`)}: ${state.tasks.length} (${percent(value)})`;
+                        return <span className="dashboard-status-segment" role="img" key={state.id} title={label} aria-label={label} tabIndex={0} style={{ width: `${value}%`, background: state.color }}><span>{state.tasks.length}</span></span>;
+                    })}
+                    {!group.tasks.length && <small>{t('dashboard.noWorkitems')}</small>}
+                </div>
             </article>;
-        })}</div></section>}
-        {(['started', 'completedInPeriod', 'currentlyInProgress'] as const).filter((key) => visible.includes(key)).map((key) => <section className="dashboard-panel dashboard-third" key={key} data-dashboard-section={key}><h3>{t(`dashboard.section.${key}`)}</h3>
-            {key !== 'currentlyInProgress' && (!period.available ? <p>{t('dashboard.noHistoryBaseline')}</p> : period.availableFrom && start < period.availableFrom && <p className="dashboard-note">{t('dashboard.partialHistory', { date: formatDate(period.availableFrom) })}</p>)}
-            {(key === 'currentlyInProgress' || period.available) && <Workitems boardId={boardId} data={data} contexts={period.contexts} tasks={key === 'started' ? period.started : key === 'completedInPeriod' ? period.completed : current} />}
-        </section>)}
-        {(['openRisks', 'deliverables', 'decisions'] as const).filter((key) => visible.includes(key)).map((key) => {
+        })}</div><div className="dashboard-state-legend">{legend.map((state) => <span key={state.id}><span className="dashboard-dot" style={{ background: state.color }} />{t(`workflow.${state.category}`)}</span>)}</div></section>}
+    {isActivityWidget(widget) && <DashboardActivity historyEventIndex={historyEventIndex} boardId={boardId} data={data} source={source} start={start} end={end} visible={[widget]} order={[widget]} selection={selection} onSelect={onSelect} />}
+        {(['openRisks', 'deliverables', 'decisions'] as const).filter((key) => widget === key).map((key) => {
             const records = controls[key === 'openRisks' ? 'risks' : key];
-            return <section className="dashboard-panel dashboard-third" key={key} data-dashboard-section={key}><h3>{t(`dashboard.section.${key}`)}</h3>{!records.length ? <p>{t('dashboard.noControlRecords')}</p> : <div className="dashboard-scroll"><table className="dashboard-table"><thead><tr><th>ID</th><th>{t('control.title')}</th><th>{t('control.status')}</th><th>{t(key === 'openRisks' ? 'control.riskLevel' : key === 'deliverables' ? 'control.dueDate' : 'control.owner')}</th>{key === 'openRisks' && <th>{t('control.owner')}</th>}</tr></thead><tbody>{records.map((record) => <tr key={record.id}><td><button type="button" className="dashboard-link" onClick={() => setControl(record)}>{record.id}</button></td><td><button type="button" className="dashboard-link" onClick={() => setControl(record)}>{record.title}</button></td><td><ControlBadge value={record.status} /></td><td>{key === 'openRisks' ? <ControlBadge value={riskLevel(record)} /> : key === 'deliverables' ? formatDate(record.deliveredDate || record.dueDate || '') || t('dashboard.na') : record.owner || t('dashboard.na')}</td>{key === 'openRisks' && <td>{record.owner || t('dashboard.na')}</td>}</tr>)}</tbody></table></div>}</section>;
+            return <section className="dashboard-panel dashboard-third" key={key} data-dashboard-section={key}><h3><WorkspaceIcon name="control" />{t(`dashboard.section.${key}`)}</h3>{!records.length ? <p>{t('dashboard.noControlRecords')}</p> : <ul className="dashboard-control-list dashboard-widget-list" aria-label={t(`dashboard.section.${key}`)}>{records.map(record => {
+                const open = () => openDialog('projectControl', { boardId, recordId: record.id, kind: record.kind });
+                return <li key={record.id} data-dashboard-control={record.id}>
+                    <div className="dashboard-activity-identity"><button type="button" className="dashboard-link dashboard-activity-id" onClick={open}>{record.id}</button><button type="button" className="dashboard-link dashboard-truncate" title={record.title} onClick={open}>{record.title}</button></div>
+                    <ControlBadge value={record.status} />
+                    {key === 'openRisks' ? <ControlBadge value={riskLevel(record)} /> : key === 'deliverables' ? <span className="dashboard-secondary">{formatDate(record.deliveredDate || record.dueDate || '') || t('dashboard.na')}</span> : null}
+                    {key !== 'deliverables' && <span className="dashboard-secondary dashboard-truncate" title={record.owner || t('dashboard.na')}>{record.owner || t('dashboard.na')}</span>}
+                </li>;
+            })}</ul>}</section>;
         })}
-        {control && <ControlRecordDialog key={control.id} boardId={boardId} recordId={control.id} kind={control.kind} data={data} readOnly onClose={() => setControl(null)} />}
-    </div>;
+    </Fragment>)}</div></section>}</div>;
 }

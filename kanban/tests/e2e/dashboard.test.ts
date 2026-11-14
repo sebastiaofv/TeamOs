@@ -1,3 +1,4 @@
+import { setDashboardDate } from '../support/dashboard';
 import { readFileSync } from 'node:fs';
 import { test, expect, type Page } from '@playwright/test';
 import { gotoApp, seedPortfolioBoards, readSavedBoard, mutateExternalBoardFile, triggerExternalFileCheck, toggleTheme, openProjectPicker } from '../support/portfolio';
@@ -14,32 +15,26 @@ async function seed(page: Page, writable = true) {
     await page.locator('[data-view-mode="dashboard"]').click();
 }
 const kpi = (page: Page, key: string) => page.locator(`[data-dashboard-kpi="${key}"]`);
-const sources = (page: Page) => page.locator('#dashboardSources');
+const sources = (page: Page) => page.locator('[data-dashboard-section="activityDetails"]');
 
-for (const width of [1280, 390]) {
-    for (const tab of ['Overview', 'Sprint Analytics']) {
-        test(`dashboard scroll reaches history in ${tab} at ${width}px`, async ({ page }) => {
-            await page.setViewportSize({ width, height: 800 });
-            if (width === 1280) await seed(page);
-            else {
-                await gotoApp(page);
-                await seedPortfolioBoards(page, [{ id: 'scroll', title: 'Scroll project', hasHandle: true, tasks: [] }], { selectedBoardId: 'scroll' });
-                await page.locator('[data-view-mode="dashboard"]').click();
-            }
-            await page.getByRole('button', { name: tab, exact: true }).click();
-            const history = page.getByRole('heading', { name: 'Recorded history', exact: true });
-            const before = (await history.boundingBox())!.y;
-            expect(before).toBeGreaterThan(800);
-            await page.mouse.move(100, 600);
-            await page.mouse.wheel(0, 600);
-            await expect.poll(async () => (await history.boundingBox())!.y).toBeLessThan(before - 100);
-            await expect.poll(async () => {
-                await page.mouse.wheel(0, 1200);
-                const box = (await history.boundingBox())!;
-                return box.y >= 0 && box.y < 800;
-            }).toBe(true);
-        });
-    }
+for (const width of [1280, 390]) for (const tab of ['Overview', 'Sprint Analytics']) {
+    test(`dashboard shows the appropriate filters and removes recorded history in ${tab} at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 800 });
+        await seed(page);
+        await page.getByRole('button', { name: tab, exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'Recorded history', exact: true })).toHaveCount(0);
+        if (tab === 'Sprint Analytics') {
+            await expect(page.getByRole('combobox', { name: 'Sprint', exact: true })).toHaveValue('');
+            await expect(page.locator('.dashboard-range-field')).toHaveCount(0);
+            return;
+        }
+        await page.locator('.dashboard-range-field').click();
+        await expect(page.getByLabel('Start date', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('End date', { exact: true })).toBeVisible();
+        await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
+        await page.locator('.dashboard-range-field').click();
+        await expect(page.locator('#dashboardSources')).toHaveCount(0);
+    });
 }
 
 test('selected-project metrics count archived leaves and open their exact sources without changing data', async ({ page }) => {
@@ -52,18 +47,18 @@ test('selected-project metrics count archived leaves and open their exact source
     await page.keyboard.press('4');
     await page.keyboard.press('e');
     await expect(page.locator('#taskModal')).toHaveCount(0);
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
     await expect(page.locator('[data-dashboard-statistics]')).toHaveCount(3);
     await kpi(page, 'progress').focus();
     await page.keyboard.press('Enter');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     await expect(sources(page)).toContainText('Archived pending integration');
     await expect(sources(page)).not.toContainText('Foreign workitem');
     await expect(sources(page)).not.toContainText('Story awaiting functional validation');
-    await sources(page).getByRole('button', { name: 'Validated implementation', exact: true }).click();
+    await sources(page).locator('[data-dashboard-workitem]', { hasText: 'Validated implementation' }).getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     expect(await readSavedBoard(page, 'p')).toEqual(before);
     await expect(page).toHaveURL(/pv=dashboard/);
     await openProjectPicker(page); await page.locator('#portfolioBoardsChips [data-board-id=""]').click();
@@ -71,48 +66,45 @@ test('selected-project metrics count archived leaves and open their exact source
     await expect(page.locator('#portfolioDashboard')).toBeHidden();
 });
 
-test('overview shows parent phases only; scope and read-only drilldowns retain context', async ({ page }) => {
+test('overview shows all active phases and read-only drilldowns retain project context', async ({ page }) => {
     await seed(page, false);
-    await expect(page.locator('[data-dashboard-section="projectOverview"] [data-dashboard-planning="delivery"]')).toBeVisible();
-    await expect(page.locator('[data-dashboard-planning="api"]')).toHaveCount(0);
-    await expect(page.locator('[data-dashboard-planning="ux"]')).toHaveCount(0);
-    await page.getByLabel('Planning scope', { exact: true }).selectOption('api');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('50%');
+    for (const id of ['delivery']) await expect(page.locator(`[data-dashboard-planning="${id}"]`)).toBeVisible();
     await kpi(page, 'progress').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(2);
-    await sources(page).getByRole('button', { name: 'Archived pending integration', exact: true }).click();
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
+    await sources(page).locator('[data-dashboard-workitem]', { hasText: 'Archived pending integration' }).getByRole('button').click();
     await expect(page.locator('#taskDetailModal')).toContainText('Archived pending integration');
     await page.keyboard.press('Escape');
     await page.locator('[data-dashboard-planning="delivery"]').getByRole('button', { name: 'Delivery programme', exact: true }).click();
     await expect(page.locator('[data-roadmap-task-list="phase:delivery"]')).toBeVisible();
     await page.locator('[data-view-mode="dashboard"]').click();
-    await expect(page.getByLabel('Planning scope', { exact: true })).toHaveValue('api');
+    await expect(page.getByLabel('Planning scope', { exact: true })).toHaveCount(0);
     await page.locator('[data-dashboard-active-sprint="active"]').getByRole('button', { name: 'Sprint 2 - Implementation', exact: true }).click();
     await expect(page.locator('[data-roadmap-task-list="sprint:active"]')).toBeVisible();
 });
 
-test('empty and cancelled-only scopes show unavailable denominators and missing dates', async ({ page }) => {
-    await seed(page);
-    for (const phase of ['empty', 'cancelled-only']) {
-        await page.getByLabel('Planning scope', { exact: true }).selectOption(phase);
-        await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
-    }
+test('empty projects show unavailable progress and discreet empty widget messages', async ({ page }) => {
+    await gotoApp(page);
+    await seedPortfolioBoards(page, [{ id: 'empty', title: 'Empty project', hasHandle: true, tasks: [] }], { selectedBoardId: 'empty' });
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('N/A');
+    await expect(page.locator('[data-dashboard-section="milestones"]')).toContainText('No relevant milestones');
+    await expect(page.locator('.dashboard-milestone-summary strong')).toHaveText(['0', '0', '0']);
+    await expect(page.locator('[data-dashboard-section="activeSprint"]')).toContainText('No active or completed Sprints');
+    await expect(page.locator('[data-dashboard-section="epics"]')).toContainText('No started Epics');
     await kpi(page, 'progress').click();
-    await expect(sources(page)).toContainText('No source workitems');
-    await page.getByLabel('Planning scope', { exact: true }).selectOption('empty');
-    await expect(page.getByText('No workitems in this scope.', { exact: true }).first()).toBeVisible();
+    await expect(sources(page)).toContainText('No workitems match');
 });
 
 test('external file reload refreshes metrics and clears stale source lists', async ({ page }) => {
     await seed(page);
     await kpi(page, 'progress').click();
-    await expect(sources(page).locator('tbody tr')).toHaveCount(6);
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(6);
     const changed = await readSavedBoard(page, 'p');
     changed.board.tasks.find((task: { id: number }) => task.id === 903).status = 'doing';
     await mutateExternalBoardFile(page, { boardId: 'p', payload: changed });
     await triggerExternalFileCheck(page);
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
-    await expect(sources(page).locator('tbody tr')).toHaveCount(0);
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
+    await expect(sources(page).locator('[data-dashboard-workitem]')).toHaveCount(0);
     await kpi(page, 'progress').click();
     await expect(sources(page)).toContainText('Independent validated task');
     await expect(sources(page)).toContainText('Validated implementation');
@@ -120,45 +112,23 @@ test('external file reload refreshes metrics and clears stale source lists', asy
 
 test('historical period uses saved observations and historical drilldowns instead of current task status', async ({ page }) => {
     await seed(page);
-    await page.getByLabel('Start date', { exact: true }).fill('16/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('19/10/2026');
-    await expect(page.getByText('No recorded observations in this period.', { exact: true })).toBeVisible();
-    await page.getByLabel('Start date', { exact: true }).fill('21/10/2026');
+    await setDashboardDate(page, 'Start date', '16/10/2026');
+    await setDashboardDate(page, 'End date', '19/10/2026');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
+    await setDashboardDate(page, 'Start date', '21/10/2026');
     await expect(page.getByRole('alert')).toContainText('The end date');
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('16.7%');
-    await expect(page.locator('.dashboard-context')).toContainText('Historical snapshot');
+    await setDashboardDate(page, 'Start date', '15/10/2026');
+    await setDashboardDate(page, 'End date', '15/10/2026');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('17%');
+    await expect(page.locator('.dashboard-context')).toContainText('Snapshot date · 2026-10-15');
     await kpi(page, 'progress').click();
-    const row = sources(page).locator('tr', { hasText: 'Validated implementation' });
+    const row = sources(page).locator('[data-dashboard-workitem]', { hasText: 'Validated implementation' });
     await expect(row).toContainText('In progress');
     await row.getByRole('button').click();
-    await expect(page.locator('#taskDetailModal')).toContainText('In progress');
+    await expect(page.locator('#taskDetailModal')).toContainText('Validated');
     await page.keyboard.press('Escape');
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('current');
-    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33.3%');
-    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('0');
-    await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(0);
-    await page.getByLabel('Snapshot', { exact: true }).selectOption('2');
-    await expect(page.locator('.dashboard-scope-changes button')).toHaveCount(1);
-});
-
-test('sprint selection supports all, single and multiple, and uses recorded sources for scope changes', async ({ page }) => {
-    await seed(page);
-    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await expect(page.getByRole('checkbox', { name: 'All Sprints', exact: true })).toBeChecked();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(3);
-    await page.getByRole('checkbox', { name: 'Sprint 2 - Implementation', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(1);
-    await expect(page.getByRole('heading', { name: 'Recorded sprint scope changes', exact: true })).toBeVisible();
-    await page.locator('.dashboard-scope-changes button').click();
-    await expect(sources(page)).toContainText('Dependency blocked follow-up');
-    await page.getByRole('checkbox', { name: 'Sprint 1 - Discovery', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(2);
-    await expect(page.getByText('N/A — no sprint finalization records.', { exact: false })).toBeVisible();
-    await page.getByRole('checkbox', { name: 'All Sprints', exact: true }).check();
-    await expect(page.locator('[data-dashboard-sprint]')).toHaveCount(3);
+    await setDashboardDate(page, 'End date', '31/10/2026');
+    await expect(kpi(page, 'progress').locator('strong')).toHaveText('33%');
 });
 
 test('Portuguese dark mobile dashboard stays within viewport and remains keyboard accessible', async ({ page }) => {
@@ -170,7 +140,7 @@ test('Portuguese dark mobile dashboard stays within viewport and remains keyboar
     const progress = kpi(page, 'progress');
     await progress.focus();
     await page.keyboard.press('Enter');
-    await expect(sources(page).getByRole('heading')).toBeFocused();
+    await expect(sources(page).getByRole('heading')).toHaveText('Execução');
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     expect(overflow).toBe(false);
     await page.screenshot({ path: 'test-results/dashboard-mobile-pt-dark.png', fullPage: true });

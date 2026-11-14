@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useState } from 'react';
 import { addTag } from '@/domain/taskDraft';
 import { showAlert } from '@/app/overlays/appMessages';
@@ -22,7 +23,7 @@ export function TagEditor({ value, onChange, suggestions }: {
             {value.map((tag, index) => <div className="tag-editor-row" key={tag}>
                 <span>{tag}</span>
                 <button type="button" className="tag-editor-remove" aria-label={`${t('editor.removeTag')}: ${tag}`}
-                    onClick={() => onChange(value.filter((_, i) => i !== index))}>&times;</button>
+                    onClick={() => onChange(value.filter((_, i) => i !== index))}><WorkspaceIcon name="close" size={12} /></button>
             </div>)}
         </div>
         <div className="tag-editor-add">

@@ -5,7 +5,7 @@
 .control-related > label { display: flex; flex-direction: column; gap: 8px; font-size: 12px; line-height: 1.5; }
 .control-link { color: var(--accent); background: transparent; border: 0; cursor: pointer; font: inherit; text-align: left; padding: 2px; text-decoration: underline; text-underline-offset: 3px; }
 .control-risk { font-weight: 600; white-space: nowrap; }
-.control-risk::before { content: '●'; margin-right: 6px; }
+.control-risk::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: 6px; }
 .control-risk.low::before { color: #23834b; }
 .control-risk.medium::before { color: #bd8800; }
 .control-risk.high::before { color: #d44444; }

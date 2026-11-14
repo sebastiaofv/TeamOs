@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:standalone": "vite build --config vite.standalone.config.ts",
+    "build": "npm run icons:generate && vite build",
+    "build:standalone": "npm run icons:generate && vite build --config vite.standalone.config.ts",
     "preview": "vite preview",
     "lint": "eslint .",
     "typecheck": "tsc",
@@ -17,6 +17,7 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "prepare": "cd .. && husky kanban/.husky",
+    "icons:generate": "node scripts/generate-select-icons.mjs",
     "example:generate": "node scripts/example-project/generate.mjs"
   },
   "devDependencies": {
@@ -51,6 +52,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zod": "^4.6.7",
-    "zustand": "^5.0.15"
+    "zustand": "^5.0.15",
+    "lucide-react": "^1.72.0"
   }
 }

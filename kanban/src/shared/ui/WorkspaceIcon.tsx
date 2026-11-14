@@ -1,26 +1,33 @@
-const paths = {
-    lock: 'M4 7V4a4 4 0 0 1 8 0v3M2 7h12v8H2zM8 10v2',
-    eye: 'M1 8s2-5 7-5 7 5 7 5-2 5-7 5-7-5-7-5M10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0',
-    arrowRight: 'M2 8h12M9 3l5 5-5 5',
-    play: 'M4 2l10 6-10 6z',
-    finish: 'M3 15V1M3 2h10v8H3M3 6h10M8 2v8',
-    search: 'M10.5 10.5 15 15M12 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0',
-    keyboard: 'M1 4h14v9H1zM4 7h.01M7 7h.01M10 7h.01M13 7h.01M4 10h.01M6.5 10h4M13 10h.01',
-    folder: 'M1 4h5l2 2h7v8H1zM1 4V2h5l2 2h6v2',
-    board: 'M2 2h12v12H2zM6 2v12M10 2v12',
-    dashboard: 'M2 2h5v5H2zM10 2h5v5h-5zM2 10h5v5H2zM10 10h5v5h-5z',
-    table: 'M2 2h12v12H2zM2 6h12M2 10h12M6 2v12',
-    roadmap: 'M3 3h10v3H3zM5 10h8v3H5zM3 6v7h2M8 6v4',
-    control: 'M8 1 14 4v4c0 4-6 7-6 7S2 12 2 8V4zM5 8l2 2 4-4',
-    planner: 'M2 3h12v12H2zM5 1v4M11 1v4M2 7h12M5 10h2M9 10h2',
-    export: 'M8 1v9M4 6l4 4 4-4M2 10v5h12v-5',
-    chevronDown: 'M4 6l4 4 4-4',
-    columns: 'M2 2h12v12H2zM6 2v12M10 2v12',
-    runner: 'M11.5 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0M2 7l3-2 3 1 2 3 3 1M8 6l-2 4 3 2-1 3M6 10l-2 3H1',
-    plus: 'M8 2v12M2 8h12',
-    sort: 'M4 2v12M1 5l3-3 3 3M12 14V2M9 11l3 3 3-3'
-};
+import {
+    ChartScatter, RotateCcw, Activity, Archive, ArrowDown, ArrowDownUp, ArrowLeft, ArrowRight, ArrowRightToLine, ArrowUp, ArrowUpRight,
+    AtSign, Bookmark, BookOpen, Bug, CalendarDays, ChartNoAxesCombined, Check, ChevronDown,
+    ChevronLeft, ChevronRight, CircleCheck, CircleGauge, Clock, Columns3, Copy, Download,
+    Ellipsis, Eye, Flag, FlaskConical, Folder, Gauge, GanttChart, GripVertical, Info,
+    Keyboard, LayoutDashboard, LockKeyhole, Pencil, Play, Plus, Search, Settings,
+    ShieldCheck, SlidersHorizontal, SquareCheck, Table2, Terminal, Timer, Trash2, TriangleAlert,
+    UserRound, Waypoints, X, Zap, type LucideProps
+} from 'lucide-react';
 
-export function WorkspaceIcon({ name }: { name: keyof typeof paths }) {
-    return <svg className="workspace-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name]} />{name === 'finish' && <path d="M3 2h5v4H3zM8 6h5v4H8z" fill="currentColor" stroke="none" />}</svg>;
+const icons = {
+    scatter: ChartScatter, rework: RotateCcw, progress: CircleGauge, phases: Waypoints, check: Check, alert: TriangleAlert,
+    chart: ChartNoAxesCombined, settings: SlidersHorizontal, info: Info, lock: LockKeyhole,
+    eye: Eye, arrowLeft: ArrowLeft, arrowRight: ArrowRight, play: Play, finish: Flag, search: Search,
+    keyboard: Keyboard, folder: Folder, board: Columns3, dashboard: LayoutDashboard,
+    table: Table2, roadmap: GanttChart, control: ShieldCheck, planner: CalendarDays,
+    export: Download, chevronDown: ChevronDown, chevronLeft: ChevronLeft, chevronRight: ChevronRight,
+    columns: Columns3, testing: FlaskConical, runner: Timer, story: Bookmark, plus: Plus,
+    sort: ArrowDownUp, arrowUp: ArrowUp, arrowDown: ArrowDown, close: X,
+    grip: GripVertical, more: Ellipsis, epic: Zap, task: SquareCheck, bug: Bug,
+    user: UserRound, book: BookOpen, gear: Settings, filters: SlidersHorizontal,
+    copy: Copy, move: ArrowRightToLine, gauge: Gauge, completed: CircleCheck,
+    priority: Flag, archive: Archive, clock: Clock, assign: AtSign, external: ArrowUpRight,
+    command: Terminal, activity: Activity, edit: Pencil, delete: Trash2
+};
+export type WorkspaceIconName = keyof typeof icons;
+
+/** One Lucide icon family for navigation, actions and workitems throughout the app. */
+export function WorkspaceIcon({ name, className, size = 16, ...props }: LucideProps & { name: WorkspaceIconName }) {
+    const Icon = icons[name];
+    return <Icon size={size} strokeWidth={1.75} aria-hidden={props['aria-label'] ? undefined : true}
+        {...props} className={`workspace-icon${className ? ` ${className}` : ''}`} />;
 }

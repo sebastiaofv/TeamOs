@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useId, useRef, type KeyboardEvent, type ReactNode } from 'react';
 import type { BoardData, WorkflowCategory, WorkflowState, WorkitemType } from '@/domain/types';
 import { WORKFLOW_CATEGORIES, unreachableWorkflowStateIds, workflowKind } from '@/domain/workflow';
@@ -5,7 +6,7 @@ import type { ProjectWorkflowEditor } from '@/features/portfolio/projects/usePro
 import { useI18n } from '@/shared/i18n';
 
 function Chevron() {
-    return <svg className="workflow-select-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>;
+    return <WorkspaceIcon name="chevronDown" className="workflow-select-arrow" size={14} />;
 }
 
 function WorkflowSelect({ value, onChange, disabled, label, children }: { value: string; onChange: (value: string) => void; disabled?: boolean; label: string; children: ReactNode }) {
@@ -83,15 +84,15 @@ export function WorkflowEditor({ data, readOnly, busy, editor, types }: { data: 
                         {draft.states.map((item, position) => <button key={item.id} type="button" aria-pressed={selected.id === item.id} data-state-choice={item.id} onClick={() => { setSelectedId(item.id); clearError(); }}>
                             <span className="workflow-state-position">{String(position + 1).padStart(2, '0')}</span><StateDot state={item} />
                             <span className="workflow-state-list-text"><strong>{item.name || t('workflow.untitled')}</strong><span>{t(`workflow.${item.category}`)}</span></span>
-                            {unreachable.has(item.id) ? <span className="workflow-state-issue" title={t('workflow.unreachable')}>!</span> : <span className="workflow-state-next-count" title={t('workflow.destinationCount', { count: (draft.transitions[item.id] || []).length })}>{(draft.transitions[item.id] || []).length} →</span>}
+                            {unreachable.has(item.id) ? <span className="workflow-state-issue" title={t('workflow.unreachable')}><WorkspaceIcon name="alert" size={14} /></span> : <span className="workflow-state-next-count" title={t('workflow.destinationCount', { count: (draft.transitions[item.id] || []).length })}>{(draft.transitions[item.id] || []).length} <WorkspaceIcon name="arrowRight" size={12} /></span>}
                         </button>)}
                     </nav>
-                    {!readOnly && <button className="btn workflow-add-state" type="button" disabled={busy} onClick={addState}><span aria-hidden="true">＋</span> {t('workflow.addState')}</button>}
+                    {!readOnly && <button className="btn workflow-add-state" type="button" disabled={busy} onClick={addState}><span aria-hidden="true"><WorkspaceIcon name="plus" /></span> {t('workflow.addState')}</button>}
                 </aside>
                 <section className="workflow-state" data-workflow-state={selected.id} aria-labelledby={`${formId}-state-title`}>
                     <div className="workflow-state-heading"><div className="workflow-state-heading-name"><StateDot state={selected} /><h3 id={`${formId}-state-title`}>{selected.name || t('workflow.untitled')}</h3></div>
-                        <div className="workflow-order-actions"><button className="btn" type="button" disabled={readOnly || busy || index === 0} aria-label={t('workflow.up')} title={t('workflow.up')} onClick={() => moveState(-1)}>↑</button>
-                            <button className="btn" type="button" disabled={readOnly || busy || index === draft.states.length - 1} aria-label={t('workflow.down')} title={t('workflow.down')} onClick={() => moveState(1)}>↓</button></div>
+                        <div className="workflow-order-actions"><button className="btn" type="button" disabled={readOnly || busy || index === 0} aria-label={t('workflow.up')} title={t('workflow.up')} onClick={() => moveState(-1)}><WorkspaceIcon name="arrowUp" /></button>
+                            <button className="btn" type="button" disabled={readOnly || busy || index === draft.states.length - 1} aria-label={t('workflow.down')} title={t('workflow.down')} onClick={() => moveState(1)}><WorkspaceIcon name="arrowDown" /></button></div>
                     </div>
                     <p className="workflow-state-description">{t('workflow.stateDescription')}</p>
                     <fieldset disabled={readOnly || busy} className="workflow-state-fields">
@@ -152,7 +153,7 @@ export function WorkflowEditor({ data, readOnly, busy, editor, types }: { data: 
                     <WorkflowSelect label={t('workflow.relocate', { name: item.name, count: tasks.filter((task) => task.status === item.id).length })} disabled={readOnly || busy} value={relocations[item.id] || ''} onChange={(id) => relocate(item.id, id)}>
                         <option value="">{t('common.choose')}</option>{draft.states.map((target) => <option key={target.id} value={target.id}>{target.name || t('workflow.untitled')}</option>)}
                     </WorkflowSelect></label>)}</section>}
-                <div className="workflow-general-note"><span aria-hidden="true">ⓘ</span><p>{t('workflow.help')}</p></div>
+                <div className="workflow-general-note"><span aria-hidden="true"><WorkspaceIcon name="info" /></span><p>{t('workflow.help')}</p></div>
             </div>}
         </div>
     </>;

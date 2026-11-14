@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { importPortfolioProjects } from '@/features/portfolio/projects/projectCommands';
 import { workitemId, workitemLabel, workitemLabelFor } from '@/domain/taskIdentity';
 import { useEffect, useReducer, useRef, type KeyboardEvent } from 'react';
@@ -110,9 +111,9 @@ export function TaskRelations({ vm }: { vm: TaskDetailViewModel }) {
                                         {!vm.readOnly && !task.external && <div className="relation-row-actions">
                                             <button type="button" className="task-action-btn" aria-label={t('relations.edit')} title={t('relations.edit')}
                                                 aria-expanded={mode === 'edit' && otherId === String(task.id)} disabled={busy}
-                                                onClick={() => start('edit', task)}><span aria-hidden="true">&#9998;</span></button>
+                                                onClick={() => start('edit', task)}><WorkspaceIcon name="edit" size={14} /></button>
                                             <button type="button" className="task-action-btn task-action-danger" aria-label={t('common.remove')} title={t('common.remove')}
-                                                disabled={busy} onClick={() => void remove(task.id)}><span aria-hidden="true">🗑️</span></button>
+                                                disabled={busy} onClick={() => void remove(task.id)}><span aria-hidden="true"><WorkspaceIcon name="delete" size={14} /></span></button>
                                         </div>}
                                     </div>
                                     {!vm.readOnly && mode === 'edit' && otherId === String(task.id) &&

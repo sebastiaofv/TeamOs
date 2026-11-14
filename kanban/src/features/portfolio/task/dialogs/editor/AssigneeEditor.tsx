@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { EditorSelect } from './EditorSelect';
@@ -19,7 +20,7 @@ export function AssigneeEditor({ value, onChange, pool, onRemove }: {
             {value.map((name, index) => <div className="assignee-editor-row" key={name}>
                 <span>{name}</span>
                 <button type="button" className="assignee-editor-remove" aria-label={`${t('editor.removeAssignee')}: ${name}`}
-                    onClick={() => { void onRemove(index); }}>&times;</button>
+                    onClick={() => { void onRemove(index); }}><WorkspaceIcon name="close" /></button>
             </div>)}
         </div>
         <div className="assignee-editor-add">
