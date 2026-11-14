@@ -10,6 +10,8 @@ import { dashboardHistorySummary, dashboardSprintScopeChanges } from '../../src/
 import { validateBoardData } from '../../src/domain/board';
 import { visibleComments } from '../../src/domain/comments';
 import { allSprintAnalytics } from '../../src/domain/sprintAnalytics';
+import { sprintBurndown } from '../../src/domain/sprintBurndown';
+import { businessDaysBetween } from '../../src/domain/businessDays';
 import { planningProgress } from '../../src/domain/phaseTree';
 import { getRoadmapTaskFieldTasks } from '../../src/domain/roadmap';
 
@@ -28,6 +30,17 @@ async function openExample() {
 }
 
 describe('the TeamOS historical example', () => {
+    it.each([['sprint-1', 61, 5], ['sprint-2', 12, 2]] as const)('preserves the reported commitment and burndown for %s', async (id, planned, remaining) => {
+        const data = await openExample();
+        expect(allSprintAnalytics(data).rows.find(row => row.id === id)?.planned).toBe(planned);
+        const sprint = data.extensions.roadmap!.sprints.find(sprint => sprint.id === id)!;
+        expect(businessDaysBetween(sprint.startDate!, sprint.endDate!)).toBe(9);
+        const points = sprintBurndown(data, id, '2026-11-13').points;
+        expect(points[0]).toMatchObject({ ideal: planned, actual: planned });
+        expect(points.at(-1)?.ideal).toBe(0);
+        expect(points.at(-1)?.actual).toBe(remaining);
+    });
+
     it('opens with the production folder reader and preserves hierarchy, planning, native comments and frozen Sprints', async () => {
         const data = await openExample();
         validateBoardData(data);

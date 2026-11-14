@@ -66,6 +66,26 @@ for (const width of [1840, 390]) for (const style of ['classic', 'modern']) for 
         await expect(page.locator('[data-sprint-trend="carryover"] .sprint-chart-tooltip')).toContainText('Sprint 18');
         await expect(page.getByRole('button', { name: 'Sprint Analytics', exact: true })).toBeInViewport();
         await expect(page.getByRole('combobox', { name: 'Sprint', exact: true })).toBeInViewport();
+        await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('closed-18');
+        await expect(page.locator('[data-sprint-widget="details"]')).toBeVisible();
+        const boxes = await page.locator('[data-sprint-widget]').evaluateAll(nodes => nodes.map(node => {
+            const { x, y, width, height } = node.getBoundingClientRect();
+            return { x, y, width, height, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
+        }));
+        expect(boxes.every(box => box.scrollWidth <= box.clientWidth + 1 && box.x >= 0 && box.x + box.width <= width + 1)).toBe(true);
+        const [burndown, execution, scope, outcomes, details] = boxes;
+        if (width > 1100) {
+            expect(burndown.y).toBe(execution.y);
+            expect(burndown.width).toBeCloseTo(execution.width);
+            expect(scope.y).toBe(outcomes.y);
+            expect(scope.y).toBe(details.y);
+            expect(scope.width).toBeCloseTo(outcomes.width);
+            expect(details.width).toBeCloseTo(scope.width * 2 + 14);
+            expect(scope.height).toBe(outcomes.height);
+            expect(scope.height).toBe(details.height);
+        } else {
+            expect(boxes.every((box, index) => !index || box.y >= boxes[index - 1].y + boxes[index - 1].height)).toBe(true);
+        }
     });
 }
 
@@ -201,7 +221,7 @@ test('individual Sprint summary, burndown and outcome segments use the single Wo
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
     await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('s1');
     await expect(page.locator('[data-sprint-summary] h3')).toHaveText(['Sprint Duration', 'Planned SP', 'Completed SP', 'Capacity SP', 'Completion', 'Completed Workitems', 'Median Cycle Time to Testing', 'Post-Sprint Rework']);
-    await expect(metric(page, 'duration')).toHaveText('5');
+    await expect(metric(page, 'duration')).toHaveText('4');
     await expect(metric(page, 'planned')).toHaveText('11');
     await expect(metric(page, 'capacity')).toHaveText('20');
     const first = page.locator('[data-burndown-date="2026-01-05"]');

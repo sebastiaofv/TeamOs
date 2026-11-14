@@ -65,12 +65,14 @@ export function allSprintAnalytics(data: BoardData, initialScopes?: ReturnType<t
     const scopes = initialScopes ? new Map([...initialScopes].map(([id, scope]) => [id, new Map(scope.tasks.map(task => [task.id, task.storyPoints ?? 0]))])) : closures.some(closure => !closure.initialPlan) ? sprintStartScopes(data, new Map(closures.map(closure => [closure.sprintId, closure.closedAt]))) : new Map<string, Map<number, number>>();
     const rows: SprintAnalyticsRow[] = closures.map((closure: SprintClosure) => {
         const initial = closure.initialPlan || sprintInitialPlan(scopes.get(closure.sprintId), closure.completedIds);
-        const planned = initial?.plannedPoints ?? null;
+        // Legacy closures have an authoritative planned total even when their
+        // original commitment cannot be fully recovered from the timeline.
+        const planned = closure.initialPlan?.plannedPoints ?? closure.plannedPoints;
         const capacity = closure.sprint.capacity ?? null;
         const carryoverIds = new Set(closure.carryOverIds);
         return { id: closure.sprintId, title: closure.sprint.title, startDate: closure.sprint.startDate || closure.closedAt, closedAt: closure.closedAt,
             planned, completed: closure.velocity, capacity,
-            predictability: percentage(initial?.completedPlannedPoints ?? null, planned), utilization: percentage(planned, capacity),
+            predictability: percentage(initial?.completedPlannedPoints ?? null, initial?.plannedPoints ?? null), utilization: percentage(planned, capacity),
             carryover: closure.tasks.reduce((sum, task) => sum + (carryoverIds.has(task.id) ? task.storyPoints ?? 0 : 0), 0) };
     });
     // Older Done Sprints without a closure remain visible, with explicit gaps rather than live estimates.

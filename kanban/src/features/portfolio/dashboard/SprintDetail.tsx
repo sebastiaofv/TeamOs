@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import type { BoardData, Task } from '@/domain/types';
 import type { allSprintAnalytics, sprintStartWorkitems } from '@/domain/sprintAnalytics';
-import { sprintTaskKey, businessDaysBetween, type sprintExecution, type SprintCycle } from '@/domain/sprintExecution';
+import { sprintTaskKey, type sprintExecution, type SprintCycle } from '@/domain/sprintExecution';
+import { businessDaysBetween } from '@/domain/businessDays';
 import type { SprintBurndown } from '@/domain/sprintBurndown';
 import { dashboardStatistics } from '@/domain/dashboardOverview';
 import { developmentCompleted } from '@/domain/sprintResults';
@@ -26,10 +27,9 @@ export function SprintDetail({ data, selected, boardId, analytics, execution, sc
     const completedTasks = tasks.filter(task => closure ? closure.completedIds.includes(task.id) : developmentCompleted(context, task));
     const completed = row ? row.completed : completedTasks.reduce((sum, task) => sum + (task.storyPoints ?? 0), 0);
     const completion = detail && tasks.length ? completedTasks.length / tasks.length * 100 : null;
-    const duration = sprint?.startDate && sprint.endDate ? businessDaysBetween(sprint.startDate, `${sprint.endDate}T23:59:59Z`) : null;
-    const inclusiveDuration = duration === null || !sprint?.endDate ? null : duration + ([0, 6].includes(new Date(`${sprint.endDate}T00:00:00Z`).getUTCDay()) ? 0 : 1);
+    const duration = sprint?.startDate && sprint.endDate ? businessDaysBetween(sprint.startDate, sprint.endDate) : null;
     const metrics: { key: string; title: AnalyticsLabel; icon: WorkspaceIconName; value: number | null; percent?: boolean; secondary?: string; members?: Task[]; unavailable?: string }[] = [
-        { key: 'duration', title: 'duration', icon: 'planner', value: inclusiveDuration, secondary: t('dashboard.analytics.workingDays') },
+        { key: 'duration', title: 'duration', icon: 'planner', value: duration, secondary: t('dashboard.analytics.workingDays') },
         { key: 'planned', title: 'planned', icon: 'story', value: planned, secondary: 'SP' },
         { key: 'completed', title: 'completed', icon: 'completed', value: completed, secondary: `SP · ${format(completed !== null && planned !== null && planned > 0 ? completed / planned * 100 : null, true)}` },
         { key: 'capacity', title: 'capacity', icon: 'gauge', value: row ? row.capacity : sprint?.capacity ?? null, secondary: 'SP' },

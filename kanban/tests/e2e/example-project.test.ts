@@ -1,12 +1,55 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, expectProjectCount, selectPortfolioBoard } from '../support/portfolio';
+import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, expectProjectCount, selectPortfolioBoard, toggleTheme } from '../support/portfolio';
 import { fixtureTree, mockFolderPicker, readFolderJson } from '../support/folderProjects';
 import { setDashboardDate } from '../support/dashboard';
 
 const root = 'test-board/teamos-development';
 const project = JSON.parse(readFileSync(`${root}/project.json`, 'utf8'));
 const history = JSON.parse(readFileSync(`${root}/history.json`, 'utf8'));
+
+for (const width of [1840, 390]) test(`historical Sprint summaries and Burndown preserve the recorded points at ${width}px`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 1000 });
+    await page.clock.setFixedTime(new Date('2026-11-13T12:00:00Z'));
+    await page.addInitScript(() => localStorage.setItem('teamOsKanbanThemeStyle', 'modern'));
+    await gotoApp(page);
+    if (width === 390) await toggleTheme(page);
+    const tree = fixtureTree(root);
+    for (const path of Object.keys(tree.files)) if (path.endsWith('.md') || path === 'summary.json') delete tree.files[path];
+    await mockFolderPicker(page, tree);
+    await page.locator('#importProjectsBtn').click();
+    await expectProjectCount(page, 1);
+    await identifyOpenProjects(page);
+    await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    const selector = page.getByRole('combobox', { name: 'Sprint', exact: true });
+    const chart = page.locator('[data-sprint-widget="burndown"]');
+    for (const [id, planned, remaining, start, end] of [
+        ['sprint-1', 61, 5, '2026-09-14', '2026-09-25'],
+        ['sprint-2', 12, 2, '2026-09-28', '2026-10-09']
+    ] as const) {
+        await selector.selectOption(id);
+        await expect(page.locator('[data-sprint-summary="duration"] strong')).toHaveText('9');
+        await expect(page.locator('[data-sprint-summary="planned"] strong')).toHaveText(String(planned));
+        await page.locator(`[data-burndown-date="${start}"]`).focus();
+        await expect(chart.locator('.sprint-chart-tooltip')).toContainText(`Ideal: ${planned} SP · Actual: ${planned} SP`);
+        await page.locator(`[data-burndown-date="${end}"]`).focus();
+        await expect(chart.locator('.sprint-chart-tooltip')).toContainText(`Ideal: 0 SP · Actual: ${remaining} SP`);
+        const paths = await chart.locator('polyline').evaluateAll(nodes => nodes.map(node => node.getAttribute('points')!.split(' ')[0]));
+        expect(paths[0]).toBe(paths[1]);
+        await page.locator('[data-sprint-widget="outcomes"] button').first().click();
+        await expect(page.locator('[data-sprint-widget="details"] [data-dashboard-workitem]').first()).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    }
+    await selector.selectOption('sprint-1');
+    await expect(page.locator('[data-sprint-summary="planned"] strong')).toHaveText('61');
+    await page.mouse.move(1, 1);
+    await page.screenshot({ path: `test-results/issue-83-sprint-metrics-${width}.png`, fullPage: true });
+    await page.locator('[data-sprint-widget="details"]').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `test-results/issue-83-sprint-detail-${width}.png`, fullPage: true });
+});
 
 test('imports the historical example, explores native views, saves and reopens it without losing evidence', async ({ page }) => {
     test.setTimeout(120_000);

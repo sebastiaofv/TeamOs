@@ -3,7 +3,7 @@ import { createEmptyProjectData } from '@/domain/board';
 import { normalizeTask } from '@/domain/task';
 import { appendTimelineEvent, ensureBoardTimelineBaseline } from '@/domain/timeline';
 import { createBoardStateSnapshot } from '@/domain/serialize';
-import { allSprintAnalytics } from '@/domain/sprintAnalytics';
+import { allSprintAnalytics, sprintStartScopes } from '@/domain/sprintAnalytics';
 import { closeSprint, parseSprintResults } from '@/domain/sprintResults';
 import { fromProjectFile, toProjectFile, toProjectCheckpoint } from '@/domain/projectFormat';
 import { applyProjectPatch, diffProjectState } from '@/domain/projectPatch';
@@ -48,12 +48,12 @@ describe('All Sprints historical metrics', () => {
         expect(allSprintAnalytics(applyProjectPatch(before, diffProjectState(toProjectCheckpoint(before), toProjectCheckpoint(data))))).toEqual(expected);
         expect(parseSprintResults(data.extensions.sprintResults)).toEqual(data.extensions.sprintResults);
     });
-    it('recovers legacy initial scope from recorded activation, without using the final scope as a baseline', () => {
+    it('uses the frozen legacy planned total while recovering the original commitment for predictability', () => {
         const { data } = completedSprint();
         delete data.extensions.sprintResults!.closures[0].initialPlan;
-        expect(allSprintAnalytics(data).rows[0].planned).toBe(13);
+        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: 24, predictability: 5 / 13 * 100, utilization: 300 });
         delete data.extensions.timeline;
-        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: null, predictability: null, utilization: null, completed: 8, carryover: 8 });
+        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: 24, predictability: null, utilization: 300, completed: 8, carryover: 8 });
     });
     it('shows unavailable initial planning for a baseline already active, and excludes active/planned Sprints', () => {
         const data = createEmptyProjectData('Missing history');
@@ -61,7 +61,7 @@ describe('All Sprints historical metrics', () => {
         ensureBoardTimelineBaseline(data);
         closeSprint(data, 'active');
         expect(allSprintAnalytics(data).rows).toHaveLength(1);
-        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: null, completed: 0, capacity: null });
+        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: 0, predictability: null, completed: 0, capacity: null });
     });
     it('averages per-Sprint ratios, handles zero denominators and orders old to new', () => {
         const { data } = completedSprint();
@@ -87,7 +87,7 @@ describe('All Sprints historical metrics', () => {
         ensureBoardTimelineBaseline(data);
         data.extensions.roadmap!.sprints[0].status = 'active';
         appendTimelineEvent(data, { kind: 'roadmap.updated', entityType: 'board', entityId: 'board', summary: 'Later edit', at: '2099-01-01T12:00:00Z', snapshot: createBoardStateSnapshot(data) });
-        expect(allSprintAnalytics(data).rows[0].planned).toBeNull();
+        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: 24, predictability: null });
     });
     it('does not count work removed before the Sprint start as initially planned', () => {
         const { data } = completedSprint();
@@ -95,7 +95,8 @@ describe('All Sprints historical metrics', () => {
         const start = data.extensions.timeline!.events[1].snapshot!;
         for (const snapshot of [baseline, start]) snapshot.extensions!.sprintParticipation = { version: 1, entries: [{ sprintId: 's1', task: normalizeTask({ id: 99, title: 'Removed before start', type: 'task', sprintId: 's1', storyPoints: 13 }), at: '2025-12-01T12:00:00Z' }] };
         delete data.extensions.sprintResults!.closures[0].initialPlan;
-        expect(allSprintAnalytics(data).rows[0].planned).toBe(13);
+        expect([...sprintStartScopes(data).get('s1')!.values()].reduce((sum, value) => sum + value, 0)).toBe(13);
+        expect(allSprintAnalytics(data).rows[0]).toMatchObject({ planned: 24, predictability: 5 / 13 * 100 });
     });
     it('captures the commitment when a new Sprint is created directly as active after the baseline', () => {
         const data = createEmptyProjectData('New Sprint');

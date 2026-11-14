@@ -28,7 +28,7 @@ async function fixture(title = 'Folder project') {
 afterEach(() => { useAppStore.setState({ portfolioBoards: [] }); syncProjectSaveStates(); });
 
 describe('project directory persistence', () => {
-    it('recovers frozen initial planning after lazy history hydration, without substituting capacity or final scope', async () => {
+    it('keeps legacy planned scope stable across lazy history hydration and recovers commitment-based predictability', async () => {
         const data = sprintExecutionFixture();
         const first = data.extensions.sprintResults!.closures[0];
         delete first.initialPlan;
@@ -41,13 +41,13 @@ describe('project directory persistence', () => {
         const board = await BoardRepository.createRecordFromHandle(handle);
         useAppStore.setState({ portfolioBoards: [board] }); syncProjectSaveStates();
         await refreshProjectFileBaseline(board);
-        expect(allSprintAnalytics(board.data).rows[0].planned).toBeNull();
+        expect(allSprintAnalytics(board.data).rows[0]).toMatchObject({ planned: 99, predictability: null });
         const project = await directory.getFileHandle('project.json');
         const saved = project.text();
         await ensureProjectHistoryLoaded(board.id);
         const hydrated = useAppStore.getState().portfolioBoards[0].data;
-        expect(allSprintAnalytics(hydrated).rows[0]).toMatchObject({ planned: 11, capacity: 20, predictability: 0 });
-        expect(allSprintAnalytics(hydrated).rows[0].utilization).toBeCloseTo(55);
+        expect(allSprintAnalytics(hydrated).rows[0]).toMatchObject({ planned: 99, capacity: 20, predictability: 0 });
+        expect(allSprintAnalytics(hydrated).rows[0].utilization).toBeCloseTo(495);
         expect(project.text()).toBe(saved);
     });
 

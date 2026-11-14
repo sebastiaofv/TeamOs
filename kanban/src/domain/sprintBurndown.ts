@@ -4,7 +4,7 @@ import { createBoardAnalysisCache, createBoardAnalysisSnapshot } from './seriali
 import { getSprintStatus } from './roadmap';
 import { isPlanningUnit } from './workitems';
 import { statusCategory } from './workflow';
-import { sprintTaskKey } from './sprintExecution';
+import { sprintTaskKey, sprintClosureContext } from './sprintExecution';
 
 export type BurndownPoint = { date: string; ideal: number; actual: number | null };
 export type SprintBurndown = { points: BurndownPoint[]; added: Task[] | null; removed: Task[] | null; contexts: Map<number, BoardData> };
@@ -59,15 +59,25 @@ export function* sprintBurndownSteps(data: BoardData, sprintId: string, today: s
     }
     if (initial === null) return unavailable;
     if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return { points: [], added: [...added.values()], removed: [...removed.values()], contexts };
-    const planned = closure?.initialPlan?.plannedPoints ?? initial;
+    // Older closures already record planned scope; do not replace it with a
+    // partial commitment reconstructed from history. New closures freeze both.
+    const planned = closure?.initialPlan?.plannedPoints ?? closure?.plannedPoints ?? initial;
+    if (closure) {
+        // Closing can clear allocations in the same event. The frozen roster owns
+        // that day's result, including work not observed separately before closing.
+        const context = sprintClosureContext(data, closure);
+        const remaining = closure.tasks.filter(task => isPlanningUnit(context, task)).reduce((sum, task) => sum + (['testing', 'completed'].includes(statusCategory(task.status, context, task)) ? 0 : task.storyPoints ?? 0), 0);
+        daily.set(new Date(closure.closedAt).toISOString().slice(0, 10), remaining);
+    }
     const points: BurndownPoint[] = [];
-    let remaining = initial;
+    let remaining = planned;
     const observations = [...daily].sort(([a], [b]) => a.localeCompare(b));
     let observation = 0;
     for (let time = start; time <= end; time += dayMs) {
         const date = new Date(time).toISOString().slice(0, 10);
         while (observation < observations.length && observations[observation][0] <= date) remaining = observations[observation++][1];
-        points.push({ date, ideal: end === start ? planned : planned * (end - time) / (end - start), actual: time <= until ? remaining : null });
+        // The first point represents the opening plan, before that day's execution.
+        points.push({ date, ideal: end === start ? planned : planned * (end - time) / (end - start), actual: time <= until ? time === start ? planned : remaining : null });
         yield points.length;
     }
     return { points, added: [...added.values()], removed: [...removed.values()], contexts };

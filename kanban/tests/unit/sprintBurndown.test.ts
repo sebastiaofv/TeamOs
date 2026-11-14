@@ -21,6 +21,33 @@ function fixture() {
 }
 
 describe('Sprint burndown observations', () => {
+    it('starts both lines at the frozen planned scope even with pre-existing and first-day completions', () => {
+        const { data, observe } = fixture();
+        const activation = data.extensions.timeline!.events[1].snapshot!;
+        activation.board!.tasks![0].status = 'testing';
+        data.board.tasks[0].status = 'testing';
+        data.board.tasks[1].status = 'done'; observe('2026-01-05');
+        closeSprint(data, 's1');
+        const closure = data.extensions.sprintResults!.closures[0];
+        closure.closedAt = '2026-01-14T12:00:00Z';
+        delete closure.initialPlan;
+        closure.plannedPoints = 25;
+        const points = sprintBurndown(data, 's1', '2026-11-13').points;
+        expect(points[0]).toEqual({ date: '2026-01-05', ideal: 25, actual: 25 });
+        expect(points[1].actual).toBe(15);
+        expect(points.at(-1)).toMatchObject({ ideal: 0, actual: 15 });
+    });
+
+    it('reads the final remaining scope from closure before allocation resets and ignores subsequent edits', () => {
+        const { data, observe } = fixture();
+        data.board.tasks[0].status = 'testing';
+        closeSprint(data, 's1');
+        data.extensions.sprintResults!.closures[0].closedAt = '2026-01-14T12:00:00Z';
+        data.extensions.roadmap!.sprints[0].status = 'done'; observe('2026-01-14');
+        data.board.tasks = []; observe('2026-02-01');
+        expect(sprintBurndown(data, 's1', '2026-11-13').points.at(-1)).toMatchObject({ ideal: 0, actual: 17 });
+    });
+
     it('applies Testing/Done, additions and removals on the observed day and retains unfinished points at closure', () => {
         const { data, observe } = fixture();
         data.board.tasks[0].status = 'testing'; observe('2026-01-07');
