@@ -405,6 +405,9 @@ button.dashboard-kpi:hover, .dashboard-chart-row:hover { border-color: var(--acc
 .sprint-ideal-line { fill: none; stroke: var(--text-secondary); stroke-width: 1.5; stroke-dasharray: 6 4; }
 .sprint-chart-legend .sprint-ideal-key { height: 0; width: 16px; border-top: 2px dashed var(--text-secondary); }
 .sprint-outcomes { display: grid; gap: 16px; margin: 8px 0 20px; }
+.sprint-detail-grid .sprint-outcomes { gap: 6px; margin: 0 0 6px; }
+.sprint-detail-grid .sprint-outcome-row .dashboard-stacked-bar { height: 20px; }
+.sprint-detail-grid .sprint-outcome-legend { gap: 6px 10px; }
 .sprint-outcome-row > div:first-child { display: flex; justify-content: space-between; margin-bottom: 6px; color: var(--text-secondary); font-size: 12px; }
 .sprint-outcome-row .dashboard-stacked-bar { height: 24px; gap: 0; }
 .sprint-outcome-row button { border: 0; padding: 0; color: #101828; font: inherit; cursor: pointer; min-width: 0; }

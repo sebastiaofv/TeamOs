@@ -70,9 +70,10 @@ for (const width of [1840, 390]) for (const style of ['classic', 'modern']) for 
         await expect(page.locator('[data-sprint-widget="details"]')).toBeVisible();
         const boxes = await page.locator('[data-sprint-widget]').evaluateAll(nodes => nodes.map(node => {
             const { x, y, width, height } = node.getBoundingClientRect();
-            return { x, y, width, height, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth };
+            return { widget: node.getAttribute('data-sprint-widget'), x, y, width, height, scrollWidth: node.scrollWidth, clientWidth: node.clientWidth, scrollHeight: node.scrollHeight, clientHeight: node.clientHeight };
         }));
         expect(boxes.every(box => box.scrollWidth <= box.clientWidth + 1 && box.x >= 0 && box.x + box.width <= width + 1)).toBe(true);
+        expect(boxes.filter(box => box.scrollHeight > box.clientHeight + 1)).toEqual([]);
         const [burndown, execution, scope, outcomes, details] = boxes;
         if (width > 1100) {
             expect(burndown.y).toBe(execution.y);
