@@ -17,7 +17,7 @@ This is a local app for portfolio planning and Kanban. It uses Vite, React, Zust
 - **Project settings** — Open settings from the project selector. General, Technical workflow, Functional workflow and Automations use the same draft. Save applies the draft. Cancel/close/Escape discards the draft. General contains name, acronym, product, description, status, members and tags.
 
   New projects assign Epics/Stories/Bugs to Functional and Tasks to Technical. You can assign each type again. You can set states, categories, transitions and reference states. You can continue to look at historical and read-only settings.
-- **Board view** — Technical and Functional perspectives follow the type assignments of the project. Epics are available in the Table. Columns follow the workflows that you set, which include Backlog and Testing. Initially, the board does not show Cancelled states.
+- **Board view** — The type assignments of the project control the Technical and Functional perspectives. Epics are available in the Table. The workflows that you set control the columns. These workflows include Backlog and Testing. Initially, the board does not show Cancelled states.
 
   Initially, the Active Sprints only checkbox is selected for the two perspectives. To see work with no Sprint and other Sprints, clear the checkbox. You can also select one Sprint in Filters. You can move cards with drag/touch/keyboard input. You can assign responsibility directly on a card. A card also has a next-state arrow.
 
@@ -67,7 +67,7 @@ This is a local app for portfolio planning and Kanban. It uses Vite, React, Zust
 
   Ten sections give information about getting started and the Agile methodology as TeamOS applies it. The methodology topic shows which items are only recommended and which rules the app makes mandatory. Other sections give information about projects, workitems, workflows, planning, views, files and history, and productivity. One section is an end-to-end example with FAQ.
 
-  The page has a contents sidebar with a search field, and the sidebar shows the active topic with a mark. It also has links to related topics and previous/next navigation. It follows the light/dark theme and the EN/PT language. On small screens, it collapses its contents.
+  The page has a contents sidebar with a search field, and the sidebar shows the active topic with a mark. It also has links to related topics and previous/next navigation. It uses the same light/dark theme and EN/PT language as the app. On small screens, it collapses its contents.
 
   The live app renders the command palette guide and the shortcut reference. The content is in `src/app/docs/content/{en,pt}.ts`. Unit tests make sure that the two outlines and all internal links agree.
 - **Appearance** — In App settings, you select Classic or Modern, and Light/Dark for each theme. Modern uses Inter typography, which is bundled locally. Preferences stay in the browser. They do not change project data or drafts.
@@ -248,7 +248,7 @@ You can also start the workflow manually from the Actions tab (*Run workflow*).
 
 ## Testing
 
-The [issue 93 validation report](docs/issue-93-validation.md) gives information about the Radix/Zod boundaries and the WCAG 2.2 AA review. It also contains the before/after accessibility table and local performance measurements.
+The [issue 93 validation report](docs/issue-93-validation.md) gives information about the Radix/Zod boundaries. The WCAG 2.2 AA review in the report gave satisfactory results. The report also contains the before/after accessibility table and local performance measurements.
 
 The single [TeamOS historical example project](test-board/README.md) shows the application in the current folder format. It has a walkthrough, and it tells you clearly that all its data is example data. To use the project in writable mode, import a copy. Legacy regression fixtures are in `tests/fixtures/manual/`.
 

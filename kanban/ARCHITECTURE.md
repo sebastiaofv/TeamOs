@@ -1,7 +1,7 @@
 # Architecture and folder guide
 
 TeamOS Kanban is a Vite/React application with one portfolio feature. The
-folder layout follows ownership. The domain rules operate independently. The
+folder layout agrees with ownership. The domain rules operate independently. The
 feature owns the portfolio functions. The app assembles the user interface in
 the browser.
 
@@ -17,7 +17,7 @@ domain rules              infrastructure adapters
 shared types and UI helpers       browser / persistence / logging
 ```
 
-The domain must not use React, Zustand, browser globals or file I/O.
+We recommend that the domain does not use React, Zustand, browser globals or file I/O.
 Feature commands and queries are the primary seams for the portfolio functions.
 Commands control write operations. Queries calculate view models. Views render the
 result. Infrastructure owns the file and browser details behind small interfaces.

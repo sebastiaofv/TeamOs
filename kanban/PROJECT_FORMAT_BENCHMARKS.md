@@ -35,7 +35,7 @@ npm run bench:project-files
 - **Open** reads and validates `project.json`. It also examines the identity of `history.json` in its first and last bytes. In v1, history size does not change its time. `long-history` opens as fast as the small workloads.
 - **Save** rewrites `project.json` and appends to `history.json`. Its time increases with project size. It is approximately 35 to 40 ms at 1,000 workitems, and approximately 10 ms at 100.
 - A Project Control edit diffs the full project to make its patch. But its time is approximately the same as the time of a workitem edit.
-- `long-history` saves more slowly than the other 100-workitem workloads. The primary possible cause is two facts. The benchmark loaded its 10,000 events into memory before the save. Two or more passes in the save path read the loaded history. Tests did not show that this is the cause.
+- `long-history` saves more slowly than the other 100-workitem workloads. The primary possible cause is two facts. The benchmark loaded its 10,000 events into memory before the save. Two or more passes in the save path read the loaded history. We are not sure that this is the cause.
 - **Convert** is a one-time operation. Its time increases with the legacy history. That history stored a full project for each board-level edit.
 - **Historical jump** gets the state at the last event, after the history is loaded. `long-history` has no checkpoint after its baseline, because single-field edits do not cause a checkpoint. Thus, the jump replays all 10,000 events.
 
