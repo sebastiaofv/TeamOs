@@ -1,0 +1,377 @@
+<!doctype html>
+<!-- PROTOTYPE — throwaway. Not imported by the app. Open this file in a browser. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Save Lifecycle Prototype</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6b66; --line: #e3e3de;
+    --accent: #2f5bd3; --accent-soft: #e8eefc; --bad: #b3261e; --bad-soft: #fbe9e7; --good: #1e7a3c; --good-soft: #e6f4ea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #161615; --panel: #1f1f1d; --ink: #ecece8; --muted: #9a9a93; --line: #33332f;
+      --accent: #7f9ef0; --accent-soft: #232c45; --bad: #f08a80; --bad-soft: #3a2220; --good: #7fcf97; --good-soft: #1d3324;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  p { margin: 0 0 10px; }
+  .intro { color: var(--muted); max-width: 760px; margin-bottom: 28px; }
+  .intro strong { color: var(--ink); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  .full { grid-column: 1 / -1; }
+  .phase { font-size: 22px; font-weight: 650; margin-bottom: 4px; }
+  .phase-help { color: var(--muted); margin-bottom: 14px; }
+  dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 0; }
+  dt { color: var(--muted); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  .changed { background: var(--accent-soft); border-radius: 4px; padding: 0 4px; margin: 0 -4px; }
+  .yes { color: var(--good); font-weight: 600; } .no { color: var(--bad); font-weight: 600; }
+  .chip { display: inline-block; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; }
+  .log { margin-top: 14px; padding: 10px 12px; border-radius: 8px; font-size: 14px; }
+  .log.ok { background: var(--good-soft); } .log.refused { background: var(--bad-soft); }
+  .buttons { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: inherit; font-size: 14px; padding: 7px 12px; border-radius: 7px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.illegal { color: var(--muted); border-style: dashed; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .group-label { font-size: 12px; color: var(--muted); margin: 12px 0 6px; }
+  .group-label:first-child { margin-top: 0; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tabs button[aria-selected="true"] { background: var(--accent-soft); border-color: var(--accent); }
+  .steps { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 6px; }
+  .steps li { display: flex; align-items: center; gap: 10px; }
+  .steps .n { width: 22px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .steps li.done button { opacity: .5; }
+  .watch { margin-top: 12px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 6px 6px 0; }
+  code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Project save lifecycle: one explicit state</h1>
+  <p class="intro">
+    Today a project's save status lives in two separate fields (<code>status</code> and <code>watchStatus</code>), two revision counters
+    and an expiry timestamp, and three places in the app work out what they mean together.
+    <strong>The question:</strong> can one named state (plus the revision counters and a short-lived notice) describe every case the app handles today,
+    so the toolbar badge, autosave, the close warning and cross-project moves all read from the same place?
+    Click the actions in any order, or run a walkthrough. Grey dashed buttons aren't allowed in the current state. Click one anyway to see why.
+  </p>
+
+  <div class="grid">
+    <section class="panel" aria-labelledby="state-h">
+      <h2 id="state-h">Current state</h2>
+      <div class="phase" id="phase"></div>
+      <div class="phase-help" id="phase-help"></div>
+      <dl id="fields"></dl>
+      <div id="log"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="ui-h">
+      <h2 id="ui-h">What the app does in this state</h2>
+      <dl id="derived"></dl>
+      <h2 style="margin-top:18px">Same state in today's fields</h2>
+      <dl id="legacy"></dl>
+    </section>
+
+    <section class="panel full" aria-labelledby="free-h">
+      <h2 id="free-h">Free play</h2>
+      <div id="free"></div>
+    </section>
+
+    <section class="panel full" aria-labelledby="walk-h">
+      <h2 id="walk-h">Guided walkthroughs</h2>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div id="scenario"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+// ---------------------------------------------------------------------------
+// Portable module: pure, no DOM. This is the part worth lifting into
+// src/infrastructure/persistence once the model is validated.
+// ---------------------------------------------------------------------------
+const SaveLifecycle = (() => {
+  /** @typedef {{kind:'synced'} | {kind:'pending'} | {kind:'writing', target:number}
+   *  | {kind:'failed', error:string} | {kind:'conflict', source:'merge'|'recovery', count:number}
+   *  | {kind:'unreachable', error:string}} Phase */
+  /** @typedef {{phase:Phase, revision:number, savedRevision:number, notice:null|'reloaded'|'merged'}} SaveState */
+
+  const initial = () => ({ phase: { kind: 'synced' }, revision: 0, savedRevision: 0, notice: null });
+
+  const HAS_LOCAL_EDITS = ['pending', 'writing', 'failed', 'conflict'];
+
+  /** Returns { state } or { refused: reason }. Never mutates. */
+  function transition(s, event) {
+    const k = s.phase.kind;
+    const refuse = (reason) => ({ refused: reason });
+    const to = (patch) => ({ state: { ...s, ...patch } });
+
+    switch (event.type) {
+      case 'edit':
+        // Edits are always kept locally, even in a conflict (that matches today).
+        return to({
+          revision: s.revision + 1,
+          notice: null,
+          phase: k === 'synced' || k === 'unreachable' ? { kind: 'pending' } : s.phase
+        });
+
+      case 'saveStart':
+        if (k === 'conflict') return refuse('Autosave is paused until the conflict is resolved.');
+        if (k === 'writing') return refuse('A save is already running; a new request joins it.');
+        if (k === 'synced' || k === 'unreachable') return refuse('There are no local edits to save.');
+        return to({ phase: { kind: 'writing', target: s.revision } });
+
+      case 'saveOk':
+        if (k !== 'writing') return refuse('Only a running save can finish.');
+        return to({
+          savedRevision: s.phase.target,
+          phase: s.revision > s.phase.target ? { kind: 'pending' } : { kind: 'synced' }
+        });
+
+      case 'saveFail':
+        if (k !== 'writing') return refuse('Only a running save can fail.');
+        return to({ phase: { kind: 'failed', error: event.error || 'The file could not be written.' } });
+
+      case 'diskReloaded':
+        if (HAS_LOCAL_EDITS.includes(k)) return refuse('With local edits, the app merges the other version instead of replacing yours.');
+        return to({ phase: { kind: 'synced' }, notice: 'reloaded' });
+
+      case 'diskMerged':
+        if (!HAS_LOCAL_EDITS.includes(k) || k === 'conflict') return refuse(k === 'conflict'
+          ? 'A conflict is already waiting for a decision.'
+          : 'With no local edits there is nothing to merge; the app simply reloads.');
+        // The merged result is a new local version that still has to be written.
+        return to({ revision: s.revision + 1, notice: 'merged', phase: k === 'writing' ? s.phase : { kind: 'pending' } });
+
+      case 'diskConflict':
+        if (!HAS_LOCAL_EDITS.includes(k) || k === 'conflict') return refuse(k === 'conflict'
+          ? 'A conflict is already waiting for a decision.'
+          : 'With no local edits nothing can conflict; the app simply reloads.');
+        return to({ notice: null, phase: { kind: 'conflict', source: 'merge', count: event.count || 2 } });
+
+      case 'conflictResolved':
+        if (k !== 'conflict') return refuse('There is no conflict to resolve.');
+        return to({ revision: s.revision + 1, phase: { kind: 'writing', target: s.revision + 1 } });
+
+      case 'conflictVanished':
+        if (k !== 'conflict') return refuse('There is no conflict.');
+        return to({ phase: { kind: 'pending' } });
+
+      case 'restoreDraft':
+        if (k !== 'synced') return refuse('A recovered draft can only be restored when nothing is pending or saving.');
+        return to({ revision: s.revision + 1, notice: null, phase: { kind: 'conflict', source: 'recovery', count: 1 } });
+
+      case 'diskUnreadable':
+        if (k === 'conflict') return refuse('The conflict takes priority; the read error will come back on the next check.');
+        if (k === 'synced') return to({ notice: null, phase: { kind: 'unreachable', error: event.error || 'The project file could not be read.' } });
+        if (k === 'unreachable') return refuse('Already marked as unreachable.');
+        // With local edits, a failed read means those edits can't be saved.
+        return to({ phase: { kind: 'failed', error: event.error || 'The project file could not be read.' } });
+
+      case 'diskReadable':
+        if (k !== 'unreachable') return refuse('The file was not marked as unreachable.');
+        return to({ phase: { kind: 'synced' } });
+
+      case 'discardLocal':
+        if (!['pending', 'failed', 'conflict'].includes(k)) return refuse(k === 'writing'
+          ? 'Wait for the running save to finish.' : 'There are no local edits to discard.');
+        return to({ revision: s.savedRevision, notice: null, phase: { kind: 'synced' } });
+
+      case 'timePasses':
+        if (!s.notice) return refuse('No notice is showing.');
+        return to({ notice: null });
+
+      default:
+        return refuse('Unknown event.');
+    }
+  }
+
+  // --- Everything the app needs, read from the one state ---
+  const hasUnsavedChanges = (s) => s.revision > s.savedRevision;
+  const canAutosave = (s) => s.phase.kind === 'pending' || s.phase.kind === 'failed';
+  const needsCloseWarning = (s) => HAS_LOCAL_EDITS.includes(s.phase.kind);
+  const canTransferTasks = (s) => s.phase.kind !== 'conflict' && s.phase.kind !== 'unreachable';
+  const canEditTasks = () => true;
+
+  function badge(s) {
+    switch (s.phase.kind) {
+      case 'conflict': return { text: 'Conflict', retry: false };
+      case 'failed': return { text: 'Save failed', retry: true };
+      case 'writing': return { text: 'Saving…', retry: false };
+      case 'pending': return { text: 'Unsaved', retry: false };
+      case 'unreachable': return { text: 'Can’t read file', retry: true };
+      default:
+        if (s.notice === 'reloaded') return { text: 'Updated from disk', retry: false };
+        if (s.notice === 'merged') return { text: 'Merged', retry: false };
+        return { text: '', retry: false };
+    }
+  }
+
+  /** Projection back to today's ProjectSaveState fields, for a gradual migration. */
+  function toLegacy(s) {
+    const watchFromNotice = s.notice ? 'external' : 'idle';
+    switch (s.phase.kind) {
+      case 'synced': return { status: 'idle', watchStatus: watchFromNotice };
+      case 'pending': return { status: 'dirty', watchStatus: watchFromNotice };
+      case 'writing': return { status: 'saving', watchStatus: watchFromNotice };
+      case 'failed': return { status: 'error', watchStatus: 'idle' };
+      case 'conflict': return { status: 'dirty', watchStatus: 'conflict' };
+      case 'unreachable': return { status: 'idle', watchStatus: 'watch-error' };
+    }
+  }
+
+  return { initial, transition, hasUnsavedChanges, canAutosave, needsCloseWarning, canTransferTasks, canEditTasks, badge, toLegacy };
+})();
+
+// ---------------------------------------------------------------------------
+// Throwaway page shell.
+// ---------------------------------------------------------------------------
+const PHASES = {
+  synced: ['Saved', 'Everything on screen is in the project file.'],
+  pending: ['Unsaved edits', 'You changed something; autosave will write it soon.'],
+  writing: ['Saving', 'The app is writing to the project file right now.'],
+  failed: ['Save failed', 'Your edits are kept, but the last write did not work. Autosave or Retry will try again.'],
+  conflict: ['Conflict', 'Someone else changed the same things. Autosave is paused until you pick which version to keep.'],
+  unreachable: ['Can’t read the file', 'The shared folder or file could not be read. Nothing local is at risk.']
+};
+
+const EVENTS = [
+  { group: 'You', items: [
+    ['edit', 'Make an edit'],
+    ['conflictResolved', 'Pick versions and resolve the conflict'],
+    ['discardLocal', 'Discard my local edits'],
+    ['restoreDraft', 'Restore a draft after a crash'] ] },
+  { group: 'Autosave', items: [
+    ['saveStart', 'Autosave starts writing'],
+    ['saveOk', 'Write succeeds'],
+    ['saveFail', 'Write fails'] ] },
+  { group: 'Someone else / the shared folder', items: [
+    ['diskReloaded', 'Someone else saved (no edits here, so the app reloads)'],
+    ['diskMerged', 'Someone else saved (merged cleanly with mine)'],
+    ['diskConflict', 'Someone else saved (clashes with mine)'],
+    ['conflictVanished', 'They undo their clashing change'],
+    ['diskUnreadable', 'The file becomes unreadable'],
+    ['diskReadable', 'The file is readable again'] ] },
+  { group: 'Clock', items: [ ['timePasses', 'A few seconds pass (notice fades)'] ] }
+];
+const LABEL = Object.fromEntries(EVENTS.flatMap((g) => g.items));
+
+const SCENARIOS = [
+  { name: 'Happy path', text: 'You edit, autosave writes, done. Watch the phase go Unsaved → Saving → Saved.',
+    steps: ['edit', 'saveStart', 'saveOk'] },
+  { name: 'Edit while saving', text: 'You keep typing while a save is running. The save only covers what existed when it started, so the project goes back to Unsaved rather than Saved, and a second save follows.',
+    steps: ['edit', 'saveStart', 'edit', 'saveOk', 'saveStart', 'saveOk'] },
+  { name: 'Clean merge', text: 'A colleague saves while you have edits. Their changes merge with yours, the badge says “Merged”, and the merged version still has to be written.',
+    steps: ['edit', 'saveStart', 'diskMerged', 'saveOk', 'saveStart', 'saveOk', 'timePasses'] },
+  { name: 'Conflict', text: 'A colleague changes the same field. Autosave is paused: try it at step 3 and it is refused. You keep editing, then resolve, and the save goes through.',
+    steps: ['edit', 'diskConflict', 'saveStart', 'edit', 'conflictResolved', 'saveOk'] },
+  { name: 'Conflict disappears', text: 'The clash goes away on its own because the colleague undid it. Your edits are left as normal unsaved work.',
+    steps: ['edit', 'diskConflict', 'conflictVanished', 'saveStart', 'saveOk'] },
+  { name: 'Crash recovery', text: 'After a crash, a draft is restored. It always needs an explicit check, so it starts out as a conflict, even when nothing actually clashes.',
+    steps: ['restoreDraft', 'saveStart', 'conflictResolved', 'saveOk'] },
+  { name: 'Folder unreachable', text: 'The shared folder drops out. With no edits it’s just a warning. Once you edit, the badge says Unsaved and the read warning is hidden, which is how the app behaves today. Then the save fails.',
+    steps: ['diskUnreadable', 'edit', 'saveStart', 'saveFail', 'saveStart', 'saveOk'] },
+  { name: 'Things that shouldn’t work', text: 'Every one of these should be refused: saving with nothing to save, reloading over your edits, and discarding mid-save.',
+    steps: ['saveStart', 'edit', 'diskReloaded', 'saveStart', 'discardLocal', 'saveOk'] }
+];
+
+let state = SaveLifecycle.initial();
+let previous = state;
+let lastLog = null;
+let activeScenario = 0;
+let stepIndex = 0;
+
+function dispatch(type) {
+  const result = SaveLifecycle.transition(state, { type });
+  if (result.refused) {
+    lastLog = { ok: false, text: `“${LABEL[type]}” was refused: ${result.refused}` };
+  } else {
+    previous = state;
+    state = result.state;
+    lastLog = { ok: true, text: `“${LABEL[type]}” → ${PHASES[state.phase.kind][0]}` };
+  }
+  render();
+}
+
+function row(label, value, changed) {
+  return `<dt>${label}</dt><dd>${changed ? `<span class="changed">${value}</span>` : value}</dd>`;
+}
+const yn = (v) => v ? '<span class="yes">Yes</span>' : '<span class="no">No</span>';
+
+function render() {
+  const s = state, p = previous;
+  const [title, help] = PHASES[s.phase.kind];
+  document.getElementById('phase').textContent = title;
+  document.getElementById('phase-help').textContent = help;
+  const detail = s.phase.kind === 'writing' ? `writing version ${s.phase.target}`
+    : s.phase.kind === 'failed' || s.phase.kind === 'unreachable' ? s.phase.error
+    : s.phase.kind === 'conflict' ? (s.phase.source === 'recovery' ? 'from a recovered draft' : `${s.phase.count} clashing changes`) : '—';
+  document.getElementById('fields').innerHTML =
+    row('Your latest version', s.revision, s.revision !== p.revision) +
+    row('Version in the file', s.savedRevision, s.savedRevision !== p.savedRevision) +
+    row('Details', detail, JSON.stringify(s.phase) !== JSON.stringify(p.phase)) +
+    row('Short notice', s.notice === 'reloaded' ? 'Updated from disk' : s.notice === 'merged' ? 'Merged with others’ changes' : 'none', s.notice !== p.notice);
+  document.getElementById('log').innerHTML = lastLog ? `<div class="log ${lastLog.ok ? 'ok' : 'refused'}">${lastLog.text}</div>` : '';
+
+  const b = SaveLifecycle.badge(s);
+  document.getElementById('derived').innerHTML =
+    row('Toolbar badge', b.text ? `<span class="chip">${b.text}</span>${b.retry ? ' with Retry' : ''}` : '<span class="chip">(none)</span>') +
+    row('Unsaved changes?', yn(SaveLifecycle.hasUnsavedChanges(s))) +
+    row('Autosave may run?', yn(SaveLifecycle.canAutosave(s))) +
+    row('Warn before closing?', yn(SaveLifecycle.needsCloseWarning(s))) +
+    row('Can move/copy tasks to other projects?', yn(SaveLifecycle.canTransferTasks(s))) +
+    row('Can edit tasks?', yn(SaveLifecycle.canEditTasks(s)));
+  const l = SaveLifecycle.toLegacy(s);
+  document.getElementById('legacy').innerHTML = row('<code>status</code>', `<code>${l.status}</code>`) + row('<code>watchStatus</code>', `<code>${l.watchStatus}</code>`);
+
+  document.getElementById('free').innerHTML = EVENTS.map((g) =>
+    `<div class="group-label">${g.group}</div><div class="buttons">${g.items.map(([type, label]) => {
+      const legal = !SaveLifecycle.transition(s, { type }).refused;
+      return `<button type="button" data-event="${type}" class="${legal ? '' : 'illegal'}" title="${legal ? '' : 'Not allowed right now'}">${label}</button>`;
+    }).join('')}</div>`).join('');
+
+  document.getElementById('tabs').innerHTML = SCENARIOS.map((sc, i) =>
+    `<button type="button" role="tab" aria-selected="${i === activeScenario}" data-tab="${i}">${sc.name}</button>`).join('');
+  const sc = SCENARIOS[activeScenario];
+  document.getElementById('scenario').innerHTML =
+    `<p>${sc.text}</p><div class="buttons"><button type="button" data-restart>Start over</button></div>
+     <ol class="steps">${sc.steps.map((type, i) =>
+       `<li class="${i < stepIndex ? 'done' : ''}"><span class="n">${i + 1}.</span>
+        <button type="button" ${i === stepIndex ? 'class="primary"' : ''} data-step="${i}" ${i === stepIndex ? '' : 'disabled'}>${LABEL[type]}</button></li>`).join('')}</ol>
+     ${stepIndex >= sc.steps.length ? '<div class="watch">Walkthrough finished. Keep poking with the free-play buttons, or pick another tab.</div>' : ''}`;
+}
+
+function startScenario(i) {
+  activeScenario = i; stepIndex = 0;
+  state = previous = SaveLifecycle.initial(); lastLog = null;
+  render();
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button');
+  if (!t) return;
+  if (t.dataset.event) dispatch(t.dataset.event);
+  else if (t.dataset.tab) startScenario(Number(t.dataset.tab));
+  else if ('restart' in t.dataset) startScenario(activeScenario);
+  else if (t.dataset.step !== undefined) {
+    const i = Number(t.dataset.step);
+    if (i !== stepIndex) return;
+    stepIndex += 1;
+    dispatch(SCENARIOS[activeScenario].steps[i]);
+  }
+});
+
+startScenario(0);
+</script>
+</body>
+</html>
