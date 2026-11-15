@@ -109,6 +109,7 @@ function SprintTableSection({ group, hidden, boardId, project, canEdit, sprintPo
     return <details className="table-sprint-section" data-table-sprint={group.sprint.id}
         onToggle={(event) => setExpanded(event.currentTarget.open)}>
         <summary>
+            <WorkspaceIcon name={expanded ? "chevronDown" : "chevronRight"} className="table-sprint-chevron" />
             <span className="sr-only">{completeness} ({group.completed}/{group.total - group.cancelled}) · {t('workflow.cancelled')}: {group.cancelled}</span>
             <span className="table-sprint-labels">
                 <button type="button" className="roadmap-row-title roadmap-edit-name table-sprint-name" title={t('table.sprintIdentity', { number: group.number, name: group.sprint.title })} aria-label={`${t('common.edit')} ${group.sprint.title}`}
@@ -267,7 +268,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                 onChange={(event) => toggleSelection(pageRows.map(({ row }) => row.taskId), event.target.checked)} /></th>}
                             {columns.map((column) => <th scope="col" data-column={column} key={column} aria-sort={sort.column === column ? (sort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
                                 <button ref={column === focusSortColumn ? sortRef : undefined} type="button" onClick={() => { setTableSort(column, sort.column === column && sort.direction === 'asc' ? 'desc' : 'asc'); setPage(0); }}>
-                                    {t(COLUMN_LABELS[column])}<span aria-hidden="true">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span>
+                                    {t(COLUMN_LABELS[column])}<span aria-hidden="true"><WorkspaceIcon name={sort.column === column ? (sort.direction === 'asc' ? 'arrowUp' : 'arrowDown') : 'sort'} size={12} /><span className="sr-only">{sort.column === column ? (sort.direction === 'asc' ? ' ↑' : ' ↓') : ' ↕'}</span></span>
                                 </button>
                             </th>)}
                         </tr></thead>
@@ -286,7 +287,7 @@ export function WorkitemTable({ hidden, boardId, project, boardData, sourceRows,
                                                 const next = new Set(previous);
                                                 if (next.has(row.taskId)) next.delete(row.taskId); else next.add(row.taskId);
                                                 return next;
-                                            })}><span aria-hidden="true">{expandedRows.has(row.taskId) ? '▾' : '▸'}</span></button>
+                                            })}><WorkspaceIcon name={expandedRows.has(row.taskId) ? "chevronDown" : "chevronRight"} /></button>
                                             : <span className="table-tree-spacer" aria-hidden="true" />)}
                                         <button className="table-item-link" title={cellText(row, column)} type="button" onClick={(event) => openDetails(row, event)}>{column === 'id' ? workitemLabel(row.task) : cellText(row, column)}</button>
                                     </div>

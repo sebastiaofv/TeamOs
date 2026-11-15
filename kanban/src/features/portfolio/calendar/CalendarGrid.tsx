@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useState, type CSSProperties } from 'react';
 import type { HeatStats } from '@/domain/types';
 import type { Language } from '@/shared/types/ui';
@@ -310,7 +311,7 @@ function CalendarMonthView({ items, aggregate, heatmap, year, month, state, onOp
                                                                 onCreateTask(state.selectedPortfolioBoardId, '', { preferredDueDate: isoDate });
                                                             }}
                                                         >
-                                                            <span aria-hidden="true">+</span>
+                                                            <WorkspaceIcon name="plus" />
                                                         </button>
                                                     )}
                                                 </div>

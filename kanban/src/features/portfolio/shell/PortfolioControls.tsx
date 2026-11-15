@@ -76,11 +76,11 @@ function ToolbarContent({ state }: { state: ToolbarState }) {
     const viewMode = normalizePortfolioViewMode(state.selectedPortfolioViewMode);
     const views = [
         { mode: 'board', label: t('toolbar.board') },
-        { mode: 'dashboard', label: t('dashboard.title') },
         { mode: 'table', label: t('table.view') },
         { mode: 'roadmap', label: t('toolbar.roadmap') },
         { mode: 'control', label: t('control.view') },
-        { mode: 'planner', label: t('toolbar.planner') }
+        { mode: 'planner', label: t('toolbar.planner') },
+        { mode: 'dashboard', label: t('dashboard.title') }
     ] as const;
     return <nav className={`portfolio-view-toggle${state.portfolioBoards.length ? '' : ' hidden'}`} id="portfolioViewModeToggle" aria-label={t('toolbar.selectedProjectViewMode')}>
         {views.filter(({ mode }) => state.selectedPortfolioBoardId || mode === 'board' || mode === 'planner' || mode === 'roadmap').map(({ mode, label }) => {
@@ -113,14 +113,12 @@ function ChipList({ state, expandedProducts, onProductToggle }: { state: ChipSta
                 <button className="chip-link chip-settings" type="button" data-action="project-settings" data-board-id={board.id}
                     aria-label={t('project.settingsFor', { name: board.title || board.fileName })} title={t('project.settings')}
                     aria-haspopup="dialog" onClick={() => { document.getElementById('projectPickerBtn')?.focus(); openProjectSettings(board.id); }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h6m0 0h10M4 12h12m0 0h4M4 18h4m0 0h12M10 3v6m6 0v6M8 15v6" />
-                    </svg>
+                    <WorkspaceIcon name="settings" />
                 </button>
                 {board.handle && saveUi.canRetry && (
                     <button className="chip-link" type="button" title={t('toolbar.retrySave')} data-action="retry-save" data-board-id={board.id} onClick={() => retryPortfolioSave(board.id)}>{t('common.retry')}</button>
                 )}
-                <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{grouped ? <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="m4 4 8 8m0-8-8 8" /></svg> : t('common.remove')}</button>
+                <button className="chip-link chip-link-danger" type="button" aria-label={t('toolbar.removeProject')} title={t('toolbar.removeProject')} data-action="remove-board" data-board-id={board.id} onClick={() => removePortfolioBoard(board.id)}>{grouped ? <WorkspaceIcon name="close" size={14} /> : t('common.remove')}</button>
             </span>
         );
     };
@@ -148,7 +146,7 @@ function ChipList({ state, expandedProducts, onProductToggle }: { state: ChipSta
 
 function ProductProjectMenu({ product, active, children, open, onOpenChange }: { product: string; active: boolean; children: ReactNode; open: boolean; onOpenChange: (open: boolean) => void }) {
     return <details className={`product-project-menu${active ? ' active' : ''}`} open={open} onToggle={event => onOpenChange(event.currentTarget.open)}>
-        <summary><span>{product}</span><span aria-hidden="true">›</span></summary>
+        <summary><span>{product}</span><span aria-hidden="true"><WorkspaceIcon name="chevronRight" /></span></summary>
         <div className="product-projects">{children}</div>
     </details>;
 }

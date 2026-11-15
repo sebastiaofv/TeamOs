@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import type { RefObject } from 'react';
 import type { MessageSelection, WorkitemReview } from '@/app/types';
 import { WorkitemTypeBadge } from '@/features/portfolio/task/WorkitemTypeBadge';
@@ -17,7 +18,7 @@ export function WorkitemReviewContent({ review, fields = [], selections, onChang
             return <section key={group.selectionId} className="phase-date-review-group" aria-labelledby={`phase-date-title-${index}`}>
                 <div className="phase-date-review-heading">
                     <div className="phase-date-review-summary"><h3 id={`phase-date-title-${index}`}>{group.title}</h3>
-                        <div className="phase-date-review-dates" aria-label={t('planning.phaseDatesTitle')}><span>{group.from}</span><span aria-hidden="true">→</span><strong>{group.to}</strong></div>
+                        <div className="phase-date-review-dates" aria-label={t('planning.phaseDatesTitle')}><span>{group.from}</span><span aria-hidden="true"><WorkspaceIcon name="arrowRight" /><span className="sr-only">→</span></span><strong>{group.to}</strong></div>
                     </div>
                     {field && <select id={`appMessageSelection-${fields.indexOf(field)}`} ref={index === 0 ? selectionRef : undefined} required={field.required}
                         aria-label={`${field.label}: ${t('automations.decision')}`} data-field={field.id} value={selections[field.id]} onChange={event => onChange(field.id, event.target.value)}>
@@ -45,7 +46,7 @@ export function WorkitemReviewContent({ review, fields = [], selections, onChang
                     <span className="workitem-review-id">{row.id}</span>
                     <span className="workitem-review-title" title={row.title}>{row.title}</span>
                     {row.field && <span className="workitem-review-field">{row.field}</span>}
-                    {row.from !== undefined && row.to !== undefined && <span className="workitem-review-transition" aria-label={t('automations.transition')}><span>{row.from}</span><span aria-hidden="true">→</span><span>{row.selectionValue && field ? selected?.reviewValue || selected?.label || '—' : row.to}</span></span>}
+                    {row.from !== undefined && row.to !== undefined && <span className="workitem-review-transition" aria-label={t('automations.transition')}><span>{row.from}</span><span aria-hidden="true"><WorkspaceIcon name="arrowRight" /><span className="sr-only">→</span></span><span>{row.selectionValue && field ? selected?.reviewValue || selected?.label || '—' : row.to}</span></span>}
                     {row.reason && <span className="workitem-review-reason" role="note">{row.reason}</span>}
                     {field && <select id={`appMessageSelection-${fields.indexOf(field)}`} ref={review.rows.indexOf(row) === 0 ? selectionRef : undefined} required={field.required} aria-label={row.selectionValue ? field.label : `${field.label}: ${t('automations.decision')}`} data-field={field.id} value={selections[field.id]} onChange={(event) => (row.selectionIds || [field.id]).forEach((id) => onChange(id, event.target.value))}>
                         {field.required && <option value="" disabled>{t('common.choose')}</option>}

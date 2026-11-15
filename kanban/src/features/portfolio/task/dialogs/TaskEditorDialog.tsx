@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { DateInput } from '@/shared/ui/DateInput';
 import { STORY_POINT_OPTIONS } from '@/domain/sprintResults';
@@ -121,7 +122,7 @@ function TaskEditorForm({ vm, nameRef, submitRef }: {
                 <Dialog.Title asChild>
                     <span className="modal-title" id="modalTitle">{form.type && form.type !== 'task' ? `${t(vm.editing ? 'common.edit' : 'common.new')} ${t(`workitems.type.${form.type}`)}` : vm.heading}</span>
                 </Dialog.Title>
-                <Dialog.Close className="modal-close" id="taskModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
+                <Dialog.Close className="modal-close" id="taskModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
             </div>
             <div className="modal-body">
                 <form id="taskForm" onSubmit={(event) => { event.preventDefault(); void submit(); }}>

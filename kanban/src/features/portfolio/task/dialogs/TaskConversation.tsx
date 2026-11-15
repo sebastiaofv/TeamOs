@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { AttachmentImage, AttachmentDownload } from './AttachmentMedia';
 import { formatTimestamp } from '@/domain/dates';
 import { projectActor, useProjectIdentityRevision } from '@/features/portfolio/projects/projectIdentity';
@@ -165,7 +166,7 @@ export function TaskConversation({ context }: { context: ConversationContext }) 
         <details className="comment-record-note"><summary>{t('comments.recordInfo')}</summary><p className="comment-note">{t('comments.localNote')}</p></details>
         <Dialog.Root open={Boolean(zoom)} onOpenChange={(open) => { if (!open) setZoom(null); }}><Dialog.Portal><Dialog.Overlay className="modal active comment-image-overlay">
             <Dialog.Content className="modal-content comment-image-viewer" aria-describedby={undefined} onEscapeKeyDown={(event) => { event.preventDefault(); event.stopPropagation(); setZoom(null); }}>
-                <div className="modal-header"><Dialog.Title className="modal-title">{zoom?.name || t('comments.image')}</Dialog.Title><Dialog.Close className="modal-close" aria-label={t('common.close')}>×</Dialog.Close></div>
+                <div className="modal-header"><Dialog.Title className="modal-title">{zoom?.name || t('comments.image')}</Dialog.Title><Dialog.Close className="modal-close" aria-label={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close></div>
                 {zoom && <div className="modal-body"><AttachmentImage src={zoom.dataUrl} mime={zoom.mime} alt={zoom.name} /><AttachmentDownload className="btn" href={zoom.dataUrl} download={zoom.name}>{t('common.download')}</AttachmentDownload></div>}
             </Dialog.Content>
         </Dialog.Overlay></Dialog.Portal></Dialog.Root>

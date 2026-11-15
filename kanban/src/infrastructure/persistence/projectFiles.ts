@@ -399,6 +399,12 @@ export function projectHasUnsavedChanges(boardId: string): boolean {
     return hasUnsavedChanges(getProjectSaveState(boardId, { create: false }));
 }
 
+/** Cached history requires no pending I/O stage in report loading indicators. */
+export function isProjectHistoryLoaded(boardId: string): boolean {
+    const handle = getPortfolioBoardRecord(boardId)?.handle;
+    return !handle || !getDirectoryProject(handle) || isDirectoryHistoryLoaded(handle);
+}
+
 /** Hydration is a read, never a mutation or a new recovery revision. */
 export async function ensureProjectHistoryLoaded(boardId: string): Promise<void> {
     const board = getPortfolioBoardRecord(boardId);

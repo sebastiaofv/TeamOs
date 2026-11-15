@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { Fragment, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { PaletteHelp } from '@/features/portfolio/palette/PaletteHelp';
@@ -144,13 +145,13 @@ function TopicArticle({ topic, onNavigate }: { topic: DocTopic; onNavigate: Navi
             <nav className="docs-pager" aria-label={t('docs.pagination')}>
                 {previous ? (
                     <TopicLink topicId={previous.id} onNavigate={onNavigate} className="docs-pager-link docs-pager-prev">
-                        <span className="docs-eyebrow">← {t('docs.previous')}</span>
+                        <span className="docs-eyebrow"><WorkspaceIcon name="arrowLeft" size={14} /> {t('docs.previous')}</span>
                         <span>{previous.title}</span>
                     </TopicLink>
                 ) : <span />}
                 {next && (
                     <TopicLink topicId={next.id} onNavigate={onNavigate} className="docs-pager-link docs-pager-next">
-                        <span className="docs-eyebrow">{t('docs.next')} →</span>
+                        <span className="docs-eyebrow">{t('docs.next')} <WorkspaceIcon name="arrowRight" size={14} /></span>
                         <span>{next.title}</span>
                     </TopicLink>
                 )}
@@ -187,14 +188,11 @@ function DocsContents({ activeTopicId, onNavigate }: { activeTopicId: string; on
             >
                 <span className="docs-eyebrow">{t('docs.contents')}</span>
                 <span className="docs-contents-current">{active.topic.title}</span>
-                <svg className="docs-contents-chevron" aria-hidden="true" viewBox="0 0 16 16"><path d="m4 6 4 4 4-4" /></svg>
+                <WorkspaceIcon name="chevronDown" className="docs-contents-chevron" />
             </button>
             <div className="docs-sidebar-panel" id={listId}>
                 <div className="docs-search">
-                    <svg className="docs-search-icon" viewBox="0 0 16 16" aria-hidden="true">
-                        <circle cx="7" cy="7" r="4.5" />
-                        <path d="M10.5 10.5 14 14" />
-                    </svg>
+                    <WorkspaceIcon name="search" className="docs-search-icon" />
                     <input
                         type="search"
                         id="docsSearch"

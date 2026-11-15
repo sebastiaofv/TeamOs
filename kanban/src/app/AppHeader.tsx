@@ -28,17 +28,9 @@ function DocsToggleButton() {
             onClick={() => toggleDocs()}
         >
             {docsOpen ? (
-                <svg className="docs-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                </svg>
+                <WorkspaceIcon name="dashboard" className="docs-toggle-icon" />
             ) : (
-                <svg className="docs-toggle-icon" aria-hidden="true" viewBox="0 0 24 24">
-                    <path d="M2 4.5h6a4 4 0 0 1 4 4V21a3 3 0 0 0-3-3H2Z" />
-                    <path d="M22 4.5h-6a4 4 0 0 0-4 4V21a3 3 0 0 1 3-3h7Z" />
-                </svg>
+                <WorkspaceIcon name="book" className="docs-toggle-icon" />
             )}
         </button>
     );
@@ -74,10 +66,7 @@ export function AppHeader({ theme }: { theme: Theme }) {
                     aria-controls={settingsOpen ? 'appSettingsModal' : undefined}
                     onClick={() => settingsOpen ? closeDialog('appSettings') : openDialog('appSettings')}
                 >
-                    <svg className="app-settings-icon" aria-hidden="true" width="18" height="18" viewBox="0 0 24 24">
-                        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
+                    <WorkspaceIcon name="gear" className="app-settings-icon" size={18} />
                 </button>
                 <span className="toolbar-divider" aria-hidden="true" />
                 <button className="btn header-project-action" id="importProjectsBtn" type="button" onClick={() => { closeDocs(); void importPortfolioProjects(); }}><WorkspaceIcon name="folder" />{t('header.importProjects')}</button>

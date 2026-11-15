@@ -1,11 +1,55 @@
 import { readFileSync } from 'node:fs';
 import { test, expect } from '@playwright/test';
-import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, expectProjectCount, selectPortfolioBoard } from '../support/portfolio';
+import { gotoApp, identifyOpenProjects, showTimeline, setTimelineSlider, openProjectPicker, expectProjectCount, selectPortfolioBoard, toggleTheme } from '../support/portfolio';
 import { fixtureTree, mockFolderPicker, readFolderJson } from '../support/folderProjects';
+import { setDashboardDate } from '../support/dashboard';
 
 const root = 'test-board/teamos-development';
 const project = JSON.parse(readFileSync(`${root}/project.json`, 'utf8'));
 const history = JSON.parse(readFileSync(`${root}/history.json`, 'utf8'));
+
+for (const width of [1840, 390]) test(`historical Sprint summaries and Burndown preserve the recorded points at ${width}px`, async ({ page }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 1000 });
+    await page.clock.setFixedTime(new Date('2026-11-13T12:00:00Z'));
+    await page.addInitScript(() => localStorage.setItem('teamOsKanbanThemeStyle', 'modern'));
+    await gotoApp(page);
+    if (width === 390) await toggleTheme(page);
+    const tree = fixtureTree(root);
+    for (const path of Object.keys(tree.files)) if (path.endsWith('.md') || path === 'summary.json') delete tree.files[path];
+    await mockFolderPicker(page, tree);
+    await page.locator('#importProjectsBtn').click();
+    await expectProjectCount(page, 1);
+    await identifyOpenProjects(page);
+    await selectPortfolioBoard(page, '— Desenvolvimento da Aplicação');
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    const selector = page.getByRole('combobox', { name: 'Sprint', exact: true });
+    const chart = page.locator('[data-sprint-widget="burndown"]');
+    for (const [id, planned, remaining, start, end] of [
+        ['sprint-1', 61, 5, '2026-09-14', '2026-09-25'],
+        ['sprint-2', 12, 2, '2026-09-28', '2026-10-09']
+    ] as const) {
+        await selector.selectOption(id);
+        await expect(page.locator('[data-sprint-summary="duration"] strong')).toHaveText('9');
+        await expect(page.locator('[data-sprint-summary="planned"] strong')).toHaveText(String(planned));
+        await page.locator(`[data-burndown-date="${start}"]`).focus();
+        await expect(chart.locator('.sprint-chart-tooltip')).toContainText(`Ideal: ${planned} SP · Actual: ${planned} SP`);
+        await page.locator(`[data-burndown-date="${end}"]`).focus();
+        await expect(chart.locator('.sprint-chart-tooltip')).toContainText(`Ideal: 0 SP · Actual: ${remaining} SP`);
+        const paths = await chart.locator('polyline').evaluateAll(nodes => nodes.map(node => node.getAttribute('points')!.split(' ')[0]));
+        expect(paths[0]).toBe(paths[1]);
+        await page.locator('[data-sprint-widget="outcomes"] button').first().click();
+        await expect(page.locator('[data-sprint-widget="details"] [data-dashboard-workitem]').first()).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+    }
+    await selector.selectOption('sprint-1');
+    await expect(page.locator('[data-sprint-summary="planned"] strong')).toHaveText('61');
+    await page.mouse.move(1, 1);
+    await page.screenshot({ path: `test-results/issue-83-sprint-metrics-${width}.png`, fullPage: true });
+    await page.locator('[data-sprint-widget="details"]').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: `test-results/issue-83-sprint-detail-${width}.png`, fullPage: true });
+});
 
 test('imports the historical example, explores native views, saves and reopens it without losing evidence', async ({ page }) => {
     test.setTimeout(120_000);
@@ -122,15 +166,16 @@ test('the historical example changes Dashboard counts between June and October',
     await page.getByRole('button', { name: 'Load history / timeline', exact: true }).click();
     await page.locator('[data-view-mode="dashboard"]').click();
     console.info('Example: Dashboard opened with the full native history');
-    await page.getByLabel('Start date', { exact: true }).fill('01/06/2026');
-    await page.getByLabel('End date', { exact: true }).fill('30/06/2026');
-    const overview = page.locator('[data-dashboard-section="projectOverview"]');
+    await setDashboardDate(page, 'Start date', '01/06/2026');
+    await setDashboardDate(page, 'End date', '30/06/2026');
+    const overview = page.locator('[data-dashboard-section="activitySummary"]');
     const june = await overview.innerText();
     console.info('Example: June Dashboard calculated');
-    await page.getByLabel('Start date', { exact: true }).fill('01/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'Start date', '01/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(overview).not.toHaveText(june);
-    await expect(page.locator('[data-dashboard-section="completedInPeriod"]')).toContainText('US-');
+    await overview.getByRole('button', { name: /^Completed/ }).click();
+    await expect(page.locator('[data-dashboard-section="activityDetails"]')).toContainText('US-');
     await page.screenshot({ path: 'test-results/example-project-october-dashboard.png', fullPage: true });
     console.info('Example: different October Dashboard verified');
 });
@@ -156,17 +201,24 @@ test('Dashboard opens promptly after a workitem History tab loads the full histo
     await page.locator('#taskDetailModalCloseBtn').click();
     const opened = Date.now();
     await page.locator('[data-view-mode="dashboard"]').click();
-    await expect(page.locator('[data-dashboard-section]')).toHaveCount(9, { timeout: 10_000 });
-    await expect(page.locator('[data-dashboard-section="completedInPeriod"]')).toContainText('US-', { timeout: 10_000 });
+    const summary = page.locator('[data-dashboard-section="activitySummary"]');
+    await expect(summary).toBeVisible({ timeout: 10_000 });
+    await summary.getByRole('button', { name: /^Completed/ }).click();
+    await expect(page.locator('[data-dashboard-section="activityDetails"]')).toContainText('US-', { timeout: 10_000 });
     console.info(`Example: Overview rendered ${Date.now() - opened} ms after opening the Dashboard`);
     // The page stays responsive: changing the period recalculates.
-    const started = page.locator('[data-dashboard-section="started"]');
+    const started = summary.getByRole('button', { name: /^Started/ });
     const lastWeek = await started.innerText();
-    await page.getByLabel('Start date', { exact: true }).fill('01/10/2026');
-    await page.getByLabel('End date', { exact: true }).fill('31/10/2026');
+    await setDashboardDate(page, 'Start date', '01/10/2026');
+    await setDashboardDate(page, 'End date', '31/10/2026');
     await expect(started).not.toHaveText(lastWeek, { timeout: 10_000 });
     // Sprint scope changes replay the same history (Sprint 4 ran within the October period).
     await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
-    await page.locator('.dashboard-sprint-selection label').filter({ hasText: 'Tabela e colaboração' }).locator('input').check();
-    await expect(page.locator('.dashboard-scope-changes li').first()).toBeVisible({ timeout: 10_000 });
+    await page.getByRole('combobox', { name: 'Sprint', exact: true }).selectOption('sprint-4');
+    const scope = page.locator('[data-sprint-widget="scopeChanges"]');
+    await expect(scope).toBeVisible({ timeout: 10_000 });
+    await scope.getByRole('button', { name: /^Added/ }).click();
+    await expect(page.locator('[data-sprint-widget="details"] h3')).toContainText('Added');
+    await page.locator('[data-sprint-widget="outcomes"] button').first().click();
+    await expect(page.locator('[data-sprint-widget="details"] [data-dashboard-workitem]').first()).toBeVisible({ timeout: 10_000 });
 });

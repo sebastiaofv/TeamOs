@@ -23,8 +23,6 @@
 .table-sprint-note { font-size: 12px; color: var(--text-secondary); }
 .table-sprint-section { border: 1px solid var(--border); min-width: 0; flex-shrink: 0; }
 .table-sprint-section > summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px; background: var(--bg-secondary); }
-.table-sprint-section > summary::before { content: '▸'; }
-.table-sprint-section[open] > summary::before { content: '▾'; }
 .table-sprint-name { font-weight: 600; }
 .table-sprint-dates { margin-left: auto; font-variant-numeric: tabular-nums; }
 .table-sprint-section > .table-panel { padding: 12px; max-height: 70dvh; }
@@ -147,7 +145,6 @@
 /* Match the Roadmap's light row separation, with dates beside the editable name. */
 .table-sprint-section { border: 0; border-bottom: 1px solid var(--border-light); }
 .table-sprint-section > summary { flex-wrap: nowrap; gap: 7px; min-height: 38px; padding: 5px 12px; background: var(--bg-card); }
-.table-sprint-section > summary::before { font-size: 10px; flex: 0 0 24px; text-align: center; }
 .table-sprint-labels { display: flex; flex: 1; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; }
 .table-sprint-labels .table-sprint-name { flex: 0 1 auto; }
 .table-sprint-labels .table-sprint-dates { margin: 0; font-size: 11px; }

@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { useEffect, useRef, useState } from 'react';
 import {
     DndContext,
@@ -186,7 +187,7 @@ function ChecklistRow({ index, item, onUpdate, onRemove }: {
                 data-index={index}
                 onClick={onRemove}
             >
-                ×
+                <WorkspaceIcon name="close" />
             </button>
         </div>
     );

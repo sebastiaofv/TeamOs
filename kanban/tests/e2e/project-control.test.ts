@@ -135,8 +135,7 @@ for (const language of ['en', 'pt']) for (const [kind, title, id] of [
     await expect(sidebar.getByLabel(language === 'pt' ? 'Tipo' : 'Type', { exact: true })).toHaveCount(0);
     await expect(sidebar.locator('.detail-status-control .table-status-badge')).toHaveCount(1);
     await expect(sidebar.locator('.detail-status-control select')).toBeEnabled();
-    const arrow = await sidebar.locator('.detail-status-control').evaluate((element) => getComputedStyle(element, '::after').content);
-    expect(arrow).toContain('▾');
+    await expect(sidebar.locator('.detail-status-control .detail-status-chevron')).toBeVisible();
     if (kind === 'Risks') {
         const labels = await sidebar.locator('.workitem-property-group').first().locator('.form-group > label').allTextContents();
         expect(labels).toEqual(language === 'pt' ? ['Estado', 'Probabilidade', 'Impacto', 'Nível de risco', 'Prazo', 'Data de materialização'] : ['Status', 'Probability', 'Impact', 'Risk level', 'Due date', 'Materialized date']);

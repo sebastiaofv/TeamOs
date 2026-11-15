@@ -1,3 +1,4 @@
+import { dashboardActivityLayout } from './dashboardActivityLayout';
 import { unconvertedTimeline } from './legacySequences';
 import { parseHierarchyAutomations } from './hierarchyAutomations';
 import { parseSprintResults } from './sprintResults';
@@ -55,6 +56,7 @@ export function normalizeBoardExtensionsValue(
             ? rememberNormalizedTimeline({ ...value, events: value.events.slice() }) : normalizeTimelineExtension(value);
         return timeline;
     };
+    if (nextExtensions.dashboardActivity !== undefined) nextExtensions.dashboardActivity = dashboardActivityLayout(nextExtensions.dashboardActivity);
     if (nextExtensions.hierarchyAutomations !== undefined) nextExtensions.hierarchyAutomations = parseHierarchyAutomations(nextExtensions.hierarchyAutomations);
     if (nextExtensions.sprintResults !== undefined) nextExtensions.sprintResults = parseSprintResults(nextExtensions.sprintResults);
     if (nextExtensions.project !== undefined) nextExtensions.project = parseProjectData(nextExtensions.project);

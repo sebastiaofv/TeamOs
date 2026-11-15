@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { Fragment, useEffect, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useAppStore } from '@/features/portfolio/state/store';
@@ -152,7 +153,7 @@ export function ShortcutsDialog() {
                     >
                         <div className="modal-header">
                             <Dialog.Title asChild><span className="modal-title">{t('shortcuts.title')}</span></Dialog.Title>
-                            <Dialog.Close className="modal-close" id="shortcutsModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}>&times;</Dialog.Close>
+                            <Dialog.Close className="modal-close" id="shortcutsModalCloseBtn" aria-label={t('common.close')} title={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
                         </div>
                         <div className="modal-body">
                             <div className="shortcut-preference">

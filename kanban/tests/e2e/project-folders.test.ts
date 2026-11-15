@@ -215,3 +215,38 @@ test('opens a folder saved by the previous version, converting it once and keepi
     expect((await readFolderJson(page, 'alpha/backup/schema-6/project.json')).board.tasks.map((task: { id: number }) => task.id)).toEqual(converted.workitems.map((task: { id: number }) => task.id));
     expect((await readFolderJson(page, 'alpha/history.json')).schemaVersion).toBe(1);
 });
+
+test('Sprint Analytics loads deferred folder history on entry without opening a workitem', async ({ page }) => {
+    await gotoApp(page);
+    await mockFolderPicker(page, tree);
+    await page.locator('#importProjectsBtn').click();
+    await expectProjectCount(page, 2);
+    await identifyOpenProjects(page);
+    await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
+    await page.locator('[data-view-mode="dashboard"]').click();
+    expect(await page.evaluate(() => window.__folderDisk.fullReads['alpha/history.json'] || 0)).toBe(0);
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await expect.poll(() => page.evaluate(() => window.__folderDisk.fullReads['alpha/history.json'] || 0)).toBeGreaterThan(0);
+    await expect(page.locator('.sprint-analytics')).toBeVisible();
+});
+
+
+test('Sprint Analytics reports deferred history errors and retries after repair', async ({ page }) => {
+    await gotoApp(page);
+    const broken = structuredClone(tree);
+    const original = broken.files['alpha/history.json'];
+    broken.files['alpha/history.json'] = [...Buffer.from(Buffer.from(original).toString('utf8').replace('"events":[', '"events":[invalid'))];
+    await mockFolderPicker(page, broken);
+    await page.locator('#importProjectsBtn').click();
+    await expectProjectCount(page, 2);
+    await identifyOpenProjects(page);
+    await selectPortfolioBoard(page, 'US-25 Alpha — attachments and comments');
+    await page.locator('[data-view-mode="dashboard"]').click();
+    await page.getByRole('button', { name: 'Sprint Analytics', exact: true }).click();
+    await expect(page.locator('#portfolioDashboard [role="alert"]')).toContainText('history.json');
+    await expect(page.locator('.sprint-analytics')).toHaveCount(0);
+    await page.evaluate(bytes => { window.__folderDisk.files['alpha/history.json'] = bytes; }, original);
+    await page.locator('#portfolioDashboard').getByRole('button', { name: 'Load history / timeline', exact: true }).click();
+    await expect(page.locator('.sprint-analytics')).toBeVisible();
+    await expect(page.locator('#portfolioDashboard [role="alert"]')).toHaveCount(0);
+});

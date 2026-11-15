@@ -1,3 +1,4 @@
+import { WorkspaceIcon } from '@/shared/ui/WorkspaceIcon';
 import { AutomationSettings } from './AutomationSettings';
 import { SaveButton } from '@/features/portfolio/projects/ProjectSaveStatus';
 import { useRef, useState, type KeyboardEvent } from 'react';
@@ -84,7 +85,7 @@ function ProjectSettingsForm({ vm, closeRef }: { vm: DialogPropsByName['projectS
         <div className="modal-header workflow-modal-header">
             <div><Dialog.Title className="modal-title">{t(vm.onCreate ? 'projects.newProject' : 'project.settings')}</Dialog.Title>
                 <Dialog.Description id="projectSettingsDescription" className="workflow-modal-description">{vm.data.board.settings.title}</Dialog.Description></div>
-            <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}>&times;</Dialog.Close>
+            <Dialog.Close ref={closeRef} className="modal-close" aria-label={t('common.close')}><WorkspaceIcon name="close" /></Dialog.Close>
         </div>
         <div className="workflow-tabs project-settings-tabs" role="tablist" aria-label={t('project.settings')}>
             {(['general', 'technical', 'functional', 'automations'] as const).map((value) => <button key={value} type="button" role="tab"
