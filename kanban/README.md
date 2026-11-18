@@ -1,84 +1,180 @@
 # TeamOS Kanban
 
-A local portfolio planning and Kanban app, built with Vite, React, Zustand and TypeScript. Open several project folders at once, plan and execute work across them, and autosave changes to `project.json`, `history.json` and `attachments/`. Legacy `*.board.json` files remain supported.
+This is a local app for portfolio planning and Kanban. It uses Vite, React, Zustand and TypeScript. You can open two or more project folders at the same time. You can plan and do the work of these projects. The app autosaves changes to `project.json`, `history.json` and `attachments/`. You can also continue to use legacy `*.board.json` files.
 
 ## What it does
 
-- **Workspace navigation** — View buttons sit below the header. The project selector beside the logo switches between All and a single project; it also contains project settings, removal and save retry. The header magnifying glass opens the command palette (Ctrl/⌘+K). Board and Table have their own query controls; Dashboard, Roadmap and Day Planner have view-specific controls. Calendar is inside Day Planner. See [US-24](test-board/teamos-development/README.md).
-- **Projects** — New Project creates a project subfolder; Import Projects opens a project folder or projects in direct subfolders, and converts legacy files found directly in the chosen parent. Existing projects stay loaded and duplicates are skipped. Dropped legacy `.board.json` files open read-only.
-- **Products and project transfers** — an optional Product in Project settings groups independent projects under expandable headers, ignoring case and outer whitespace. Each task’s ⋯ menu copies or moves it to another loaded, writable project in the same product, with an explicit destination state and explicit person/tag mappings or removals. Moves preserve permanent identity, comments and history; copies start a new identity/history. People, tags, parent and planning associations are mapped or explicitly removed; scheduled blocks and previous Sprint records require removal. The receipt records these decisions. Interrupted writes expose a resumable transfer.
-- **App settings** — The header gear opens appearance (Light/Dark), theme (Classic/Modern), language (EN/PT) and timeline visibility. Preferences are remembered in this browser. Hiding the timeline exits historical preview.
-- **Project settings** — Open settings from the project selector. General, Technical workflow, Functional workflow and Automations share one draft; Save applies it and Cancel/close/Escape discards it. General contains name, acronym, product, description, status, members and tags. New projects assign Epics/Stories/Bugs to Functional and Tasks to Technical; each type can be reassigned. States, categories, transitions and reference states are configurable. Historical and read-only settings remain consultable.
-- **Board view** — Technical and Functional perspectives follow the project’s type assignments, with Epics available in the Table. Columns follow configurable workflows, including Backlog and Testing; Cancelled states are hidden by default. Active Sprints only is checked by default for both perspectives; clear it for unsprinted work and other Sprints, or select a specific Sprint in Filters. Cards support drag/touch/keyboard moves, direct responsibility assignment and a next-state arrow. Filters & View contains Board columns. Selected cards in a writable project can create or join a Sprint.
-- **Tasks** — saving a new workitem opens its details. Creating from another workitem retains a return chain: closing a new Task returns to its Story, then its Epic, then the original screen. Cancelling creation and editing nested workitems preserve this chain. Fields include title, description, participants and an optional responsible person, tags, blocked + blocker reason, priority, effort, due date, checklist (reorderable), attachments, roadmap phase/milestone/sprint.
-- **Acceptance and automation** — Stories and Bugs require terminal child Tasks and explicit local-author acceptance to complete; Acceptance Criteria are recommended but not mandatory. Editing an accepted Story’s criteria asks for renewed acceptance. Six workflow categories distinguish Backlog, To do, In progress, Testing, Completed and Cancelled. Eight hierarchy/closure rules support Off, On 1 (approval) or On 2 (automatic); rules never bypass transitions or provide functional acceptance.
-- **Workitem relations** — link existing items by ID/title (including completed and archived items), or create a related Backlog item inheriting only phase/milestone. Details group compact, aligned rows into Blocked by, Blocks and Related to, showing ID navigation, truncated title, plain-text status and the responsible person's first name. Direct edit/remove icons support inline relation changes and confirmed replacement/removal, preserving both items and recalculating blocking.
-- **Filters and sort** — Board queries and each table subsection/Sprint have independent search and filters. Board filters are kept in the URL and also affect Planner/Calendar; Table filters stay scoped to their table. Filters include status, blocking, people, priority, effort and planning. Board sorting uses priority, effort, score or name; tables sort by column. Dashboard has its own period and scope.
-- **Roadmap view** — ALL shows every loaded project except Paused, Completed and Archived, ordered by phase start, with a distinct master-bar colour per project in load order. Single-project Roadmap shows phases, milestones and independent sprints on a time axis. Project groups and phase trees start collapsed; both scopes offer Expand all and Collapse all. The timeline fits at 100% and scrolls horizontally above it, keeping navigation, dates, milestones and identification labels fixed. Associated tables show only ID, Title, Type, Status, Responsible, Manually Blocked, Dependency Blocked and Updated (date only), without search or filters. Every phase and Sprint exposes its associated workitem table through a dedicated button; parent phases include all descendant phases. Only phases with children have tree arrows. Milestone diamonds fill with completion; two-line tooltips show names, dates and percentages. Bulk Sprint allocation checks explicit and inherited phase dates, offering to keep or extend them.
-- **Dashboard** (single project) — Overview has nine independently visible sections: project overview, active sprint, project statistics, started/completed/in-progress workitems, open risks, deliverables and decisions. Start/End dates use recorded UTC history: activity lists count category transitions within the period; status sections use the end-date snapshot. Planning scope filters descendant phases. Overview keeps started parent phases with open work, acceptance gates, overdue warnings and the next/overdue milestones. Three circular charts distinguish Stories, independent Tasks and Bugs by workflow category; activity lists include Stories and independent Tasks. Existing workitem, Roadmap, sprint and Project Control details remain navigable. Historical gaps show N/A. Sprint Analytics and recorded-history consultation remain available; its capacity, points, velocity and closure-chart reporting still shows placeholders, while Sprint headers and editors expose recorded point totals and closure fields. See [section acceptance scenarios](test-board/teamos-development/README.md).
-- **Calendar inside Day Planner** — Task-only year/month consultation and a deadline heatmap, next to Day and Week. Time blocks stay in Day and Week.
-- **Command palette** — `⌘K` / `Ctrl+K`, `/` or the header search icon. Find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands; act on a task step by step (move, assign, priority, plan); filter the board by text; create a task in one line with `+ Title @person !high #tag ~S due:fri in:project`; and schedule with `plan <task> 14:00`.
-- **Day Planner** — drag tasks from any project onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots, then move and resize them. Plans are saved per project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`) and never change the task itself. Every planner change is also recorded in the project timeline.
-- **Timeline** (single project) — every saved change is recorded; scrub back to preview a past state read-only and restore it.
-- **Table perspectives** (single project) — ALL presents collapsible Epic → Story → Task rows, direct Epic Tasks and independent Tasks/Bugs. The same table renders Roadmap phases, milestones and sprints, including recorded participation. Matching descendants stay visible when filters remove their ancestors; pagination keeps whole root groups together. Existing type-specific views, All Tasks & Bugs, Backlog (planning units with pending work and no eligible Sprint allocation) with selection-to-sprint creation and assignment grouped in Sprint Actions, and collapsible per-sprint tables. Sprint tables have no row-selection checkboxes or Sprint Actions. Filters, Columns and Export CSV use icon buttons; Backlog places Sprint Actions with a runner icon after the divider and immediately before +. Stories expand directly into participating Task rows within each sprint table; independent Tasks and Bugs appear at the top level. Sorting keeps children beneath their Story, pagination keeps each group together, and CSV includes all filtered workitems even when collapsed. Sprint headers retain dates, manually managed Planned/Active/Done status and completeness over unique planning units, including archived items, without counting Story Tasks twice. Filters affect rows/CSV, not the sprint denominator. Dates use `dd/mm/yyyy` and timestamps use UTC `dd/mm/yyyy HH:mm:ss`; columns have minimum widths, two-line cells and horizontal scrolling, with colored status and blocked badges.
-- **In-app documentation** — the book button in the top bar (or `H`) swaps the workspace for a navigable documentation page and back; the button then shows an application icon. The workspace stays mounted while hidden, so open projects, selection, view, filters and drafts are preserved, and the documentation works with no project open. Ten sections cover getting started, the Agile methodology as applied in TeamOS (distinguishing methodological advice from rules the app enforces), projects, workitems, workflows, planning, views, files and history, productivity, and an end-to-end example with FAQ. It has a searchable contents sidebar with the active topic marked, related-topic links and previous/next navigation, follows the light/dark theme and EN/PT language, and collapses its contents on small screens. The command palette guide and the shortcut reference are rendered from the live app. Content lives in `src/app/docs/content/{en,pt}.ts`; unit tests keep both outlines and every internal link in sync.
-- **Appearance** — App settings selects Classic or Modern, with locally bundled Inter typography for Modern, and Light/Dark for either theme. Preferences stay in the browser and do not change project data or drafts.
+- **Workspace navigation** — The view buttons are below the header. The project selector next to the logo changes between All and one project. It also contains project settings, project removal and save retry. The magnifying glass in the header opens the command palette (Ctrl/⌘+K).
+
+  Board and Table each have a set of query controls. Dashboard, Roadmap and Day Planner have controls for each view. Calendar is in Day Planner. See [US-24](test-board/teamos-development/README.md).
+- **Projects** — New Project makes a project subfolder. Import Projects opens a project folder, or the projects in the subfolders directly below it. It also converts the legacy files that are directly in the selected parent folder. The projects that are loaded stay loaded. The import ignores the projects that are loaded. If you drop legacy `.board.json` files, they open read-only.
+- **Products and project transfers** — An optional Product in Project settings puts projects into groups, below headers that you can expand. The projects in a group continue to operate independently. When the app compares Product names, it ignores letter case and the spaces before and after the name.
+
+  The ⋯ menu of each task copies or moves the task to a different project. That project must be loaded and writable, and it must be in the same product. You must select the destination state. You must also select a mapping or a removal for each person and tag.
+
+  A move keeps the permanent identity, the comments and the history. A copy starts a new identity and a new history. The transfer maps or removes persons, tags, parent and planning associations, as you select. You must remove scheduled blocks and previous Sprint records. The receipt records these decisions. If a write operation stops before it is complete, the app lets you continue the transfer.
+- **App settings** — The gear in the header opens appearance (Light/Dark), theme (Classic/Modern), language (EN/PT) and timeline visibility. This browser keeps the preferences. If you clear timeline visibility, the app stops the historical preview.
+- **Project settings** — Open settings from the project selector. General, Technical workflow, Functional workflow and Automations use the same draft. Save applies the draft. Cancel/close/Escape discards the draft. General contains name, acronym, product, description, status, members and tags.
+
+  New projects assign Epics/Stories/Bugs to Functional and Tasks to Technical. You can assign each type again. You can set states, categories, transitions and reference states. You can continue to look at historical and read-only settings.
+- **Board view** — The type assignments of the project control the Technical and Functional perspectives. Epics are available in the Table. The workflows that you set control the columns. These workflows include Backlog and Testing. Initially, the board does not show Cancelled states.
+
+  Initially, the Active Sprints only checkbox is selected for the two perspectives. To see work with no Sprint and other Sprints, clear the checkbox. You can also select one Sprint in Filters. You can move cards with drag/touch/keyboard input. You can assign responsibility directly on a card. A card also has a next-state arrow.
+
+  Filters & View contains Board columns. In a writable project, you can make a Sprint from selected cards. You can also add selected cards to a Sprint.
+- **Tasks** — When you save a new workitem, its details open. If you make a workitem from a different workitem, the app keeps a return chain. When you close a new Task, the app goes back to its Story, then its Epic, then the initial screen. The chain also stays when you cancel a new workitem. It also stays when you edit a workitem that you opened from a different workitem.
+
+  Fields include title, description, participants and an optional responsible person. They also include tags, blocked + blocker reason, priority, effort and due date. Other fields are checklist (you can change the sequence of its items), attachments and roadmap phase/milestone/sprint.
+- **Acceptance and automation** — To complete a Story or Bug, its child Tasks must be in terminal states. A local author must also accept the Story or Bug manually. Acceptance Criteria are recommended, but they are not mandatory. If you edit the criteria of an accepted Story, you must accept the Story again.
+
+  There are six workflow categories: Backlog, To do, In progress, Testing, Completed and Cancelled. Each of the eight hierarchy/closure rules can be Off, On 1 (approval) or On 2 (automatic). Rules do not bypass transitions, and they do not give functional acceptance.
+- **Workitem relations** — You can connect a workitem to other items by ID/title. This includes completed and archived items. Or, you can make a related Backlog item. This new item gets only the phase/milestone from the initial item.
+
+  Details put small, aligned rows into the groups Blocked by, Blocks and Related to. Each row shows ID navigation, the start of the title and a plain-text status. It also shows the first name of the responsible person. Edit and remove icons on the row let you change relations there. Before the app replaces or removes a relation, you must accept the change. These changes keep the two items, and the app calculates blocking again.
+- **Filters and sort** — Board queries, each table subsection and each Sprint have a search and filters that operate independently. The URL keeps Board filters. Board filters also have an effect on Planner/Calendar. Table filters apply only to their table. Filters include status, blocking, persons, priority, effort and planning.
+
+  The Board sorts by priority, effort, score or name. Tables sort by column. Dashboard uses a period and a scope that apply only to the Dashboard.
+- **Roadmap view** — ALL shows all loaded projects, but not Paused, Completed and Archived projects. It puts the projects in sequence by phase start. Each project has a different master-bar color, in load sequence. Single-project Roadmap shows phases, milestones and independent sprints on a time axis. Project groups and phase trees start collapsed. The two scopes have Expand all and Collapse all.
+
+  At 100%, the full timeline is in the view. Above 100%, it scrolls in the horizontal direction. Navigation, dates, milestones and the labels that identify items do not move.
+
+  Roadmap workitem tables show only ID, Title, Type, Status, Responsible, Manually Blocked, Dependency Blocked and Updated (date only). These tables have no search or filters. Each phase and Sprint has a dedicated button for its workitem table. Parent phases include all descendant phases. Only phases with children have tree arrows.
+
+  Milestone diamonds fill to show their completion. Tooltips with two lines show names, dates and percentages. When you do a bulk Sprint allocation, the app examines explicit and inherited phase dates. It lets you keep or extend these dates.
+- **Dashboard** (single project) — Overview has nine sections. You can set the visibility of each section independently. The sections are project overview, active sprint, project statistics and started/completed/in-progress workitems. They also include open risks, deliverables and decisions.
+
+  Start/End dates use recorded UTC history. Activity lists count the category transitions in the period. Status sections use the snapshot at the end date. Planning scope filters descendant phases.
+
+  Overview keeps parent phases that started and have work that is not completed. It also keeps acceptance gates, overdue warnings and the next/overdue milestones. Three circular charts show Stories, independent Tasks and Bugs by workflow category. Activity lists include Stories and independent Tasks.
+
+  You can open the details of the workitems, Roadmap items, sprints and Project Control records that are in the project. Where history has no data, the Dashboard shows N/A. Sprint Analytics stays available, and you can continue to look at recorded history. But its capacity, points, velocity and closure-chart reports continue to show placeholders. Sprint headers and editors show recorded point totals and closure fields. See [section acceptance scenarios](test-board/teamos-development/README.md).
+- **Calendar inside Day Planner** — It gives a year/month view of Tasks only, with a deadline heatmap. These views are next to Day and Week. Time blocks stay in Day and Week.
+- **Command palette** — Open it with `⌘K` / `Ctrl+K`, `/` or the search icon in the header. You can find tasks (title, `#id`, `#tag`, assignee), projects, roadmap items and commands. You can change a task step by step (move, assign, priority, plan). You can filter the board by text. You can make a task in one line with `+ Title @person !high #tag ~S due:fri in:project`. You can schedule with `plan <task> 14:00`.
+- **Day Planner** — Drag tasks from all projects onto a 07:00–21:00 day (or Mon–Fri week) in 15-minute slots. Then you can move the tasks and change their length. The app saves plans for each project in `extensions.dayPlanner` (`{ version: 1, blocks: [{ id, taskId, date, start, end }] }`). Plans do not change the task. The project timeline also records all planner changes.
+- **Timeline** (single project) — The timeline records all saved changes. Scrub back to preview a previous state in read-only mode. Then you can restore that state.
+- **Table perspectives** (single project) — ALL shows Epic → Story → Task rows that you can collapse. It also shows Tasks directly below an Epic, and independent Tasks/Bugs. The same table shows Roadmap phases, milestones and sprints, and it includes recorded participation. If filters remove the ancestors of a workitem that agrees with the filters, the table continues to show that workitem. Pagination keeps full root groups together.
+
+  The other perspectives are the views for each type, All Tasks & Bugs and Backlog. There is also a table for each sprint, which you can collapse. Backlog shows planning units that have work that is not completed and no applicable Sprint allocation. In Backlog, Sprint Actions has the commands that make or assign a sprint from a selection. Sprint tables have no row-selection checkboxes or Sprint Actions.
+
+  Filters, Columns and Export CSV use icon buttons. In Backlog, Sprint Actions has a runner icon and is after the divider, immediately before +.
+
+  In each sprint table, a Story expands directly into the Task rows that are in the sprint. Independent Tasks and Bugs are at the top level. A sort keeps child rows below their Story. Pagination keeps each group together. CSV includes all filtered workitems, also when they are collapsed.
+
+  Sprint headers keep the dates and the Planned/Active/Done status, which you set manually. They also show the percentage of completed planning units, and they count each planning unit one time. This percentage includes archived items, and it does not count Story Tasks two times. Filters change rows and CSV, but not the sprint denominator.
+
+  Dates use `dd/mm/yyyy`, and timestamps use UTC `dd/mm/yyyy HH:mm:ss`. Columns have minimum widths, cells with two lines and horizontal scrolling. They also have status and blocked badges with colors.
+- **In-app documentation** — The book button in the top bar (or `H`) changes between the workspace and a documentation page. You can navigate in this page. When you see the page, the button shows an application icon. The workspace stays mounted while you cannot see it. Thus, the loaded projects, selection, view, filters and drafts stay the same. The documentation also operates when no project is loaded.
+
+  Ten sections give information about getting started and the Agile methodology as TeamOS applies it. The methodology topic shows which items are only recommended and which rules the app makes mandatory. Other sections give information about projects, workitems, workflows, planning, views, files and history, and productivity. One section is an end-to-end example with FAQ.
+
+  The page has a contents sidebar with a search field, and the sidebar shows the active topic with a mark. It also has links to related topics and previous/next navigation. It uses the same light/dark theme and EN/PT language as the app. On small screens, it collapses its contents.
+
+  The live app renders the command palette guide and the shortcut reference. The content is in `src/app/docs/content/{en,pt}.ts`. Unit tests make sure that the two outlines and all internal links agree.
+- **Appearance** — In App settings, you select Classic or Modern, and Light/Dark for each theme. Modern uses Inter typography, which is bundled locally. Preferences stay in the browser. They do not change project data or drafts.
 
 ## Data and persistence
 
-- Uses the File System Access API (Chromium browsers). Projects opened with a file handle autosave on every change; files dropped without a handle are read-only.
-- Open files are watched for external changes: they reload automatically, or prompt when local edits conflict.
-- Folder structure and current state are validated on import; legacy files require `*.board.json`, a supported schema, the app ID and valid project data. The data rules live in `validateBoardData` (`src/domain/board.ts`).
+- The app uses the File System Access API (Chromium browsers). Projects that you open with a file handle autosave on each change. Files that you drop without a handle are read-only.
+- The app monitors open files for external changes. The reload of these files is automatic. If local edits are in conflict with these changes, the app tells you.
+- On import, the app validates the folder structure and the current state. Legacy files must have `*.board.json`, a schema version that the app can read, the app ID and correct project data. The data rules are in `validateBoardData` (`src/domain/board.ts`).
 
 ### Task and schema invariants
 
-- Task titles are required and capped at 80 characters.
-- Participants are saved as an `assignees` array; `responsible` is an optional name (empty string when unset) and always belongs to that array. Stable project-local references are stored in `assigneeIds`/`responsibleId`; names remain readable projections. Selecting, changing or clearing responsibility preserves existing participants. Rename members in Project settings to update all current assignments, including archived tasks. Removing the responsible participant asks for confirmation before clearing responsibility. Neither field is required to save or change status.
-- Schema v2 adds responsibility. Version 1 files migrate on import/save without choosing a responsible person, even for one participant; older `assignee` strings/arrays still import. IDs, roadmap and existing timeline events are preserved. Assignment changes record before/after values in the same timeline. Regression fixture: `tests/fixtures/assignments-v1.board.json`.
-- Responsible/participant filters each offer All, no allocation, or a name; they combine with each other. The palette offers both participant toggles and Set responsible. Quick-create `@name` adds participants and leaves responsibility unset. The table has a separate configurable Responsible column.
-- Manually blocked tasks require `blockerReason`. Dependency blocking is derived from unfinished direct blockers, including archived blockers, without changing status or overwriting manual blocking. Board/Table blocked filters include both sources. Workitem tables offer independent Manually Blocked and Dependency Blocked columns and filters; Roadmap tables show both. Active filters appear only as a numeric button badge, with Clear all beside Reset inside the panel.
-- Attachments have their own tab in workitem details, with a table of upload date, filename and uploader, plus downloads and image thumbnails. When opening a project, select a member or create one. Comments, new attachment uploads, acceptance and authored history use that selected identity for the session. This remains local attribution. Existing files without `uploadedBy` display Unknown; editing or saving them does not invent an author. Folder projects store attachment binaries separately; legacy files embed `dataUrl`s. Uploads are capped per workitem with a hard size limit and soft size warnings. Older extension-based attachment storage is cleaned up on save.
-- Attachment lists in details and editing offer **Open** in a new tab for JPEG/JPG, PNG, GIF, WebP, BMP, ICO, AVIF, PDF, TXT, CSV, JSON, XML, MP3, WAV, OGG, MP4 and WEBM, including filename detection when the MIME is missing or generic. Other formats keep **Download** only; Download remains aligned and available for every attachment. CSV and XML open as readable text without automatic downloads. Previews use temporary local Blob URLs and require no external service. See the [US-23 walkthrough](test-board/teamos-development/README.md).
+- A task title is necessary. It can have a maximum of 80 characters.
+- The app saves participants as an `assignees` array. `responsible` is an optional name (empty string when it has no value). This name is always in that array. `assigneeIds`/`responsibleId` store stable project-local references. Names stay as projections that you can read.
+
+  When you select, change or clear responsibility, the participants do not change. To update the current assignments of a member, rename the member in Project settings. This also updates archived tasks. If you remove the responsible participant, you must accept the change before the app clears responsibility. You can save or change status without these two fields.
+- Schema v2 adds responsibility. Version 1 files migrate on import/save, and the migration does not select a responsible person. This also applies to a task with one participant. The app continues to import `assignee` strings/arrays from previous versions.
+
+  The migration keeps IDs, roadmap and the timeline events. Assignment changes record before/after values in the same timeline. The regression fixture is `tests/fixtures/assignments-v1.board.json`.
+- Each Responsible/participant filter gives All, no allocation, or a name. You can use the two filters together. The palette has the two participant toggles and Set responsible. Quick-create `@name` adds participants, but it does not set responsibility. The table has an isolated Responsible column that you can set.
+- Manually blocked tasks must have `blockerReason`. The app calculates dependency blocking from the blockers in the Blocked by relations of a task that are not completed. These blockers include archived blockers. Dependency blocking does not change status or replace manual blocking. Board/Table blocked filters include the two sources.
+
+  Workitem tables have Manually Blocked and Dependency Blocked columns and filters that operate independently. Roadmap tables show the two columns. Active filters show only as a badge with a number on a button. Clear all is next to Reset in the panel.
+- Attachments have a tab in workitem details. This tab has a table of upload date, filename and uploader, with downloads and image thumbnails. When you open a project, select a member or make a new member. Comments, new attachment uploads, acceptance and authored history use that selected identity for the session. This author information stays local.
+
+  Files that do not have `uploadedBy` show Unknown. If you edit or save these files, the app does not add an author. Folder projects store attachment binaries in isolated files. Legacy files embed `dataUrl`s. Each workitem has a hard size limit for uploads and soft size warnings. On save, the app removes the attachment storage of previous versions from extensions.
+- Attachment lists in details and editing have **Open**, which opens the file in a new tab. You can open JPEG/JPG, PNG, GIF, WebP, BMP, ICO, AVIF, PDF and TXT files. You can also open CSV, JSON, XML, MP3, WAV, OGG, MP4 and WEBM files. If the MIME is missing or generic, the app also uses the filename to find the format.
+
+  Other formats have only **Download**. Download stays aligned and available for all attachments. CSV and XML open as text that you can read, and the app does not start a download. Previews use temporary local Blob URLs, and they do not use an external service. See the [US-23 walkthrough](test-board/teamos-development/README.md).
 - Serialization normalizes tasks, columns and timestamps before save.
-- Sprint lifecycle is manual. New Sprints start Planned; Roadmap and Table → Sprints offer Edit and Start/Finish actions with an optional local-today date update. Roadmap has no standalone Sprint creation button; create from Board/Table workitem selections. Roadmap v5 persists status, Goal, manually defined Capacity, Review and Retrospective. Older Sprint statuses are inferred from dates once on import, then persisted. Finishing freezes the roster, workflows, estimates, completion/carry-over IDs and results in `extensions.sprintResults` v1, returning unfinished planning units to Backlog; Task status resets depend on the Sprint automation. Stories with completed implementation awaiting acceptance retain their Sprint. Finished roster rows remain read-only when live work moves or changes. Review/Retrospective remain editable. See [US-22](test-board/teamos-development/README.md).
-- Story Points are optional numeric estimates independent of Effort, available on Stories, Bugs and Tasks outside a Story or Bug; attaching a Task to a Story or Bug removes its own estimate. One-time completion credits record Story points when all child Tasks are Done (without requiring functional acceptance), or when a childless Story, independent Task or Bug itself becomes Done in an Active Sprint. Frozen Velocity sums these credits and cannot count carried work twice. No detailed analytics are added to Roadmap/Table.
-- Table → Sprints displays `Sprint [number] - [user title]`, newest-created first, independently of planning dates. Project-local identities live in `extensions.sprintCatalog` v1 (`lastNumber`, entries with `sprintId`, `number`, `createdAt`). New sprints created from Board or Table receive the next number and creation timestamp; edits preserve both. Deleted IDs/numbers stay reserved, including across timeline preview/restore. Legacy migration reserves sprints by first appearance in existing history snapshots/events, then current-only sprints by array order, with `createdAt: null` (unknown); already assigned numbers are preserved. Unknown dates sort by descending assigned number after dated entries. No creation events or dates are fabricated, and workitem/roadmap IDs remain intact. See `tests/fixtures/sprints-legacy-v1.board.json`.
+- Sprint lifecycle is manual. New Sprints start as Planned. Roadmap and Table → Sprints have Edit and Start/Finish commands with an optional local-today date update. Roadmap has no standalone Sprint creation button. Make Sprints from Board/Table workitem selections. Roadmap v5 saves status, Goal, the Capacity that you set manually, Review and Retrospective.
+
+  On import, the app calculates Sprint statuses from previous versions from dates one time. Then it saves these statuses. The Finish command freezes the roster, workflows, estimates, completion/carry-over IDs and results in `extensions.sprintResults` v1. It also moves planning units that are not completed back to Backlog. The Sprint automation controls Task status resets.
+
+  If the work on a Story is completed but the Story waits for acceptance, the Story keeps its Sprint. After the Finish command, roster rows stay read-only when live work moves or changes. You can continue to edit Review/Retrospective. See [US-22](test-board/teamos-development/README.md).
+- Story Points are optional estimates in numbers, and they are not related to Effort. They are available on Stories, Bugs, and Tasks that are not in a Story or Bug. If you attach a Task to a Story or Bug, the app removes the estimate of that Task.
+
+  One-time completion credits record Story points when all child Tasks are Done. Functional acceptance is not necessary for this condition. Credits also record Story points in an Active Sprint. This occurs when a Story with no children, an independent Task or a Bug becomes Done. Frozen Velocity adds these credits, and it cannot count carry-over work two times. Roadmap/Table do not get analytics with more information.
+- Table → Sprints shows `Sprint [number] - [user title]`, with the last made sprint first. This sequence is not related to planning dates. Project-local identities are in `extensions.sprintCatalog` v1 (`lastNumber`, entries with `sprintId`, `number`, `createdAt`). A new sprint from Board or Table gets the next number and a creation timestamp. Edits keep the two values. Deleted IDs/numbers stay reserved, also across timeline preview/restore.
+
+  Legacy migration first reserves the sprints that are in history snapshots/events, by first appearance. Then it reserves the sprints that are only in the current state, by array sequence, with `createdAt: null` (unknown).
+
+  Numbers that sprints have at this time stay the same. Entries with unknown dates come after entries with dates, by assigned number from high to low. The migration does not make incorrect creation events or dates. Workitem/roadmap IDs stay the same. See `tests/fixtures/sprints-legacy-v1.board.json`.
 
 ### Relations extension (version 1)
 
-The optional `extensions.taskRelations` stores `{ version: 1, relations: [{ sourceId, targetId, kind }] }`. `kind` is `related` (symmetric) or `blocks` (source blocks target); inverse links are derived, never duplicated. IDs refer only to tasks in the same file, with one relation per unordered pair. Self-links, missing IDs, duplicate pairs and dependency cycles are rejected on import and mutation, as are unsupported extension versions.
+The optional `extensions.taskRelations` stores `{ version: 1, relations: [{ sourceId, targetId, kind }] }`. `kind` is `related` (symmetric) or `blocks` (source blocks target). The app calculates inverse links, and it does not record them two times. IDs refer only to tasks in the same file. Each pair of tasks has one relation, in the two directions.
 
-Relations are an additive, separately versioned extension to the base board schema (currently version 6). Legacy files without it migrate to an empty relation set without changing task IDs, roadmap or other extension data; the extension is written when the first link is added and omitted after the last link is removed. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
+Import and mutation reject self-links, missing IDs, pairs that occur two times and dependency cycles. They also reject extension versions that the app cannot read.
 
-Creating an item and its link is one autosaved mutation; cancelling creates neither. Deleting an item confirms the related IDs and blocking impact, removes its links, and preserves other items. Relation changes use the existing timeline and are replayed in historical previews/restores. Read-only and historical details allow navigation but hide relation mutation controls.
+Relations are an additive extension to the primary board schema (at this time, version 6), with an isolated version number. Legacy files without this extension migrate to an empty relation set. This migration does not change task IDs, roadmap or other extension data. The app writes the extension when you add the first link. It removes the extension from the file after you remove the last link. The compatibility fixture is `tests/fixtures/task-relations-v1.board.json`.
+
+When you make an item and its link, the app does one autosaved mutation. If you cancel, the app does not make the item or the link. When you delete an item, the app shows the related IDs and the blocking effect, and you must accept them. Then it removes the links of the item, and it keeps the other items.
+
+Relation changes use the same timeline as other changes. Historical previews/restores replay these changes. Read-only and historical details let you navigate, but they do not show relation mutation controls.
 
 ### Project extension (version 1)
 
-`extensions.project` stores `{ version: 1, id, productName?, description, status, members: [{ id, name }], tags }`. New projects open the full settings draft before choosing a parent folder; project name and acronym are required, while other metadata and catalogs are optional. New projects start `planned` with no members and removable `bug`, `feature`, `improvement`, `documentation` tags. Status (`planned`, `active`, `paused`, `completed`, `archived`) is manual and informational: even Archived does not hide projects, block edits or archive tasks.
+`extensions.project` stores `{ version: 1, id, productName?, description, status, members: [{ id, name }], tags }`. New projects open the full settings draft before you select a parent folder. Project name and acronym are necessary. Other metadata and catalogs are optional. New projects start `planned` with no members and with these tags, which you can remove: `bug`, `feature`, `improvement`, `documentation`. Status (`planned`, `active`, `paused`, `completed`, `archived`) is manual, and it gives only information.
 
-Legacy projects migrate with `status: null` (not defined), empty description and catalogs derived only from existing assignments/tags. Saving persists project/member identities; renaming the project or file does not change them. Settings changes use timeline snapshots; historical preview/restore recovers coherent catalogs and assignments while retaining project identity.
+Thus, Archived status does not remove projects from the view, prevent edits or archive tasks. Legacy projects migrate with `status: null` (no value) and an empty description. Their catalogs come only from the assignments/tags that are in the project. A save keeps project/member identities in the file. If you rename the project or file, these identities do not change. Settings changes use timeline snapshots.
 
-Task editors, palette actions and quick-create accept only the target project's curated members/tags. Add tags in Project settings; add members there or in the project identity selector (US-21 supersedes US-11's original inline creation). Member names must be non-blank and unique ignoring case/outer spaces; renaming preserves identity and never merges members. Members/tags used by current tasks, including archived ones, cannot be removed until their assignments are replaced or removed. Empty catalogs are valid. See the [US-11](test-board/teamos-development/README.md) and [US-21](test-board/teamos-development/README.md) manual walkthroughs.
+Historical preview/restore recovers catalogs and assignments that agree with each other, and it keeps the project identity.
+
+Task editors, palette actions and quick-create accept only the members/tags in the catalogs of the target project. Add tags in Project settings. Add members there or in the project identity selector. US-21 replaces the initial inline member creation of US-11. Member names must not be empty. Each name must be different from the other names, and the app ignores case/outer spaces when it compares names.
+
+A rename keeps the identity, and it does not merge members. You cannot remove members/tags that tasks use at this time. This also applies to archived tasks. You can remove them only after you replace or remove their assignments. Empty catalogs are correct. See the [US-11](test-board/teamos-development/README.md) and [US-21](test-board/teamos-development/README.md) manual walkthroughs.
 
 ### Products, permanent identities and transfers (schema 6)
 
-Schema 6 retains older board formats and adds `Task.permanentId`, separate from the project-local number and display ID. Missing legacy identities are derived deterministically within a stable project namespace and persisted on save. Historical snapshots reuse the matching current lifecycle when migrating a missing identity; restoring history does not regenerate it. `extensions.project.productName` is optional; trimming and case-insensitive comparison determine product membership. Products have no file, workflow or tasks of their own.
+Schema 6 keeps previous board formats and adds `Task.permanentId`. This identity is not the same as the project-local number and display ID. If a legacy identity is missing, the app calculates it deterministically in a stable project namespace. The app saves that identity in the file. When the app migrates a missing identity, historical snapshots use the current lifecycle that agrees with it. A history restore does not make the identity again.
 
-A transfer promotes its incident local links to `extensions.permanentRelations` v1, with permanent endpoint identities plus last-known project/file/number/title hints. Loaded files resolve the current location by permanent identity. Unavailable endpoints remain visible and unfinished blockers remain blocking while their state is unknown. References learned from closed files stay available in memory for the session, including inverse references from copies with read-only sources; they are not a permission grant or a file-discovery service. Reopen the relevant project files to resolve references in a new session.
+`extensions.project.productName` is optional. To find the product of a project, the app removes outer spaces from names. It also ignores letter case when it compares names. Products have no file, workflow or tasks.
 
-`extensions.projectTransfers` v1 stores the operation receipt, original/destination references, explicit catalog mappings, removed planning references/times, source recovery signature and preserved move history. Copies omit prior comments/history. The destination is saved before a move removes the source; the receipt remains pending until the source and final receipt are saved. Recovery reuses the same operation/task identity and refuses to remove a source whose task, comments, history or planning changed meanwhile. A move includes all descendants only when every descendant is in a Backlog or To-do category; the confirmation lists their IDs, titles and states and requires explicit destination states and mappings for each. Copying leaves children in the source. Batched moves use per-item receipts with an optional `batchId`, save the entire destination first, validate every source signature before removing any item, and recover the same batch without allocating new identities. A child transferred alone can be detached or mapped to a valid destination parent; hierarchy within a moved batch is preserved. State, people, tags, phase, milestone, sprint and parent choices appear together in a current/destination table. Scheduled blocks and previous sprint records require explicit removal; these have no reusable destination catalog. The receipt records the original associations and their destination mappings. Completed Story/Bug copies require fresh functional acceptance and an explicit author; moves preserve existing acceptance only for completed destinations. Return trips reuse canonical comments through timeline references, retaining the original historical conversation. File watching, conflict resolution and the existing save queue apply to each file independently.
+A transfer changes the local links of the transferred task to `extensions.permanentRelations` v1. These links have permanent endpoint identities and last-known project/file/number/title hints. Loaded files use the permanent identity to find the current location. Endpoints that are not available continue to show. While their state is unknown, blockers that are not completed continue to block.
 
-The [example project walkthrough](test-board/teamos-development/README.md) and automated transfer fixtures exercise different workflows, local-number collisions, comments, relationships, planning, read-only access and write failures.
+The app keeps references from closed files in memory for the session. This includes inverse references from copies with read-only sources. These references do not give permission, and they do not find files. In a new session, open the applicable project files again to find references.
+
+`extensions.projectTransfers` v1 stores the operation receipt, initial/destination references and the catalog mappings that you selected. It also stores removed planning references/times, the source recovery signature and the move history that the transfer keeps. Copies do not include previous comments/history. A move saves the destination before it removes the source. The receipt stays pending until the app saves the source and the last receipt.
+
+Recovery uses the same operation/task identity again. It does not remove a source if its task, comments, history or planning changed after the transfer started. A move includes all descendants only when each descendant is in a Backlog or To-do category. The confirmation shows their IDs, titles and states. For each descendant, you must select destination states and mappings. A copy keeps children in the source.
+
+Batched moves use a receipt for each item, with an optional `batchId`. They save the full destination first. They validate all source signatures before they remove an item. They recover the same batch, and they do not allocate new identities.
+
+If you transfer only a child, you can disconnect it from its parent. Or, you can map it to a correct destination parent. Hierarchy in a moved batch stays the same.
+
+State, person, tag, phase, milestone, sprint and parent selections show together in a current/destination table. You must remove scheduled blocks and previous sprint records. These items have no destination catalog that the app can use again. The receipt records the initial associations and their destination mappings.
+
+Copies of completed Stories/Bugs must get new functional acceptance and an author that you select. A move keeps the acceptance only when the destination state is completed. When a workitem goes back to a project, the app uses its canonical comments again through timeline references. Thus, the initial comments stay in history. File watching, conflict resolution and the same save queue apply to each file independently.
+
+The [example project walkthrough](test-board/teamos-development/README.md) and the transfer fixtures for automatic tests use different workflows and local-number collisions. They also include comments, relations, planning, read-only access and write errors.
 
 ## Project folders (US-25)
 
-**New Project** creates a project subfolder inside the parent folder you select. If folder picking is unavailable but file picking is supported, creation/import can fall back to legacy `.board.json` files. **Import Projects** opens the folder picker for either one project or every direct child containing `project.json`, retaining the current session and skipping duplicates. Each project requires `project.json`, `history.json`, and an `attachments/` directory; invalid projects report their own errors without stopping valid siblings.
+**New Project** makes a project subfolder in the parent folder that you select. If folder picking is not available but file picking is available, creation/import can use legacy `.board.json` files. **Import Projects** opens the folder picker for one project or for each child folder that directly contains `project.json`. It keeps the current session and ignores the projects that are loaded. Each project must have `project.json`, `history.json` and an `attachments/` directory. Projects that are not correct show their errors, but they do not stop the other correct projects.
 
-`project.json` holds current state and attachment references. `history.json` stores the timeline, Project Control history and transferred history separately. Opening a folder reads only current state; the timeline and History/Comments tabs load history on demand. Attachments are read when displayed, opened or downloaded. Changes with events append only their new events to a JSON transaction journal, without reading or serializing older history; other saves leave history untouched. Binary filenames are SHA-256 hashes and historical/undo references keep their files available. The file layout is documented in [PROJECT_FORMAT.md](PROJECT_FORMAT.md); folders saved by an earlier version are converted once when opened, keeping a copy in `backup/schema-6/`.
+`project.json` holds the current state and attachment references. `history.json` stores the timeline, Project Control history and transferred history in isolated sections. When you open a folder, the app reads only the current state. The timeline and History/Comments tabs load history only when you open them. The app reads attachments when it shows, opens or downloads them.
 
-**Import Projects** also converts legacy `.board.json` files found directly in the selected parent folder into project subfolders, leaving originals intact. Importing the same folder again skips projects already present. Dropped legacy files remain read-only. Close an already-open legacy version before opening its migrated copy: they preserve the same project identity.
+Changes with events append only their new events to a JSON transaction journal. They do not read or serialize previous history. Other saves do not change history. Binary filenames are SHA-256 hashes. Historical/undo references keep their files available. The file layout is in [PROJECT_FORMAT.md](PROJECT_FORMAT.md).
 
-The existing save queue, project locks, exact disk baselines, reconciliation and IndexedDB recovery apply to folder projects. A history transaction stages new events with the expected current-state hash before writing `project.json`, then appends a commit marker. Only the small journal tail is read during saves; full history is parsed on consultation. Failed saves retain committed history, and a missing final marker can be recovered from current-state metadata. Chrome/Edge desktop support folder access, including the standalone HTML. See [the fixture folders and walkthrough](test-board/teamos-development/README.md).
+If a previous version saved a folder, the app converts that folder one time when it opens it. The conversion keeps a copy in `backup/schema-6/`.
+
+**Import Projects** also converts legacy `.board.json` files that are directly in the selected parent folder into project subfolders. The initial files do not change. If you import the same folder again, the import ignores the projects that are in the portfolio. Legacy files that you drop stay read-only. Close a loaded legacy version before you open its migrated copy. The two versions have the same project identity.
+
+The same save queue, project locks, accurate disk baselines, reconciliation and IndexedDB recovery apply to folder projects. A history transaction stages new events with the hash that the new current state must have. Then the app writes `project.json`. Then it appends a commit marker. During saves, the app reads only a small part at the end of the journal. It parses the full history only when you look at history.
+
+If a save is not complete, committed history stays. The app can recover a missing last marker from current-state metadata. Chrome/Edge desktop browsers can open folders. This also applies to the standalone HTML. See [the fixture folders and walkthrough](test-board/teamos-development/README.md).
 
 ## Keyboard shortcuts
 
@@ -87,11 +183,11 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 | Keys | Action |
 |---|---|
 | `Ctrl/⌘` + `K` | Open the command palette |
-| `/` | Search tasks and commands (opens the command palette) |
+| `/` | Find tasks and commands (opens the command palette) |
 | `N` / `I` | New project / import projects |
 | `H` | Open or close the documentation |
 | `R` | Reset filters and sort |
-| `S` | Focus sort control |
+| `S` | Put the focus on the sort control |
 | `[` / `]` | Previous / next project chip |
 | `J` / `K` | Select next / previous card |
 | `Enter` | Open hovered or selected card |
@@ -102,19 +198,19 @@ The **Shortcuts** button (or `?`) shows the full reference in the app.
 
 ## Project structure
 
-The detailed dependency and folder guide is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+The full dependency and folder guide is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 The short version is:
 
-- `src/app/` — bootstrapping, the root composition, providers, and app-wide overlays.
-- `src/domain/` — pure board, task, roadmap, timeline, calendar, day planner, attachment, serialization, and scoring rules.
-- `src/features/portfolio/` — the portfolio feature, organized by responsibility: views, commands, queries, state, project operations, and lifecycle hooks.
-- `src/infrastructure/` — browser adapters, persistence/repository code, file watching, and logging.
-- `src/shared/` — reusable UI helpers and small shared types.
-- `src/styles/` — CSS grouped into `foundation/`, `portfolio/`, and `overlays/`; `app.css` is the cascade manifest.
+- `src/app/` — bootstrapping, the root composition, providers and app-wide overlays.
+- `src/domain/` — pure board, task, roadmap, timeline, calendar, day planner, attachment, serialization and scoring rules.
+- `src/features/portfolio/` — the portfolio feature, in groups by responsibility: views, commands, queries, state, project operations and lifecycle hooks.
+- `src/infrastructure/` — browser adapters, persistence/repository code, file watching and logging.
+- `src/shared/` — UI helpers that you can use again and small shared types.
+- `src/styles/` — CSS in the groups `foundation/`, `portfolio/` and `overlays/`. `app.css` is the cascade manifest.
 
 ## Development
 
-Requires Node.js 22.12+ or 24+ (Vite 8 and Vitest 5).
+You must have Node.js 22.12+ or 24+ (Vite 8 and Vitest 5).
 
 ```bash
 npm install
@@ -122,61 +218,70 @@ npx playwright install
 npm run dev
 ```
 
-For a serverless build that can be opened directly in a Chromium-based browser, run:
+You can make a build that operates without a server. You can open this build directly in a Chromium-based browser. To make it, run these commands:
 
 ```bash
 npm run build:standalone
 open dist-standalone/index.html
 ```
 
-This produces one self-contained HTML file. The regular `npm run build` continues to generate the normal `dist/` bundle.
+This makes one self-contained HTML file. The usual `npm run build` continues to make the usual `dist/` bundle.
 
-`dist/` and `dist-standalone/` are committed build outputs, so each branch and PR includes its own runnable builds. Before committing app changes, run both `npm run build` and `npm run build:standalone`, and include the regenerated folders. CI also publishes builds as described below.
+`dist/` and `dist-standalone/` are committed build outputs. Thus, each branch and PR includes builds that you can run. Before you commit app changes, run `npm run build`. Also run `npm run build:standalone`. Include the regenerated folders. CI also publishes builds, as the section below shows.
 
 ## Continuous integration and downloads
 
-GitHub Actions (`.github/workflows/kanban.yml`, at the repository root) runs on every pull request and push that touches `kanban/`: lint, typecheck, unit tests and the Playwright end-to-end tests (`tests/e2e`). The visual snapshot tests are not run in CI because their baselines are macOS-specific; run `npm test` locally for those.
+GitHub Actions (`.github/workflows/kanban.yml`, at the repository root) runs on each pull request and push that changes `kanban/`. It runs lint, typecheck, unit tests and the Playwright end-to-end tests (`tests/e2e`). CI does not run the visual snapshot tests, because their baselines are for macOS only. For those tests, run `npm test` locally.
 
-When the tests pass on `main`, the workflow builds the app and replaces the **`kanban-latest`** GitHub Release with:
+When the tests on `main` give satisfactory results, the workflow builds the app and replaces the **`kanban-latest`** GitHub Release with:
 
 - `teamos-kanban.html`: the standalone single-file app, to download and open in a Chromium-based browser.
-- `teamos-kanban-dist.zip`: the regular `dist/` build for a web server.
+- `teamos-kanban-dist.zip`: the usual `dist/` build for a web server.
 
-To fetch the latest standalone file from the command line:
+To get the last standalone file from the command line, run this command:
 
 ```bash
 gh release download kanban-latest --repo sebastiaofv/TeamOs --pattern teamos-kanban.html
 ```
 
-The workflow can also be started by hand from the Actions tab (*Run workflow*).
+You can also start the workflow manually from the Actions tab (*Run workflow*).
 
 ## Testing
 
-The [issue 93 validation report](docs/issue-93-validation.md) describes the Radix/Zod boundaries, WCAG 2.2 AA pass, before/after accessibility table and local performance measurements.
+The [issue 93 validation report](docs/issue-93-validation.md) gives information about the Radix/Zod boundaries. The WCAG 2.2 AA review in the report gave satisfactory results. The report also contains the before/after accessibility table and local performance measurements.
 
-The single [TeamOS historical example project](test-board/README.md) covers the application in the current folder format, with a walkthrough and explicit fictional-data notices. Import a copy for writable exploration. Legacy regression fixtures live in `tests/fixtures/manual/`.
+The single [TeamOS historical example project](test-board/README.md) shows the application in the current folder format. It has a walkthrough, and it tells you clearly that all its data is example data. To use the project in writable mode, import a copy. Legacy regression fixtures are in `tests/fixtures/manual/`.
 
-- `npm run typecheck` — TypeScript (`strict`) over `src/`, `tests/` and the config files. Vite and Vitest only strip types, so this is the only type check.
-- `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Tests that feed partial or deliberately malformed fixtures to typed functions wrap them in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
-- `npm run bench:performance` — isolated Chromium measurements of real priority mutations and historical reports, with synthetic projects. Compare another checkout with `-- --root /absolute/path/to/kanban`. See [issue 78 measurements and regression scenarios](test-board/teamos-development/README.md).
-- `npm test` — Playwright end-to-end and visual tests. It builds the app and serves `dist/` on port 4174 before running, so it never reuses a dev server on 4173; the run fails if the port is already taken. Set `PLAYWRIGHT_PORT` for concurrent worktree runs.
+- `npm run typecheck` — TypeScript (`strict`) for `src/`, `tests/` and the config files. Vite and Vitest only remove types. Thus, this is the only type check.
+- `npm run test:unit` — Vitest unit tests for the domain, persistence, store and actions. Some tests give typed functions fixtures that have only some fields, or fixtures that the test makes incorrect. These tests put the fixtures in `fromPartial` / `fromAny` from `@total-typescript/shoehorn`.
+- `npm run bench:performance` — isolated Chromium measurements of priority mutations and historical reports, with synthetic projects. To compare a different checkout, use `-- --root /absolute/path/to/kanban`. See [issue 78 measurements and regression scenarios](test-board/teamos-development/README.md).
+- `npm test` — Playwright end-to-end and visual tests. Before the tests start, it builds the app and serves `dist/` on port 4174. Thus, it does not use a dev server on 4173. If a different process uses the port, the run stops. If you run tests in two or more worktrees at the same time, set `PLAYWRIGHT_PORT`.
 - `npm run lint` — ESLint with `typescript-eslint`.
 
-Visual baselines in `tests/visual.test.ts-snapshots/` are macOS-specific. Regenerate them only deliberately, with `npx playwright test tests/visual.test.ts --update-snapshots`, and review the image diff in the commit. Shared seeding helpers live in `tests/support/portfolio.ts`; the browser globals they install are declared in `tests/support/testGlobals.d.ts`.
+Visual baselines in `tests/visual.test.ts-snapshots/` are for macOS only. Regenerate them only when you must change them, with `npx playwright test tests/visual.test.ts --update-snapshots`. Then examine the image diff in the commit. Shared seeding helpers are in `tests/support/portfolio.ts`. `tests/support/testGlobals.d.ts` declares the browser globals that these helpers install.
 
-Optional Playwright modes: `npm run test:headed`, `npm run test:ui`, `npm run test:debug`.
+Optional Playwright modes are `npm run test:headed`, `npm run test:ui` and `npm run test:debug`.
 
 ### Pre-commit hook
 
-`npm install` sets up a Husky pre-commit hook (`.husky/pre-commit`, registered at the git root via the `prepare` script). Each commit runs ESLint on staged `.ts`/`.tsx`/`.mjs` files (lint-staged, `.lintstagedrc`), then `npm run typecheck` and `npm run test:unit`. Playwright tests are not run by the hook; run `npm test` before pushing UI changes.
+`npm install` installs a Husky pre-commit hook (`.husky/pre-commit`). The `prepare` script registers this hook at the git root. Each commit runs ESLint on staged `.ts`/`.tsx`/`.mjs` files (lint-staged, `.lintstagedrc`). Then it runs `npm run typecheck` and `npm run test:unit`. The hook does not run Playwright tests. Before you push UI changes, run `npm test`.
 
 ### Workitem IDs
 
-New projects require a **Project Acronym** of 1–4 letters, unique among the projects open in the local portfolio. New workitems persist IDs such as `CHK-EP-1`, `CHK-US-2`, `CHK-TK-3`, and `CHK-BG-4`, sharing one project sequence. Types stay fixed after creation; display IDs stay fixed within a project, while transfers allocate a destination ID and moves preserve permanent identity; changing the project name or acronym affects only future items. Deletion and history restoration never reuse a number.
+New projects must have a **Project Acronym** of 1–4 letters. This acronym must be different from the acronyms of the other projects in the local portfolio. New workitems save IDs such as `CHK-EP-1`, `CHK-US-2`, `CHK-TK-3`, and `CHK-BG-4`. These IDs use the same project sequence. Types stay the same after creation. Display IDs stay the same in a project.
 
-Schema 5 reads schema 1–4 files without assigning new IDs to existing items. An older project can set its acronym in General settings or when creating its first new item. Numeric references remain the stable links for hierarchy, relations, comments and planning. Since project files are local, acronym uniqueness is checked against the loaded portfolio.
+Transfers allocate a destination ID, and moves keep the permanent identity. If you change the project name or acronym, the change applies only to the items that you make after it. Deletion and history restoration do not use a number again.
 
-Project Control adds project-local Risks, Decisions and Deliverables with phase/milestone associations, comments, history and deliverable acceptance gates. Each subsection uses the Table → All layout: counts and selection, search, icon-only Filters/Columns/CSV, a divider and + New record. Filters keep type-specific assessments, dates and associations as removable tags; columns are configurable with separate local preferences per type, pagination uses 25/50/100 rows and CSV exports every filtered row after separator confirmation. Records use workitem-style tabbed dialogs and colored status/assessment badges. New IDs use the project acronym, RK/DC/DL and a monotonic number; existing IDs are preserved. The v3 extension adds participants and tags using the Work Item editors and project catalogs, with direct sidebar editing and the same responsibility/participation behavior. It migrates v1/v2 files while preserving IDs, comments, history and legacy owners; obsolete workitem links remain archived. See [US-20 manual scenarios and data rules](test-board/teamos-development/README.md).
+Schema 5 reads schema 1–4 files, and it does not assign new IDs to the items in these files. In a project from a previous version, you can set the acronym in General settings. You can also set it when you make the first new item of the project. References by number continue to be the stable links for hierarchy, relations, comments and planning. Project files are local. Thus, the app compares the acronym only with the loaded portfolio.
 
-Issue 54 removes archive commands and filters while retaining legacy metadata and historical events. Legacy archived workitems remain visible. Dates stay ISO in project files. See [the manual verification guide](test-board/teamos-development/README.md).
-Concurrent project changes are checked before and after every save. Independent edits merge automatically; conflicts pause autosave until field-level reconciliation. Pending work is recoverable through IndexedDB after reopening the project. See [US-28 scenarios](test-board/teamos-development/README.md).
+Project Control adds project-local Risks, Decisions and Deliverables with phase/milestone associations, comments, history and deliverable acceptance gates. Each subsection uses the Table → All layout. This layout has counts and selection, search, icon-only Filters/Columns/CSV, a divider and + New record.
+
+Filters keep the assessments, dates and associations of each type as tags that you can remove. You can set the columns, with local preferences for each type. Pagination uses 25/50/100 rows. After you accept the separator, CSV exports all filtered rows. Records use tabbed dialogs, as workitems do, and status/assessment badges with colors.
+
+New IDs use the project acronym, RK/DC/DL and a number that only increases. IDs that are in the project stay the same. The v3 extension adds participants and tags through the Work Item editors and project catalogs. You can edit these fields directly in the sidebar, and responsibility/participation operates as in workitems.
+
+The v3 extension migrates v1/v2 files, and it keeps IDs, comments, history and legacy owners. Workitem links that the v3 extension does not use stay archived. See [US-20 manual scenarios and data rules](test-board/teamos-development/README.md).
+
+Issue 54 removes archive commands and filters, but it keeps legacy metadata and historical events. Legacy archived workitems continue to show. Dates stay ISO in project files. See [the manual verification guide](test-board/teamos-development/README.md).
+
+Before and after each save, the app looks for project changes that occurred at the same time. The merge of independent edits is automatic. Conflicts stop autosave until field-level reconciliation. After you open the project again, you can recover pending work through IndexedDB. See [US-28 scenarios](test-board/teamos-development/README.md).

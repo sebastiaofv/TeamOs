@@ -1,8 +1,10 @@
 # Project format benchmarks
 
-Measured on 2026-11-11 in headless Chromium with real Origin Private File System streams, on one development machine. The fixtures are synthetic, not production data. Each operation has one warm-up and seven measured samples; times are **median / p95 in milliseconds**, and p95 is the largest of the seven.
+The measurements are from 2026-11-11, on one development machine. They used headless Chromium with Origin Private File System streams, not simulated streams. The fixtures are synthetic. They are not production data.
 
-Repeat from `kanban/`:
+Each operation has one warm-up and seven measured samples. Times are **median / p95 in milliseconds**. p95 is the maximum value of the seven samples.
+
+To do the measurements again, run this command from `kanban/`:
 
 ```sh
 npm run bench:project-files
@@ -18,7 +20,7 @@ npm run bench:project-files
 | long-history | 100 workitems, 10,000 single-field workitem edits |
 | large | 1,000 workitems, 100 risks, 50 Project Control edits |
 
-`large` is the bigger project modelled in issue #68. It has fewer legacy edits than `control` because each legacy edit stores a full snapshot of about 0.8 MB and the browser storage quota limits the fixture.
+`large` is the project model from issue #68, with more workitems than the other workloads. It has a smaller number of legacy edits than `control`. This is because each legacy edit stores a full snapshot of approximately 0.8 MB. Also, the browser storage quota sets a limit on the fixture.
 
 ## Latency
 
@@ -30,16 +32,16 @@ npm run bench:project-files
 | long-history | 100 | 3.9 / 4.2 | 34.9 / 41.1 | 15.6 / 15.8 | 77.6 / 79.4 | 3.1 / 3.7 |
 | large | 1,000 | 23.9 / 37 | 35.2 / 37.7 | 38.5 / 40.7 | 1086.2 / 1107.9 | 5.2 / 5.6 |
 
-- **Open** reads and validates `project.json` and checks the identity of `history.json` from its first and last bytes. It no longer depends on history size: `long-history` opens as fast as the small workloads.
-- **Save** rewrites `project.json` and appends to `history.json`. It grows with project size: about 35 to 40 ms at 1,000 workitems, against about 10 ms at 100.
-- A Project Control edit costs about the same as a workitem edit, although it diffs the whole project to produce its patch.
-- `long-history` saves more slowly than the other 100-workitem workloads most likely because the benchmark has loaded its 10,000 events into memory before saving and several passes in the save path walk the loaded history. The cause was not confirmed.
-- **Convert** is a one-time cost and grows with the legacy history, which stored a full project per board-level edit.
-- **Historical jump** reconstructs the last event after the history is loaded. `long-history` has no checkpoint after its baseline, because single-field edits never trigger one, so the jump replays all 10,000 events.
+- **Open** reads and validates `project.json`. It also examines the identity of `history.json` in its first and last bytes. In v1, history size does not change its time. `long-history` opens as fast as the small workloads.
+- **Save** rewrites `project.json` and appends to `history.json`. Its time increases with project size. It is approximately 35 to 40 ms at 1,000 workitems, and approximately 10 ms at 100.
+- A Project Control edit diffs the full project to make its patch. But its time is approximately the same as the time of a workitem edit.
+- `long-history` saves more slowly than the other 100-workitem workloads. The primary possible cause is two facts. The benchmark loaded its 10,000 events into memory before the save. Two or more passes in the save path read the loaded history. We are not sure that this is the cause.
+- **Convert** is a one-time operation. Its time increases with the legacy history. That history stored a full project for each board-level edit.
+- **Historical jump** gets the state at the last event, after the history is loaded. `long-history` has no checkpoint after its baseline, because single-field edits do not cause a checkpoint. Thus, the jump replays all 10,000 events.
 
 ## Size
 
-Bytes on disk after the measured saves. The v1 columns were remeasured after the file vocabulary changed to `workitem.*` events and frozen Sprint rows; the latency and heap figures are from the earlier run on the same day.
+The values are bytes on disk after the measured saves. The v1 columns were measured again after the names in the file changed to `workitem.*` events and frozen Sprint rows. The latency and heap values are from the previous run on the same day.
 
 | Workload | Legacy `project.json` | Legacy `history.json` | v1 `project.json` | v1 `history.json` | Max observed JS heap (MiB) |
 |---|---:|---:|---:|---:|---:|
@@ -49,11 +51,11 @@ Bytes on disk after the measured saves. The v1 columns were remeasured after the
 | long-history | 53,916 | 2,044,089 | 76,371 | 2,136,516 | 123.4 |
 | large | 597,444 | 38,274,233 | 789,647 | 866,780 | 666.4 |
 
-- Histories made of board-level edits shrink the most: `control` goes from 19.4 MB to 0.47 MB and `large` from 38.3 MB to 0.87 MB, because each edit stores a patch instead of the whole project.
-- `long-history` grows slightly, by about 4%. Its events were already field-level changes, and `workitem.updated` / `"entityType":"workitem"` are longer than the old `task` names.
-- `sprints` has a larger history than before the frozen rows changed: each participation update stores the full v1 workitem row and the members of that moment, so a renamed member never alters a past Sprint.
-- `project.json` is larger in v1 for these fixtures. The legacy size is measured from compact JSON and the v1 file is written indented for readability, so the two columns do not compare the amount of data stored.
-- Heap values are sampled after each operation sequence. They depend on garbage collection and do not measure peak memory.
+- Histories that contain board-level edits decrease the most. `control` goes from 19.4 MB to 0.47 MB, and `large` goes from 38.3 MB to 0.87 MB. This is because each edit stores a patch and not the full project.
+- `long-history` increases by a small quantity, approximately 4%. Before v1, its events were field-level changes. Also, `workitem.updated` / `"entityType":"workitem"` have more characters than the previous `task` names.
+- `sprints` has a history with more bytes than before the frozen rows changed. Each participation update stores the full v1 workitem row and the members of that moment. Thus, if a member gets a new name, a previous Sprint does not change.
+- `project.json` has more bytes in v1 for these fixtures. The legacy size comes from compact JSON. The v1 file has indents to make it easy to read. Thus, the two columns do not compare the quantity of stored data.
+- The benchmark records heap values after each operation sequence. Garbage collection has an effect on these values. They do not measure peak memory.
 
 ## Bulk patch replay
 
@@ -62,10 +64,10 @@ Bytes on disk after the measured saves. The v1 columns were remeasured after the
 | 1,000 | 3 / 3.7 |
 | 5,000 | 11.9 / 13 |
 
-Every row of the project is updated by one patch. Replay indexes each changed collection once, so the cost is linear in rows.
+One patch updates all rows of the project. Replay indexes each changed collection one time. Thus, the time increases linearly with the number of rows.
 
 ## What is not measured
 
-- Setup, fixture writes, attachment creation and loading the history before a jump are excluded from the timings.
-- Nothing here is an OS-level I/O measurement. `createWritable` copies the file to a temporary file before an append, and that cost is included only as elapsed time.
-- No production project was measured.
+- The timings do not include setup, fixture write operations, attachment creation or the history load before a jump.
+- No value here is an OS-level I/O measurement. `createWritable` copies the file to a temporary file before an append. The timings include that copy only as elapsed time.
+- The benchmarks did not measure a production project.
