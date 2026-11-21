@@ -1,0 +1,92 @@
+{
+  "concurrency": 1,
+  "max_rounds": 3,
+  "max_grill_rounds": 3,
+  "simple_track_risks": ["low"],
+  "base_branch": "main",
+  "merge_method": "merge",
+  "labels": {
+    "queue": "factory",
+    "needs_info": "factory:needs-info",
+    "needs_human": "factory:needs-human"
+  },
+  "routing": {
+    "low": {
+      "code": "codex"
+    },
+    "medium": {
+      "code": "codex"
+    },
+    "high": {
+      "code": "codex"
+    }
+  },
+  "surface_reviewers": {
+    "ui": {
+      "ui": "claude-balanced"
+    },
+    "security": {
+      "security": "claude-strong"
+    }
+  },
+  "protected_paths": [
+    "factory/checks.sh",
+    "factory/config.json",
+    "factory/bin/*",
+    "factory/lib/*",
+    "factory/prompts/*",
+    "factory/tests/*",
+    "factory/dashboard.html",
+    ".agents/skills/factory/*",
+    ".claude/skills/factory/*"
+  ],
+  "ports": {
+    "base": 5100,
+    "step": 10
+  },
+  "step_timeout_seconds": 3600,
+  "check_timeout_seconds": 1800,
+  "profiles": {
+    "claude-fast": {
+      "cli": "claude",
+      "model": "haiku",
+      "reasoning_effort": "low"
+    },
+    "claude-balanced": {
+      "cli": "claude",
+      "model": "sonnet",
+      "reasoning_effort": "medium"
+    },
+    "claude-strong": {
+      "cli": "claude",
+      "model": "opus",
+      "reasoning_effort": "medium"
+    },
+    "codex": {
+      "cli": "codex",
+      "model": null,
+      "reasoning_effort": null
+    },
+    "codex-fast": {
+      "cli": "codex",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "low"
+    },
+    "codex-balanced": {
+      "cli": "codex",
+      "model": "gpt-6.2-terra",
+      "reasoning_effort": "medium"
+    },
+    "codex-strong": {
+      "cli": "codex",
+      "model": "gpt-6.2-sol",
+      "reasoning_effort": "medium"
+    }
+  },
+  "steps": {
+    "intake": "claude-fast",
+    "spec-writer": "codex",
+    "builder": "claude-strong",
+    "approver": "codex"
+  }
+}
