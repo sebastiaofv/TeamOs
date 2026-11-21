@@ -15,13 +15,17 @@ export function usePortfolioFileIntegration(): boolean {
     useEffect(() => {
         let fileDragDepth = 0;
 
+        // A file drag whose default was already prevented is claimed by an
+        // inner drop target (the attachment editor): no project-opening
+        // feedback or import, but depth and overlay cleanup still happen here.
         const handleDragEnter = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
             fileDragDepth += 1;
-            setFileDropActive(true);
+            setFileDropActive(!event.defaultPrevented);
         };
         const handleDragOver = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
+            if (event.defaultPrevented) { setFileDropActive(false); return; }
             event.preventDefault();
             setFileDropActive(true);
         };
@@ -32,9 +36,10 @@ export function usePortfolioFileIntegration(): boolean {
         };
         const handleDrop = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
-            event.preventDefault();
             fileDragDepth = 0;
             setFileDropActive(false);
+            if (event.defaultPrevented) return;
+            event.preventDefault();
             const files = event.dataTransfer?.files;
             if (files?.length) void openPortfolioFromFiles(files);
         };

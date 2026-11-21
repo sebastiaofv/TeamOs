@@ -443,7 +443,8 @@ export const DOCS_EN: DocSection[] = [
                     { kind: 'h', text: 'Attachments' },
                     { kind: 'list', items: [
                         'Up to 10 files per workitem, 10 MiB each. Folder projects store files separately in `attachments/` and load them for thumbnails, opening or downloading. Legacy files embed them.',
-                        'The Attachments tab lists upload date, file name and uploader, with **Open** for common formats (images, PDF, text, audio, video) and **Download** for all.'
+                        'The Attachments tab lists upload date, file name and uploader, with **Open** for common formats (images, PDF, text, audio, video) and **Download** for all.',
+                        'In a writable workitem, use **Add Files** or drop files onto the upload area above the table. Dropped files follow the same limits and uploader identity. Files dropped anywhere else on the window still open as read-only projects.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
                     { kind: 'p', text: 'Add full HTTP/HTTPS links in the workitem’s **Pull requests** tab. Epics have no Pull requests tab. They are local links only: the app does not contact the server until you open one.' }

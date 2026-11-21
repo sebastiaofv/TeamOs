@@ -1,12 +1,13 @@
 import { AttachmentImage, AttachmentDownload } from '../AttachmentMedia';
 import { projectActor } from '@/features/portfolio/projects/projectIdentity';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
 import type { DraftMessage } from '@/features/portfolio/types';
 import type { Attachment } from '@/domain/types';
 import { ATTACHMENT_MAX_COUNT } from '@/domain/constants';
 import { formatFileSize } from '@/domain/util';
 import { buildAttachmentWarnings, mergePickedAttachments } from '@/domain/taskDraft';
 import { readFileAsDataUrl } from '@/infrastructure/browser/fileReader';
+import { isFileDrag } from '@/infrastructure/browser/fileDrop';
 import { getAttachmentPreviewMime } from '@/domain/attachments';
 import { AttachmentOpenLink } from '../AttachmentOpenLink';
 import { useI18n } from '@/shared/i18n';
@@ -29,6 +30,9 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
     const busyRef = useRef(false);
     const preparingRef = useRef(false);
     const [busy, setBusy] = useState(false);
+    const [preparing, setPreparing] = useState(false);
+    const [fileDragOver, setFileDragOver] = useState(false);
+    const fileDragDepthRef = useRef(0);
     const mountedRef = useRef(false);
 
     useEffect(() => {
@@ -42,17 +46,18 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
     async function pickFiles() {
         if (disabled || busyRef.current || preparingRef.current) return;
         preparingRef.current = true;
+        setPreparing(true);
         try {
             if (beforePick && !await beforePick()) return;
             if (mountedRef.current) inputRef.current?.click();
-        } finally { preparingRef.current = false; }
+        } finally {
+            preparingRef.current = false;
+            if (mountedRef.current) setPreparing(false);
+        }
     }
 
-    const onFilesPicked = async (event: ChangeEvent<HTMLInputElement>) => {
-        const input = event.target;
-        const files = Array.from(input.files || []);
-        input.value = '';
-        if (files.length === 0 || disabled || busyRef.current) return;
+    // Shared by the picker and drops: one batch through the same rules and write command.
+    async function ingestFiles(files: File[]) {
         if (!uploadedBy.trim()) {
             setPickerMessages([{ type: 'error', text: t('attachments.authorRequired') }]);
             return;
@@ -71,6 +76,53 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
             busyRef.current = false;
             if (mountedRef.current) { setBusy(false); onBusyChange?.(false); }
         }
+    }
+
+    const onFilesPicked = async (event: ChangeEvent<HTMLInputElement>) => {
+        const input = event.target;
+        const files = Array.from(input.files || []);
+        input.value = '';
+        if (files.length === 0 || disabled || busyRef.current) return;
+        await ingestFiles(files);
+    };
+
+    // File drags inside the editor are claimed (default prevented) so the
+    // window's project-opening handler leaves them alone, even when rejected.
+    const claimFileDrag = (event: DragEvent<HTMLDivElement>) => {
+        if (!isFileDrag(event)) return false;
+        event.preventDefault();
+        return true;
+    };
+    const onDragEnter = (event: DragEvent<HTMLDivElement>) => {
+        if (!claimFileDrag(event)) return;
+        fileDragDepthRef.current += 1;
+        setFileDragOver(true);
+    };
+    const onDragOver = (event: DragEvent<HTMLDivElement>) => {
+        if (!claimFileDrag(event)) return;
+        event.dataTransfer.dropEffect = acceptsDrop ? 'copy' : 'none';
+    };
+    const onDragLeave = (event: DragEvent<HTMLDivElement>) => {
+        if (!isFileDrag(event)) return;
+        fileDragDepthRef.current = Math.max(0, fileDragDepthRef.current - 1);
+        if (fileDragDepthRef.current === 0) setFileDragOver(false);
+    };
+    const onDrop = async (event: DragEvent<HTMLDivElement>) => {
+        if (!claimFileDrag(event)) return;
+        fileDragDepthRef.current = 0;
+        setFileDragOver(false);
+        // The transfer is only readable during the event, before any await.
+        const files = Array.from(event.dataTransfer.files);
+        if (files.length === 0 || disabled || busyRef.current || preparingRef.current) return;
+        preparingRef.current = true;
+        setPreparing(true);
+        try {
+            if (beforePick && !await beforePick()) return;
+            if (mountedRef.current) await ingestFiles(files);
+        } finally {
+            preparingRef.current = false;
+            if (mountedRef.current) setPreparing(false);
+        }
     };
 
     const remove = (attachmentId: string) => {
@@ -78,6 +130,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
         setPickerMessages([]);
     };
 
+    const acceptsDrop = !disabled && !busy && !preparing;
     const totalBytes = value.reduce((sum, item) => sum + (Number(item.sizeBytes) || 0), 0);
     const summary = value.length === 0
         ? t('editor.noAttachments')
@@ -86,7 +139,8 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
         .filter((message) => message && typeof message.text === 'string' && message.text.trim());
 
     return (
-        <div className="attachment-editor" id="taskAttachmentsEditor" aria-label={t('task.attachments')} aria-busy={busy}>
+        <div className={`attachment-editor${fileDragOver && acceptsDrop ? ' is-drop-active' : ''}`} id="taskAttachmentsEditor" aria-label={t('task.attachments')} aria-busy={busy}
+            onDragEnter={onDragEnter} onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={(event) => void onDrop(event)}>
             <div className="attachment-uploader form-group">
                 <label htmlFor="taskAttachmentUploader">{t('attachments.uploadedBy')}</label>
                 <input id="taskAttachmentUploader" readOnly={Boolean(actor)} disabled={disabled || busy} type="text" autoComplete="off" value={uploadedBy} onChange={(event) => setUploadedBy(event.target.value)} />
@@ -95,6 +149,7 @@ export function AttachmentsEditor({ boardId, value, onChange, otherAttachmentByt
                 <button type="button" className="btn" id="taskAttachmentsAddBtn" disabled={disabled || busy} onClick={() => void pickFiles()}>{t('editor.addFiles')}</button>
                 <span className="attachment-editor-summary" id="taskAttachmentsSummary">{summary}</span>
             </div>
+            <p className="attachment-editor-drop-hint" id="taskAttachmentsDropHint">{t('attachments.dropHint')}</p>
             <div className="attachment-editor-warnings" id="taskAttachmentsWarnings" role={messages.some((message) => message.type === 'error') ? 'alert' : 'status'} aria-live="polite" aria-atomic="true">
                 {messages.map((message, index) => (
                     <div key={index} className={message.type === 'error' ? 'attachment-editor-error' : 'attachment-editor-warning'}>
