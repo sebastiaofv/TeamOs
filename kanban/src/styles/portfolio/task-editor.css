@@ -253,6 +253,18 @@
     color: var(--text-secondary);
 }
 
+.attachment-editor-drop-hint {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.attachment-editor.is-drop-active {
+    outline: 2px dashed var(--accent);
+    outline-offset: -2px;
+    background: color-mix(in srgb, var(--accent) 8%, var(--bg-card));
+}
+
 .attachment-editor-warnings {
     display: grid;
     gap: 4px;

@@ -443,7 +443,8 @@ export const DOCS_PT: DocSection[] = [
                     { kind: 'h', text: 'Anexos' },
                     { kind: 'list', items: [
                         'Até 10 ficheiros por workitem, 10 MiB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
-                        'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.'
+                        'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.',
+                        'Num workitem editável, use **Adicionar ficheiros** ou largue ficheiros na área de carregamento acima da tabela. Os ficheiros largados seguem os mesmos limites e a mesma identidade de quem carrega. Ficheiros largados noutro ponto da janela continuam a abrir como projetos só de leitura.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
                     { kind: 'p', text: 'Acrescente ligações HTTP/HTTPS completas no separador **Pull requests** do workitem. Os Epics não têm este separador. São apenas ligações locais: a aplicação não contacta o servidor até abrir uma.' }
