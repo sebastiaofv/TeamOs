@@ -11,11 +11,13 @@ import { TagEditor } from '@/features/portfolio/task/dialogs/editor/TagEditor';
 import { todayLocalIsoDate } from '@/domain/util';
 import { useLayoutEffect, useRef, useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlRecords, newControlRecord, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
+import { CONTROL_KINDS, CONTROL_STATUSES, ASSESSMENTS, controlRecords, getControlAttachments, newControlRecord, riskLevel, type ControlKind, type ControlRecord } from '@/domain/projectControl';
+import { calculateBoardAttachmentBytes } from '@/domain/attachments';
 import type { BoardData } from '@/domain/types';
 import { useI18n, type TranslationKey } from '@/shared/i18n';
 import { portfolioActions } from '@/features/portfolio/commands/portfolioCommands';
 import { lastCommentAuthor, rememberCommentAuthor } from '@/features/portfolio/task/conversationDrafts';
+import { AttachmentPanel, buildAttachmentDisplayItems } from '@/features/portfolio/task/dialogs/TaskAttachments';
 import { TaskConversation } from '@/features/portfolio/task/dialogs/TaskConversation';
 import { useReturnFocus } from '@/shared/ui/dialogs/useReturnFocus';
 import { keepOpenOnUndoToast } from '@/shared/ui/dialogs/keepOpenOnUndoToast';
@@ -40,7 +42,7 @@ export function ProjectControlDialog() {
 export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = false, onClose, onSaved }: { boardId: string; recordId?: string; kind: ControlKind; data: BoardData; readOnly?: boolean; onClose: () => void; onSaved?: (record: ControlRecord) => void }) {
     const record = controlRecords(data).find((item) => item.id === recordId);
     const { t } = useI18n();
-    const { saveProjectControl, confirmResponsibleParticipantRemoval } = portfolioActions;
+    const { saveProjectControl, prepareControlAttachmentWrite, setControlRecordAttachments, confirmResponsibleParticipantRemoval } = portfolioActions;
     const project = getProjectData(data);
     const [draft, setDraft] = useState(() => structuredClone(record || newControlRecord(kind)));
     // A new record opens in the full editor; an existing one opens for viewing,
@@ -49,11 +51,11 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
     const editing = mode !== 'viewing';
     const busy = mode === 'savingToClose';
     const [author, setAuthor] = useState(() => lastCommentAuthor(boardId));
-    const [tab, setTab] = useState<'details' | 'response' | 'comments' | 'history'>('details');
+    const [tab, setTab] = useState<'details' | 'response' | 'attachments' | 'comments' | 'history'>('details');
     const historyLoad = useProjectHistory(boardId, tab === 'history');
     const [acronym, setAcronym] = useState('');
     const activeKind = draft.kind;
-    const tabs = activeKind === 'risks' ? ['details', 'response', 'comments', 'history'] as const : ['details', 'comments', 'history'] as const;
+    const tabs = activeKind === 'risks' ? ['details', 'response', 'attachments', 'comments', 'history'] as const : ['details', 'attachments', 'comments', 'history'] as const;
     const [error, setError] = useState('');
     // The parent Radix layer may still own Escape briefly after a nested dialog opens.
     // Handle it before document listeners so closing the child preserves the parent draft.
@@ -122,12 +124,12 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                 </div>
                 <div className="workitem-header-actions"><SaveIndicator boardId={boardId} />{readonly && <span className="workitem-readonly">{t('toolbar.readOnly')}</span>}<Dialog.Close className="modal-close" aria-label={t('common.close')} disabled={busy}>×</Dialog.Close></div>
             </div>
-            <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
+            <div className="detail-tabs" role="tablist" aria-label={t('control.view')}>{tabs.map((value) => <button key={value} type="button" role="tab" id={`control-tab-${value}`} aria-controls={`control-panel-${value}`} aria-selected={tab === value} tabIndex={tab === value ? 0 : -1} onKeyDown={(event) => navigateControlTabs(event, tabs.filter((entry) => record || entry === 'details' || entry === 'response'), value, setTab)} disabled={(value === 'attachments' || value === 'comments' || value === 'history') && !record} onClick={() => setTab(value)}>{t(`control.${value}`)}</button>)}</div>
             <div className="modal-body">{historyLoad.error && <p role="alert">{historyLoad.error} <button type="button" className="btn" onClick={historyLoad.retry}>{t('common.retry')}</button></p>}
                 {recordId && !record ? <p role="alert">{t('control.stale')}</p> : <>
                 <form onSubmit={(event) => {
                     event.preventDefault(); if (editing) void save(draft, true);
-                }} id="control-record-form" hidden={tab === 'comments' || tab === 'history'}>
+                }} id="control-record-form" hidden={tab === 'attachments' || tab === 'comments' || tab === 'history'}>
                     <div role="tabpanel" id="control-panel-details" aria-labelledby="control-tab-details" hidden={tab !== 'details'}>
                         <div className="workitem-overview">
                             <div className="workitem-main">
@@ -173,6 +175,49 @@ export function ControlRecordDialog({ boardId, recordId, kind, data, readOnly = 
                     {activeKind === 'risks' && <div role="tabpanel" id="control-panel-response" aria-labelledby="control-tab-response" hidden={tab !== 'response'} className="control-response">{field('mitigationPlan', 'textarea')}{field('contingencyPlan', 'textarea')}{field('actualImpact', 'textarea')}</div>}
                     {error && <p role="alert">{error}</p>}
                 </form>
+                {tab === 'attachments' && record && <div role="tabpanel" id="control-panel-attachments" aria-labelledby="control-tab-attachments" className="control-tab-panel">
+                    <AttachmentPanel
+                        key={`${boardId}:${record.id}`}
+                        boardId={boardId}
+                        attachments={buildAttachmentDisplayItems(getControlAttachments(record))}
+                        rawAttachments={getControlAttachments(record)}
+                        readOnly={readonly}
+                        otherAttachmentBytes={calculateBoardAttachmentBytes(data, { excludeControlId: record.id })}
+                        beforePick={() => prepareControlAttachmentWrite(boardId, record.id)}
+                        onChange={(next, uploadedBy) => setControlRecordAttachments(
+                            boardId,
+                            record.id,
+                            next,
+                            getControlAttachments(record),
+                            projectActor(boardId)?.name || uploadedBy?.trim() || lastCommentAuthor(boardId) || author,
+                            (saved) => {
+                                setDraft((current) => {
+                                    const synced = { ...current, updatedAt: saved.updatedAt };
+                                    if (saved.attachments?.length) synced.attachments = structuredClone(saved.attachments);
+                                    else delete synced.attachments;
+                                    return synced;
+                                });
+                                onSaved?.(saved);
+                            }
+                        )}
+                        onRemove={(next) => setControlRecordAttachments(
+                            boardId,
+                            record.id,
+                            next,
+                            getControlAttachments(record),
+                            projectActor(boardId)?.name || lastCommentAuthor(boardId) || author,
+                            (saved) => {
+                                setDraft((current) => {
+                                    const synced = { ...current, updatedAt: saved.updatedAt };
+                                    if (saved.attachments?.length) synced.attachments = structuredClone(saved.attachments);
+                                    else delete synced.attachments;
+                                    return synced;
+                                });
+                                onSaved?.(saved);
+                            }
+                        )}
+                    />
+                </div>}
                 {tab === 'comments' && record && <div role="tabpanel" id="control-panel-comments" aria-labelledby="control-tab-comments" className="control-tab-panel"><TaskConversation context={{ boardId, controlId: record.id, controlRecord: record, readOnly: readonly }} /></div>}
                 {tab === 'history' && record && <div role="tabpanel" id="control-panel-history" aria-labelledby="control-tab-history" tabIndex={0} className="control-tab-panel"><ControlRecordHistory record={record} /></div>}
                 </>}

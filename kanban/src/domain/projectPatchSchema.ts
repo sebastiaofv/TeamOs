@@ -51,7 +51,20 @@ function validEntity(at: ProjectCollectionPath, row: Row): boolean {
         // Members are not known here: resolve each id to itself so the runtime rules can run.
         const index = memberIndexFor({ members: row.assigneeIds.map((id) => ({ id, name: id })) });
         const record = controlFromFile(row, index);
-        parseProjectControl({ version: 3, records: [record], lastNumber: Number(String(row.id).match(/(\d+)$/)?.[1]) });
+        const normalizedRecord = record.attachments
+            ? {
+                ...record,
+                attachments: record.attachments.map((item) => {
+                    const raw = item as unknown as Record<string, unknown>;
+                    if (typeof raw.dataUrl !== 'string' && typeof raw.sha256 === 'string') {
+                        const { sha256, ...rest } = raw;
+                        return { ...rest, dataUrl: `teamos-attachment:patch/${sha256}` } as typeof item;
+                    }
+                    return item;
+                })
+            }
+            : record;
+        parseProjectControl({ version: 3, records: [normalizedRecord], lastNumber: Number(String(row.id).match(/(\d+)$/)?.[1]) });
         return true;
     }
     if (at === 'roadmap.sprintResults.credits') {

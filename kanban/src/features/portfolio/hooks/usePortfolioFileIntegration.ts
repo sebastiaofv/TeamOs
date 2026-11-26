@@ -2,7 +2,7 @@ import { subscribeProjectFileUpdates } from '@/infrastructure/persistence/projec
 import { needsCloseWarning } from '@/infrastructure/persistence/projectSaveLifecycle';
 import { useAppStore } from '@/features/portfolio/state/store';
 import { useEffect, useState } from 'react';
-import { isFileDrag } from '@/infrastructure/browser/fileDrop';
+import { isAttachmentDropTarget, isFileDrag } from '@/infrastructure/browser/fileDrop';
 import { PROJECT_FILE_WATCH_INTERVAL_MS } from '@/domain/constants';
 import { checkPortfolioFiles, openPortfolioFromFiles } from '@/features/portfolio/projects/projectCommands';
 
@@ -17,24 +17,37 @@ export function usePortfolioFileIntegration(): boolean {
 
         const handleDragEnter = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
+            if (event.defaultPrevented || isAttachmentDropTarget(event.target)) {
+                fileDragDepth = 0;
+                setFileDropActive(false);
+                return;
+            }
             fileDragDepth += 1;
             setFileDropActive(true);
         };
         const handleDragOver = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
+            if (event.defaultPrevented || isAttachmentDropTarget(event.target)) {
+                fileDragDepth = 0;
+                setFileDropActive(false);
+                return;
+            }
             event.preventDefault();
             setFileDropActive(true);
         };
         const handleDragLeave = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
+            if (event.defaultPrevented || isAttachmentDropTarget(event.target)) return;
             fileDragDepth = Math.max(0, fileDragDepth - 1);
             if (fileDragDepth === 0) setFileDropActive(false);
         };
         const handleDrop = (event: DragEvent) => {
             if (!isFileDrag(event)) return;
+            const handledByAttachmentZone = event.defaultPrevented || isAttachmentDropTarget(event.target);
             event.preventDefault();
             fileDragDepth = 0;
             setFileDropActive(false);
+            if (handledByAttachmentZone) return;
             const files = event.dataTransfer?.files;
             if (files?.length) void openPortfolioFromFiles(files);
         };

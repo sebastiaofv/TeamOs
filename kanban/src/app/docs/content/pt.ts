@@ -442,8 +442,9 @@ export const DOCS_PT: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Anexos' },
                     { kind: 'list', items: [
-                        'Até 10 ficheiros por workitem, 10 MiB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
-                        'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.'
+                        'Até 10 ficheiros por workitem ou registo de Controlo do projeto, 10 MiB cada. Nos projetos em pastas, os binários ficam em `attachments/` e são lidos para miniaturas, abertura ou transferência. Os ficheiros antigos continuam a incorporá-los.',
+                        'O separador Anexos lista a data de carregamento, o nome do ficheiro e quem o carregou, com **Abrir** para formatos comuns (imagens, PDF, texto, áudio, vídeo) e **Transferir** para todos.',
+                        'Num item editável, use **Adicionar ficheiros** ou largue ficheiros na área de Anexos. Os ficheiros largados seguem os mesmos limites e identidade local. Ficheiros largados noutras zonas da janela continuam a abrir como projetos só de leitura.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
                     { kind: 'p', text: 'Acrescente ligações HTTP/HTTPS completas no separador **Pull requests** do workitem. Os Epics não têm este separador. São apenas ligações locais: a aplicação não contacta o servidor até abrir uma.' }
@@ -730,7 +731,7 @@ export const DOCS_PT: DocSection[] = [
                         ['Decisão', 'Proposta, Aprovada, Rejeitada, Substituída ou Cancelada, com decisor, data e fundamentação.'],
                         ['Entregável', 'Planeado, Em curso, Entregue, Aceite ou Cancelado, com datas prevista, de entrega e de aceitação e um validador.']
                     ] },
-                    { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, comentários e histórico, e podem ser associados a fases e marcos. Ligações antigas a workitems ficam preservadas como metadados arquivados, não como associações ativas. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
+                    { kind: 'p', text: 'Os registos têm IDs como `CHK-RK-1`, participantes, etiquetas, anexos (com seletor de ficheiros e drag-and-drop), comentários e histórico, e podem ser associados a fases e marcos. Ligações antigas a workitems ficam preservadas como metadados arquivados, não como associações ativas. Filtre por Todos, Pendentes, Em atraso ou Pendente de aceitação.' },
                     { kind: 'list', items: [
                         'Riscos, Decisões e Entregáveis mantêm subseções próprias com o mesmo layout de **Tabela → Todos**. Contagens e seleção ficam à esquerda; pesquisa, ícones de Filtros, Colunas e Exportar CSV, separador e **+ Novo registo** ficam à direita.',
                         'Abra **Filtros** para estado, responsável, associações a fases/milestones e Pendentes, além dos campos de cada tipo: avaliações/nível de risco, decisor/data, ou validador/data prevista/Em atraso/Pendente de aceitação. Os filtros ativos aparecem em etiquetas removíveis.',

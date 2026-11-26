@@ -51,7 +51,7 @@ The file uses the language of the product: workitems, the project and Project Co
 
 A Task in a Story or Bug is not a planning unit. When the code reads a workitem, it rejects a field of a different type.
 
-All Project Control records keep these fields: `id`, `type`, `title`, `description`, `status`, `ownerId`, `assigneeIds`, `tags`, `related`, `dueDate`, `createdAt` and `updatedAt`. They also keep the fields of their type:
+All Project Control records keep these fields: `id`, `type`, `title`, `description`, `status`, `ownerId`, `assigneeIds`, `tags`, `related`, `dueDate`, `createdAt` and `updatedAt`, plus optional `attachments` (using the same `sha256` attachment entries as workitems). They also keep the fields of their type:
 
 | Field | risk | decision | deliverable |
 |---|---|---|---|
