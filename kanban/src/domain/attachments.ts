@@ -2,12 +2,49 @@ import { isAttachmentSource } from './attachmentReferences';
 import { controlRecords } from './projectControl';
 import type { Attachment, AttachmentKind, LooseBoardData, TaskInput } from './types';
 import { TEAMOS_EXTENSIONS_KEY, TASK_ATTACHMENTS_EXTENSIONS_KEY, ATTACHMENT_MAX_COUNT } from './constants';
-import { isRecord, normalizeTimestamp, nowIso } from './util';
+import { hasExactKeys, isRecord, normalizeTimestamp, nowIso } from './util';
 import { getTeamOsExtensionsObject, getBoardExtensionsObject } from './extensions';
 import { findTaskInBoardData } from './boardData';
 import { getComments } from './comments';
 
 const isAttachment = (item: Attachment | null): item is Attachment => item !== null;
+
+export function validateAttachmentRecord(attachment: unknown): asserts attachment is Attachment {
+    const keys = ['id', 'name', 'mime', 'sizeBytes', 'kind', 'dataUrl', 'createdAt'];
+    if (isRecord(attachment) && Object.prototype.hasOwnProperty.call(attachment, 'uploadedBy')) keys.push('uploadedBy');
+    if (!hasExactKeys(attachment, keys)) {
+        throw new Error('Invalid attachment structure.');
+    }
+    if (typeof attachment.id !== 'string' || !attachment.id.trim()) {
+        throw new Error('Attachment id must be a non-empty string.');
+    }
+    if (typeof attachment.name !== 'string' || !attachment.name.trim()) {
+        throw new Error('Attachment name must be a non-empty string.');
+    }
+    if (typeof attachment.mime !== 'string') {
+        throw new Error('Attachment mime must be a string.');
+    }
+    if (typeof attachment.sizeBytes !== 'number' || !Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes < 0) {
+        throw new Error('Attachment sizeBytes must be a non-negative number.');
+    }
+    if (attachment.kind !== 'image' && attachment.kind !== 'file') {
+        throw new Error('Attachment kind is invalid.');
+    }
+    if (!isAttachmentSource(attachment.dataUrl)) {
+        throw new Error('Attachment dataUrl must be a data URL string.');
+    }
+    if (!normalizeTimestamp(attachment.createdAt)) {
+        throw new Error('Attachment createdAt must be a valid timestamp.');
+    }
+    if ('uploadedBy' in attachment && (typeof attachment.uploadedBy !== 'string' || !attachment.uploadedBy.trim())) {
+        throw new Error('Attachment uploadedBy must be a non-empty string.');
+    }
+}
+
+export function summarizeAttachmentsForHistory(attachments: readonly Attachment[] | undefined): { id: string; name: string; mime: string; sizeBytes: number; kind: AttachmentKind }[] | null {
+    if (!attachments?.length) return null;
+    return attachments.map(({ id, name, mime, sizeBytes, kind }) => ({ id, name, mime, sizeBytes, kind }));
+}
 
 export function attachmentDuplicateKey(input: { name?: unknown; mime?: unknown; sizeBytes?: unknown } | null | undefined): string {
     if (!input || typeof input !== 'object') return '';
@@ -191,12 +228,20 @@ export function removeLegacyTaskAttachmentsFromExtensions(boardData: LooseBoardD
     }
 }
 
-export function calculateBoardAttachmentBytes(boardData: LooseBoardData | null | undefined, options: { excludeTaskId?: unknown } = {}): number {
+export function calculateBoardAttachmentBytes(boardData: LooseBoardData | null | undefined, options: { excludeTaskId?: unknown; excludeControlId?: string } = {}): number {
     const excludeTaskId = options.excludeTaskId;
     const excludeTaskNum = excludeTaskId === null || excludeTaskId === undefined || excludeTaskId === ''
         ? null
         : Number(excludeTaskId);
-    let total = [...new Map([...getComments(boardData), ...controlRecords(boardData).flatMap((record) => record.comments)].flatMap((comment) => comment.images).map((image) => [image.id, image])).values()].reduce((sum, image) => sum + image.sizeBytes, 0);
+    const excludeControlId = options.excludeControlId || null;
+    const records = controlRecords(boardData);
+    let total = [...new Map([...getComments(boardData), ...records.flatMap((record) => record.comments)].flatMap((comment) => comment.images).map((image) => [image.id, image])).values()].reduce((sum, image) => sum + image.sizeBytes, 0);
+    for (const record of records) {
+        if (excludeControlId !== null && record.id === excludeControlId) continue;
+        normalizeTaskAttachments(record.attachments).forEach((att) => {
+            total += Math.max(0, Number(att.sizeBytes) || 0);
+        });
+    }
 
     const taskList = boardData?.board?.tasks;
     if (Array.isArray(taskList)) {

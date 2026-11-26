@@ -256,6 +256,7 @@ export function controlToFile(record: ControlRecord, index: MemberIndex): Contro
         tags: record.tags || [],
         related: record.related,
         dueDate: emptyToNull(record.dueDate),
+        ...(record.attachments?.length ? { attachments: record.attachments } : {}),
         ...typeFields,
         ...(record.legacyWorkitemIds ? { legacyWorkitemIds: record.legacyWorkitemIds } : {}),
         createdAt: record.createdAt,
@@ -288,6 +289,7 @@ export function controlFromFile(value: Rec, index: MemberIndex, comments: Contro
         related: value.related,
         createdAt: value.createdAt,
         updatedAt: value.updatedAt,
+        ...(value.attachments?.length ? { attachments: value.attachments } : {}),
         comments,
         history: [],
         ...(value.legacyWorkitemIds ? { legacyWorkitemIds: value.legacyWorkitemIds } : {})

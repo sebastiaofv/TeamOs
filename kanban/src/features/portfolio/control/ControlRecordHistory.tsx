@@ -11,7 +11,7 @@ const FIELDS: Record<string, TranslationKey> = {
     decisionMaker: 'control.decisionMaker', decisionDate: 'control.decisionDate', rationale: 'control.rationale',
     validator: 'control.validator', dueDate: 'control.dueDate', deliveredDate: 'control.deliveredDate',
     acceptedDate: 'control.acceptedDate', materializedDate: 'control.materializedDate', actualImpact: 'control.actualImpact',
-    related: 'control.related', createdAt: 'control.createdAt', updatedAt: 'control.updatedAt'
+    related: 'control.related', attachments: 'task.attachments', createdAt: 'control.createdAt', updatedAt: 'control.updatedAt'
 };
 
 function category(field: string): HistoryCategory {

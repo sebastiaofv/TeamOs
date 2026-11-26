@@ -110,6 +110,7 @@ export const controlRecordFileSchema = z.looseObject({
     id: filledTextSchema, type: z.enum(['risk', 'decision', 'deliverable']), title: z.string(), description: z.string(), status: z.string(),
     ownerId: filledTextSchema.nullable(), assigneeIds: uniqueIdListSchema, tags: z.array(z.string()),
     related: z.custom<ControlRelated>(value => recordSchema.safeParse(value).success), dueDate: z.string().nullable(),
+    attachments: z.array(z.custom<Attachment>(value => attachmentFileSchema.safeParse(value).success)).optional(),
     createdAt: timestampSchema, updatedAt: timestampSchema,
     legacyWorkitemIds: z.custom<number[]>(Array.isArray).optional(),
     probability: assessmentSchema.optional(), impact: assessmentSchema.optional(), mitigationPlan: z.string().optional(),
@@ -119,6 +120,7 @@ export const controlRecordFileSchema = z.looseObject({
 }).superRefine((value, context) => {
     for (const field of CONTROL_TYPE_FIELDS[value.type]) if (value[field] === undefined) context.addIssue({ code: 'custom', path: [field], message: 'Missing type-specific field.' });
     if ('legacyWorkitemIds' in value && value.legacyWorkitemIds === undefined) context.addIssue({ code: 'custom', path: ['legacyWorkitemIds'], message: 'Invalid present field.' });
+    if ('attachments' in value && value.attachments === undefined) context.addIssue({ code: 'custom', path: ['attachments'], message: 'Invalid present field.' });
 });
 export type ControlRecordFile = z.infer<typeof controlRecordFileSchema>;
 

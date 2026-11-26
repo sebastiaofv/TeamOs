@@ -1,7 +1,9 @@
 import { highestControlNumber, unconvertedTimeline } from './legacySequences';
 import type { Attachment, BoardData, LooseBoardData, TimelineChanges } from './types';
+import { ATTACHMENT_HARD_MAX_BYTES, ATTACHMENT_MAX_COUNT } from './constants';
+import { normalizeAttachmentList, normalizeTaskAttachments, summarizeAttachmentsForHistory, validateAttachmentRecord } from './attachments';
 import { isRecord, normalizeTimestamp, nowIso } from './util';
-import { cloneSerializable } from './serializable';
+import { areSerializableValuesEqual, cloneSerializable } from './serializable';
 import { parseRoadmapIsoDate } from './roadmap';
 import { validateCommentInput } from './comments';
 import { ProjectDataError, getProjectData } from './projectData';
@@ -31,6 +33,7 @@ export type ControlRecord = {
     validator: string; dueDate: string; deliveredDate: string; acceptedDate: string;
     materializedDate: string; actualImpact: string;
     related: ControlRelated; createdAt: string; updatedAt: string;
+    attachments?: Attachment[];
     comments: ControlComment[]; history: ControlHistory[];
     /** Archived v1 associations, retained for file compatibility, never used as active links. */
     legacyWorkitemIds?: number[];
@@ -39,6 +42,9 @@ export type ProjectControl = { version: 3; lastNumber: number; records: ControlR
 export function emptyProjectControl(): ProjectControl { return { version: 3, lastNumber: 0, records: [] }; }
 export function controlRecords(data?: LooseBoardData | null): ControlRecord[] {
     return (data?.extensions?.projectControl as ProjectControl | undefined)?.records || [];
+}
+export function getControlAttachments(record?: Pick<ControlRecord, 'attachments'> | null): Attachment[] {
+    return normalizeTaskAttachments(record?.attachments);
 }
 export function riskLevel(record: Pick<ControlRecord, 'probability' | 'impact'>): Assessment {
     const score = (ASSESSMENTS.indexOf(record.probability) + 1) * (ASSESSMENTS.indexOf(record.impact) + 1);
@@ -82,6 +88,15 @@ export function parseProjectControl(value: unknown): ProjectControl | undefined 
             if (!Array.isArray(entries) || entries.some((entry) => typeof entry !== 'string' || !entry.trim() || (entry !== entry.trim() && (key === 'tags' || entry !== item.owner)) || (key === 'tags' && entry.length > 30)) || new Set(entries.map((entry) => entry.trim().toLowerCase())).size !== entries.length) fail();
         }
         if (value.version === 3 && String(item.owner).trim() && !(item.assignees as string[]).includes(String(item.owner))) fail();
+        if (Object.prototype.hasOwnProperty.call(item, 'attachments')) {
+            if (!Array.isArray(item.attachments) || item.attachments.length > ATTACHMENT_MAX_COUNT) fail();
+            const attachmentIds = new Set<string>();
+            for (const attachment of item.attachments) {
+                try { validateAttachmentRecord(attachment); } catch { fail(); }
+                if (attachmentIds.has(attachment.id)) fail();
+                attachmentIds.add(attachment.id);
+            }
+        }
         if (!Array.isArray(item.comments) || !Array.isArray(item.history)) fail();
         const commentIds = new Set<string>();
         for (const comment of item.comments) {
@@ -137,16 +152,62 @@ export function saveControlRecord(data: BoardData, input: ControlRecord, author:
     if (record.kind === 'risks' && record.status === 'materialized' && !record.materializedDate) throw new ControlError('materializedDateRequired', 'A materialization date is required.');
     record.createdAt = before?.createdAt || nowIso(); record.updatedAt = nowIso();
     record.comments = before?.comments || []; record.history = before?.history || [];
+    if (before?.attachments?.length) record.attachments = cloneSerializable(before.attachments);
+    else if (!before && record.attachments?.length) record.attachments = normalizeAttachmentList(record.attachments).slice(0, ATTACHMENT_MAX_COUNT);
+    else delete record.attachments;
     assertControlReferences(data, record);
     const changes: TimelineChanges = {};
     for (const key of Object.keys(record) as (keyof ControlRecord)[]) {
-        if (['comments', 'history', 'updatedAt'].includes(key)) continue;
+        if (['comments', 'history', 'updatedAt', 'attachments'].includes(key)) continue;
         if (JSON.stringify(before?.[key]) !== JSON.stringify(record[key])) changes[key] = { before: before?.[key] ?? null, after: cloneSerializable(record[key]) };
     }
     if (!Object.keys(changes).length) return before!;
     record.history = [...record.history, { id: crypto.randomUUID(), at: record.updatedAt, author: author.trim(), changes }];
     const next: ProjectControl = { version: 3, lastNumber: before ? lastNumber : lastNumber + 1, records: [...extension.records.filter((item) => item.id !== record.id), record] };
     parseProjectControl(next); data.extensions.projectControl = next;
+    return record;
+}
+
+export function saveControlRecordAttachments(
+    data: BoardData,
+    recordId: string,
+    value: readonly Attachment[],
+    expected: readonly Attachment[],
+    author: string
+): ControlRecord | null {
+    if (!author.trim()) throw new ControlError('authorRequired', 'An author is required.');
+    const extension = data.extensions.projectControl;
+    const before = extension?.records.find((record) => record.id === recordId);
+    if (!extension || !before) throw new ControlError('stale', 'Project Control record no longer exists.');
+    const current = getControlAttachments(before);
+    if (!areSerializableValuesEqual(current, normalizeAttachmentList(expected))) throw new ControlError('stale', 'Project Control record changed.');
+    const attachments = normalizeAttachmentList(value);
+    if (attachments.length > ATTACHMENT_MAX_COUNT || attachments.some((item) => item.sizeBytes > ATTACHMENT_HARD_MAX_BYTES)) fail();
+    if (areSerializableValuesEqual(current, attachments)) return null;
+    const record = cloneSerializable(before);
+    record.updatedAt = nowIso();
+    if (attachments.length) record.attachments = attachments;
+    else delete record.attachments;
+    record.history = [
+        ...record.history,
+        {
+            id: crypto.randomUUID(),
+            at: record.updatedAt,
+            author: author.trim(),
+            changes: {
+                attachments: {
+                    before: summarizeAttachmentsForHistory(before.attachments),
+                    after: summarizeAttachmentsForHistory(record.attachments)
+                }
+            }
+        }
+    ];
+    const next: ProjectControl = {
+        ...extension,
+        records: extension.records.map((item) => item.id === record.id ? record : item)
+    };
+    parseProjectControl(next);
+    data.extensions.projectControl = next;
     return record;
 }
 /** Keep the existing work calculation. A pending acceptance caps completion at 99%. */

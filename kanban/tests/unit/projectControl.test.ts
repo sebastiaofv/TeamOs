@@ -3,10 +3,14 @@ import { describe, expect, it } from 'vitest';
 import { fromAny } from '@total-typescript/shoehorn';
 import { createEmptyProjectData, validateBoardData } from '../../src/domain/board';
 import { createBoardStateSnapshot, serializeBoardDataFromObject } from '../../src/domain/serialize';
-import { ASSESSMENTS, controlRecords, gateControlProgress, newControlRecord, parseProjectControl, removeDeletedControlLinks, riskLevel, saveControlRecord, type ControlRecord } from '../../src/domain/projectControl';
+import { ASSESSMENTS, controlRecords, gateControlProgress, getControlAttachments, newControlRecord, parseProjectControl, removeDeletedControlLinks, riskLevel, saveControlRecord, saveControlRecordAttachments, type ControlRecord } from '../../src/domain/projectControl';
+import { calculateBoardAttachmentBytes } from '../../src/domain/attachments';
+import { attachmentsFromHashes, attachmentsToHashes, fromProjectFile, toProjectCheckpoint, toProjectFile } from '../../src/domain/projectFormat';
+import { applyProjectPatch, diffProjectState } from '../../src/domain/projectPatch';
+import { isProjectPatch } from '../../src/domain/projectPatchSchema';
 import { appendTimelineEvent, ensureBoardTimelineBaseline, reconstructBoardStateFromTimeline } from '../../src/domain/timeline';
 import { applyProjectSettings } from '../../src/domain/projectData';
-import type { BoardData } from '../../src/domain/types';
+import type { Attachment, BoardData } from '../../src/domain/types';
 
 const fixture = (): BoardData => JSON.parse(readFileSync('tests/fixtures/manual/us-20.board.json', 'utf8'));
 describe('Project Control persistence and lifecycle', () => {
@@ -186,5 +190,76 @@ describe('Project Control persistence and lifecycle', () => {
         expect(controlRecords(reconstructBoardStateFromTimeline(data, 0))).toHaveLength(0);
         expect(controlRecords(reconstructBoardStateFromTimeline(data, 1))[0].comments).toHaveLength(0);
         expect(controlRecords(reconstructBoardStateFromTimeline(data, 2))[0].comments[0].text).toBe('Approved evidence');
+    });
+    it('saves, validates, persists and replays Project Control attachments across v1 files and patches', () => {
+        const data = fixture();
+        ensureBoardTimelineBaseline(data);
+        const target = controlRecords(data)[0];
+        const first: Attachment = {
+            id: 'att-ctrl-1',
+            name: 'risk-evidence.txt',
+            mime: 'text/plain',
+            sizeBytes: 12,
+            kind: 'file',
+            dataUrl: 'data:text/plain;base64,aGVsbG8gd29ybGQ=',
+            createdAt: '2026-10-31T12:00:00.000Z',
+            uploadedBy: 'Ana Silva'
+        };
+        const updated = saveControlRecordAttachments(data, target.id, [first], [], 'Ana Silva');
+        expect(updated).not.toBeNull();
+        expect(getControlAttachments(updated)).toEqual([first]);
+        expect(updated!.history.at(-1)!.changes.attachments).toEqual({
+            before: null,
+            after: [{ id: first.id, name: first.name, mime: first.mime, sizeBytes: first.sizeBytes, kind: first.kind }]
+        });
+        expect(JSON.stringify(updated!.history.at(-1))).not.toContain('dataUrl');
+        expect(calculateBoardAttachmentBytes(data)).toBeGreaterThanOrEqual(12);
+        expect(calculateBoardAttachmentBytes(data, { excludeControlId: target.id })).toBe(calculateBoardAttachmentBytes(data) - 12);
+        // Editing metadata preserves existing attachments.
+        const edited = saveControlRecord(data, { ...updated!, title: 'Supplier availability revised' }, 'Ana Silva');
+        expect(getControlAttachments(edited)).toEqual([first]);
+        // Concurrent/stale check rejects mismatched expected attachments.
+        expect(() => saveControlRecordAttachments(data, target.id, [], [], 'Ana Silva')).toThrow(/changed/);
+        expect(() => saveControlRecordAttachments(data, target.id, [], [first], '   ')).toThrow(/author/);
+        // Folder v1 round-trip with content hashes and patch replay.
+        const projectId = data.extensions.project!.id;
+        const hashedData = structuredClone(data);
+        const hash = 'b'.repeat(64);
+        controlRecords(hashedData).find((item) => item.id === target.id)!.attachments = [{
+            ...first,
+            dataUrl: `teamos-attachment:${encodeURIComponent(projectId)}/${hash}`
+        }];
+        const fileV1 = attachmentsToHashes(toProjectFile(hashedData));
+        const storedRecord = fileV1.projectControl.records.find((item) => item.id === target.id)!;
+        expect(storedRecord.attachments).toHaveLength(1);
+        expect((storedRecord.attachments![0] as unknown as { sha256?: string }).sha256).toBe(hash);
+        const restored = fromProjectFile(attachmentsFromHashes(fileV1, projectId));
+        validateBoardData(restored);
+        expect(controlRecords(restored).find((item) => item.id === target.id)!.attachments).toEqual([{
+            ...first,
+            dataUrl: `teamos-attachment:${encodeURIComponent(projectId)}/${hash}`
+        }]);
+        const beforePatch = toProjectCheckpoint(fixture());
+        const afterPatch = toProjectCheckpoint(hashedData);
+        const ops = diffProjectState(beforePatch, afterPatch);
+        expect(isProjectPatch(ops)).toBe(true);
+        expect(isProjectPatch(attachmentsToHashes(ops))).toBe(true);
+        const replayed = applyProjectPatch(fixture(), ops);
+        expect(controlRecords(replayed).find((item) => item.id === target.id)!.attachments).toEqual([{
+            ...first,
+            dataUrl: `teamos-attachment:${encodeURIComponent(projectId)}/${hash}`
+        }]);
+        // Removing the last attachment clears the optional field cleanly.
+        const cleared = saveControlRecordAttachments(data, target.id, [], [first], 'Ana Silva');
+        expect(cleared!.attachments).toBeUndefined();
+        expect(cleared!.history.at(-1)!.changes.attachments).toEqual({
+            before: [{ id: first.id, name: first.name, mime: first.mime, sizeBytes: first.sizeBytes, kind: first.kind }],
+            after: null
+        });
+        // Malformed or duplicate control attachments are rejected.
+        const invalidExtension = structuredClone(data.extensions.projectControl!);
+        expect(() => parseProjectControl({ ...invalidExtension, records: [{ ...invalidExtension.records[0], attachments: [first, first] }] })).toThrow();
+        expect(() => parseProjectControl({ ...invalidExtension, records: [{ ...invalidExtension.records[0], attachments: [{ ...first, dataUrl: 'http://evil' }] }] })).toThrow();
+        expect(() => parseProjectControl({ ...invalidExtension, records: [{ ...invalidExtension.records[0], attachments: Array.from({ length: 11 }, (_, i) => ({ ...first, id: `a-${i}` })) }] })).toThrow();
     });
 });

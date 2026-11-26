@@ -47,6 +47,15 @@ describe('project file schema', () => {
         expect(() => assertControlRecordFile({ ...risk(), title: 7 })).toThrow('malformed');
         expect(() => assertControlRecordFile({ ...risk(), assigneeIds: ['a', 'a'] })).toThrow('malformed');
         expect(() => assertControlRecordFile({ ...risk(), materializedDate: 7 })).toThrow('malformed');
+        expect(() => assertControlRecordFile({
+            ...risk(),
+            attachments: [{ id: 'a1', name: 'spec.txt', mime: 'text/plain', kind: 'file', sizeBytes: 4, createdAt: '2026-01-01T00:00:00.000Z', sha256: 'a'.repeat(64) }]
+        })).not.toThrow();
+        expect(() => assertControlRecordFile({
+            ...risk(),
+            attachments: [{ id: 'a1', name: 'spec.txt', mime: 'text/plain', kind: 'file', sizeBytes: 4, createdAt: '2026-01-01T00:00:00.000Z', sha256: 'bad-hash' }]
+        })).toThrow('malformed');
+        expect(() => assertControlRecordFile({ ...risk(), attachments: undefined })).toThrow('malformed');
     });
 
     const story = () => ({

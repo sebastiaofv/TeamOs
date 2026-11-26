@@ -442,8 +442,9 @@ export const DOCS_EN: DocSection[] = [
                     ] },
                     { kind: 'h', text: 'Attachments' },
                     { kind: 'list', items: [
-                        'Up to 10 files per workitem, 10 MiB each. Folder projects store files separately in `attachments/` and load them for thumbnails, opening or downloading. Legacy files embed them.',
-                        'The Attachments tab lists upload date, file name and uploader, with **Open** for common formats (images, PDF, text, audio, video) and **Download** for all.'
+                        'Up to 10 files per workitem or Project Control record, 10 MiB each. Folder projects store files separately in `attachments/` and load them for thumbnails, opening or downloading. Legacy files embed them.',
+                        'The Attachments tab lists upload date, file name and uploader, with **Open** for common formats (images, PDF, text, audio, video) and **Download** for all.',
+                        'In a writable item, use **Add Files** or drop files onto the Attachments area. Dropped files follow the same limits and uploader identity. Files dropped anywhere else on the window still open as read-only projects.'
                     ] },
                     { kind: 'h', text: 'Pull requests' },
                     { kind: 'p', text: 'Add full HTTP/HTTPS links in the workitem’s **Pull requests** tab. Epics have no Pull requests tab. They are local links only: the app does not contact the server until you open one.' }
@@ -730,7 +731,7 @@ export const DOCS_EN: DocSection[] = [
                         ['Decision', 'Proposed, Approved, Rejected, Superseded or Cancelled, with decision maker, date and rationale.'],
                         ['Deliverable', 'Planned, In progress, Delivered, Accepted or Cancelled, with due, delivered and accepted dates and a validator.']
                     ] },
-                    { kind: 'p', text: 'Records have IDs like `CHK-RK-1`, participants, tags, comments and history, and can be associated with phases and milestones. Older workitem links are retained as archived metadata, not active associations. Filter by All, Pending, Overdue or Pending acceptance.' },
+                    { kind: 'p', text: 'Records have IDs like `CHK-RK-1`, participants, tags, attachments (with file picker and drag-and-drop), comments and history, and can be associated with phases and milestones. Older workitem links are retained as archived metadata, not active associations. Filter by All, Pending, Overdue or Pending acceptance.' },
                     { kind: 'list', items: [
                         'Risks, Decisions and Deliverables keep separate subsections with the same table layout as **Table → All**. Counts and selection stay on the left; search, Filters, Columns, Export CSV, a divider and **+ New record** sit on the right.',
                         'Open the **Filters** icon for status, responsible person, phase/milestone associations and Pending, plus the fields for each type: assessments/risk level, decision maker/date, or validator/due date/Overdue/Pending acceptance. Active filters appear as removable tags.',
